@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Github, Linkedin, Mail, Loader2 } from "lucide-react";
+import { Send, Github, Linkedin, Mail, Loader2, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -100,6 +100,9 @@ const ContactSection = () => {
             <div className="space-y-3">
               <a href="mailto:vcpremchandyadav@gmail.com" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Mail className="w-5 h-5" /> vcpremchandyadav@gmail.com
+              </a>
+              <a href="tel:+918977771494" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Phone className="w-5 h-5" /> 🇮🇳 +91 89777 71494
               </a>
               <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Github className="w-5 h-5" /> GitHub
