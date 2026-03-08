@@ -5,8 +5,6 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { Play, Pause, RotateCcw, ChevronRight } from "lucide-react";
 
-// --- 3D Components ---
-
 function DebrixSat({ position, glow }: { position: THREE.Vector3; glow: boolean }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
@@ -17,31 +15,27 @@ function DebrixSat({ position, glow }: { position: THREE.Vector3; glow: boolean 
   });
   return (
     <group ref={ref} position={[-3, 0, 0]}>
-      {/* Body */}
       <mesh>
         <boxGeometry args={[0.5, 0.25, 0.35]} />
-        <meshStandardMaterial color="#22b8cf" emissive="#22b8cf" emissiveIntensity={glow ? 0.8 : 0.3} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial color="#e0e0e0" emissive="#4fc3f7" emissiveIntensity={glow ? 0.5 : 0.1} metalness={0.9} roughness={0.15} />
       </mesh>
-      {/* Solar panels */}
       <mesh position={[0.55, 0, 0]}>
         <boxGeometry args={[0.45, 0.02, 0.25]} />
-        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
       </mesh>
       <mesh position={[-0.55, 0, 0]}>
         <boxGeometry args={[0.45, 0.02, 0.25]} />
-        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
       </mesh>
-      {/* Capture arm */}
       <mesh position={[0, -0.18, 0.2]} rotation={[0.4, 0, 0]}>
         <cylinderGeometry args={[0.015, 0.02, 0.25, 6]} />
-        <meshStandardMaterial color="#aaa" metalness={0.7} />
+        <meshStandardMaterial color="#bdbdbd" metalness={0.8} />
       </mesh>
-      {/* Gripper */}
       <mesh position={[0, -0.3, 0.32]}>
         <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial color="#22b8cf" emissive="#22b8cf" emissiveIntensity={0.5} />
+        <meshStandardMaterial color="#4fc3f7" emissive="#4fc3f7" emissiveIntensity={0.6} />
       </mesh>
-      <pointLight color="#22b8cf" intensity={glow ? 1.2 : 0.4} distance={2} />
+      <pointLight color="#4fc3f7" intensity={glow ? 1 : 0.3} distance={2} />
     </group>
   );
 }
@@ -56,33 +50,29 @@ function DumpSat({ position }: { position: THREE.Vector3 }) {
   });
   return (
     <group ref={ref} position={[3, 0, 0]}>
-      {/* Main cargo bay */}
       <mesh>
         <boxGeometry args={[0.7, 0.4, 0.5]} />
-        <meshStandardMaterial color="#38d9a9" emissive="#38d9a9" emissiveIntensity={0.2} metalness={0.7} roughness={0.3} />
+        <meshStandardMaterial color="#c0c0c0" emissive="#81c784" emissiveIntensity={0.15} metalness={0.85} roughness={0.2} />
       </mesh>
-      {/* Bay doors (open look) */}
       <mesh position={[0, 0.22, 0]} rotation={[-0.2, 0, 0]}>
         <boxGeometry args={[0.65, 0.02, 0.45]} />
-        <meshStandardMaterial color="#2a9d8f" metalness={0.6} />
+        <meshStandardMaterial color="#a0a0a0" metalness={0.7} />
       </mesh>
-      {/* Solar arrays - larger */}
       <mesh position={[0.65, 0, 0]}>
         <boxGeometry args={[0.5, 0.015, 0.35]} />
-        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
       </mesh>
       <mesh position={[-0.65, 0, 0]}>
         <boxGeometry args={[0.5, 0.015, 0.35]} />
-        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
       </mesh>
-      {/* Thrusters */}
       {[-0.2, 0, 0.2].map((z, i) => (
         <mesh key={i} position={[-0.36, -0.15, z]}>
           <coneGeometry args={[0.03, 0.08, 6]} />
-          <meshStandardMaterial color="#666" metalness={0.8} />
+          <meshStandardMaterial color="#9e9e9e" metalness={0.8} />
         </mesh>
       ))}
-      <pointLight color="#38d9a9" intensity={0.5} distance={2} />
+      <pointLight color="#81c784" intensity={0.4} distance={2} />
     </group>
   );
 }
@@ -102,9 +92,7 @@ function DebrisCluster({ visible, dispersing }: { visible: boolean; dispersing: 
     if (!ref.current) return;
     ref.current.children.forEach((child, i) => {
       const p = pieces[i];
-      if (dispersing) {
-        p.pos.add(p.vel);
-      }
+      if (dispersing) p.pos.add(p.vel);
       child.position.copy(p.pos);
       child.rotation.x = p.rot + state.clock.elapsedTime * 0.5;
       child.rotation.z = p.rot + state.clock.elapsedTime * 0.3;
@@ -118,20 +106,20 @@ function DebrisCluster({ visible, dispersing }: { visible: boolean; dispersing: 
       {pieces.map((p, i) => (
         <mesh key={i} position={p.pos}>
           <dodecahedronGeometry args={[p.size, 0]} />
-          <meshStandardMaterial color="#ff6b6b" emissive="#ff6b6b" emissiveIntensity={0.3} metalness={0.5} roughness={0.5} />
+          <meshStandardMaterial color="#bdbdbd" metalness={0.6} roughness={0.4} />
         </mesh>
       ))}
     </group>
   );
 }
 
-function DockingBeam({ active, progress }: { active: boolean; progress: number }) {
+function DockingBeam({ active }: { active: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     if (ref.current && active) {
       const mat = ref.current.material as THREE.MeshStandardMaterial;
-      mat.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 6) * 0.2;
+      mat.opacity = 0.25 + Math.sin(state.clock.elapsedTime * 6) * 0.15;
     }
   });
 
@@ -139,16 +127,14 @@ function DockingBeam({ active, progress }: { active: boolean; progress: number }
 
   return (
     <group>
-      {/* Main beam */}
       <mesh ref={ref} position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.025, 0.025, 1.8, 8]} />
-        <meshStandardMaterial color="#22b8cf" transparent opacity={0.4} emissive="#22b8cf" emissiveIntensity={3} />
+        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.3} emissive="#4fc3f7" emissiveIntensity={2} />
       </mesh>
-      {/* Energy rings along beam */}
       {[0.3, 0, -0.3].map((x, i) => (
         <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
           <torusGeometry args={[0.06, 0.008, 8, 16]} />
-          <meshStandardMaterial color="#22b8cf" transparent opacity={0.5} emissive="#22b8cf" emissiveIntensity={2} />
+          <meshStandardMaterial color="#4fc3f7" transparent opacity={0.4} emissive="#4fc3f7" emissiveIntensity={1.5} />
         </mesh>
       ))}
     </group>
@@ -170,7 +156,7 @@ function ThrusterFlame({ active, position }: { active: boolean; position: [numbe
   return (
     <mesh ref={ref} position={position}>
       <coneGeometry args={[0.06, 0.35, 8]} />
-      <meshStandardMaterial color="#ff8c00" transparent opacity={0.7} emissive="#ff4500" emissiveIntensity={3} />
+      <meshStandardMaterial color="#ffab40" transparent opacity={0.8} emissive="#ff6d00" emissiveIntensity={3} />
     </mesh>
   );
 }
@@ -179,43 +165,8 @@ function EarthSmall() {
   return (
     <mesh position={[0, -4, -2]}>
       <sphereGeometry args={[2.5, 32, 32]} />
-      <meshStandardMaterial color="#0a2a4a" emissive="#051525" emissiveIntensity={0.2} />
+      <meshStandardMaterial color="#1a5276" emissive="#0d2b3e" emissiveIntensity={0.3} />
     </mesh>
-  );
-}
-
-function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: number }) {
-  // Interpolated positions based on phase
-  const debrixTarget = new THREE.Vector3(
-    phase === 0 ? -2.5 : phase === 1 ? -0.9 : -0.9,
-    0, 0
-  );
-  const dumpTarget = new THREE.Vector3(
-    phase === 0 ? 2.5 : phase === 1 ? 0.9 : phase === 3 ? 0.9 : 0.9,
-    phase === 3 ? -1 - autoProgress * 2 : 0,
-    0
-  );
-
-  return (
-    <Canvas camera={{ position: [0, 2, 5.5], fov: 40 }}>
-      <color attach="background" args={["#030810"]} />
-      <ambientLight intensity={0.15} />
-      <directionalLight position={[5, 3, 5]} intensity={0.8} color="#cce5ff" />
-      <directionalLight position={[-3, -1, -3]} intensity={0.15} color="#ff6644" />
-
-      <DebrixSat position={debrixTarget} glow={phase === 1 || phase === 2} />
-      <DumpSat position={dumpTarget} />
-      <DebrisCluster visible={phase <= 2} dispersing={phase === 2} />
-      <DockingBeam active={phase === 1 || phase === 2} progress={autoProgress} />
-      <ThrusterFlame active={phase === 3} position={[0.9, -1.5 - autoProgress * 2, 0]} />
-
-      {phase === 3 && <EarthSmall />}
-
-      {/* Ambient particles */}
-      <Stars />
-
-      <OrbitControls enableZoom enablePan={false} autoRotate={phase === 0} autoRotateSpeed={0.3} maxDistance={10} minDistance={3} />
-    </Canvas>
   );
 }
 
@@ -237,12 +188,44 @@ function Stars() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.03} color="#ffffff" transparent opacity={0.5} sizeAttenuation />
+      <pointsMaterial size={0.04} color="#ffffff" transparent opacity={0.6} sizeAttenuation />
     </points>
   );
 }
 
-// --- Phase data ---
+function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: number }) {
+  const debrixTarget = new THREE.Vector3(
+    phase === 0 ? -2.5 : phase === 1 ? -0.9 : -0.9,
+    0, 0
+  );
+  const dumpTarget = new THREE.Vector3(
+    phase === 0 ? 2.5 : phase === 1 ? 0.9 : 0.9,
+    phase === 3 ? -1 - autoProgress * 2 : 0,
+    0
+  );
+
+  return (
+    <Canvas camera={{ position: [0, 2, 5.5], fov: 40 }}>
+      <color attach="background" args={["#0a1628"]} />
+      <ambientLight intensity={0.25} />
+      <directionalLight position={[5, 3, 5]} intensity={1.2} color="#ffffff" />
+      <directionalLight position={[-3, -1, -3]} intensity={0.2} color="#ffcc80" />
+      <hemisphereLight args={["#b3e5fc", "#1a237e", 0.15]} />
+
+      <DebrixSat position={debrixTarget} glow={phase === 1 || phase === 2} />
+      <DumpSat position={dumpTarget} />
+      <DebrisCluster visible={phase <= 2} dispersing={phase === 2} />
+      <DockingBeam active={phase === 1 || phase === 2} />
+      <ThrusterFlame active={phase === 3} position={[0.9, -1.5 - autoProgress * 2, 0]} />
+
+      {phase === 3 && <EarthSmall />}
+      <Stars />
+
+      <OrbitControls enableZoom enablePan={false} autoRotate={phase === 0} autoRotateSpeed={0.3} maxDistance={10} minDistance={3} />
+    </Canvas>
+  );
+}
+
 const phases = [
   {
     title: "Approach & Lock-On",
@@ -266,7 +249,6 @@ const phases = [
   },
 ];
 
-// --- Main Section ---
 const DockDumpSection = () => {
   const [phase, setPhase] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -316,14 +298,12 @@ const DockDumpSection = () => {
         </motion.div>
 
         <div className="grid lg:grid-cols-5 gap-6">
-          {/* 3D Viewport */}
           <div className="lg:col-span-3 glass-card p-1 overflow-hidden relative">
             <div className="w-full h-[420px] md:h-[480px] rounded-xl overflow-hidden">
               <DockingScene phase={phase} autoProgress={autoProgress} />
             </div>
 
-            {/* Playback controls */}
-            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/70 backdrop-blur-sm border border-border/30">
+            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
                 className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors"
@@ -337,7 +317,6 @@ const DockDumpSection = () => {
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
 
-              {/* Phase progress bar */}
               <div className="flex-1 flex items-center gap-1">
                 {phases.map((_, i) => (
                   <div key={i} className="flex-1 h-1.5 rounded-full bg-secondary/50 overflow-hidden">
@@ -345,7 +324,7 @@ const DockDumpSection = () => {
                       className="h-full rounded-full transition-all duration-200"
                       style={{
                         width: phase > i ? "100%" : phase === i ? `${autoProgress * 100}%` : "0%",
-                        backgroundColor: phase > i ? "hsl(var(--primary))" : phase === i ? "hsl(var(--primary))" : "transparent",
+                        backgroundColor: phase >= i && (phase > i || autoProgress > 0) ? "hsl(var(--primary))" : "transparent",
                       }}
                     />
                   </div>
@@ -358,7 +337,6 @@ const DockDumpSection = () => {
             </div>
           </div>
 
-          {/* Phase selector */}
           <div className="lg:col-span-2 space-y-3">
             <AnimatePresence mode="wait">
               {phases.map((p, i) => (
@@ -367,7 +345,7 @@ const DockDumpSection = () => {
                   onClick={() => handlePhaseClick(i)}
                   className={`w-full text-left p-4 rounded-xl border transition-all duration-300 ${
                     phase === i
-                      ? "bg-primary/10 border-primary/40 shadow-[0_0_25px_hsl(var(--primary)/0.12)]"
+                      ? "bg-primary/10 border-primary/40 shadow-[0_0_25px_hsl(var(--primary)/0.1)]"
                       : i < phase
                       ? "bg-accent/5 border-accent/20 opacity-60"
                       : "bg-card/40 border-border/50 hover:border-primary/20"

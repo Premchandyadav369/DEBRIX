@@ -13,9 +13,9 @@ function SatelliteModel() {
     }
   });
 
-  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#8899aa", metalness: 0.8, roughness: 0.2 }), []);
-  const panelMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1a3a5c", metalness: 0.5, roughness: 0.3 }), []);
-  const accentMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#22b8cf", emissive: "#22b8cf", emissiveIntensity: 0.5 }), []);
+  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#c0c0c0", metalness: 0.9, roughness: 0.15 }), []);
+  const panelMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1565c0", metalness: 0.7, roughness: 0.2 }), []);
+  const accentMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#4fc3f7", emissive: "#4fc3f7", emissiveIntensity: 0.4 }), []);
   const armMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#666", metalness: 0.9, roughness: 0.1 }), []);
 
   return (
@@ -100,7 +100,7 @@ function DebrisParticles() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.05} color="#22b8cf" transparent opacity={0.6} />
+      <pointsMaterial size={0.05} color="#4fc3f7" transparent opacity={0.5} />
     </points>
   );
 }
@@ -111,7 +111,7 @@ const SatelliteScene = () => {
       <Canvas camera={{ position: [4, 2, 5], fov: 45 }}>
         <ambientLight intensity={0.3} />
         <directionalLight position={[5, 5, 5]} intensity={1} color="#ffffff" />
-        <pointLight position={[-3, 2, -3]} intensity={0.5} color="#22b8cf" />
+        <pointLight position={[-3, 2, -3]} intensity={0.5} color="#4fc3f7" />
         <Stars radius={50} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
         <SatelliteModel />
         <DebrisParticles />

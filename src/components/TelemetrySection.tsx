@@ -1,62 +1,78 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Activity, Gauge, Battery, Package } from "lucide-react";
+import { Activity, Gauge, Battery, Radar, Wifi, MapPin } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+
+const ISS_API = "https://api.wheretheiss.at/v1/satellites/25544";
 
 interface TelemetryPoint {
   time: number;
   altitude: number;
   speed: number;
-  battery: number;
-  debris: number;
+  latitude: number;
+  longitude: number;
 }
 
 const TelemetrySection = () => {
   const [data, setData] = useState<TelemetryPoint[]>([]);
-  const [latest, setLatest] = useState<TelemetryPoint>({ time: 0, altitude: 408, speed: 7.66, battery: 100, debris: 0 });
+  const [latest, setLatest] = useState<TelemetryPoint | null>(null);
+  const [status, setStatus] = useState<"live" | "error">("live");
 
-  const tick = useCallback(() => {
-    setLatest((prev) => {
-      const t = prev.time + 1;
-      const alt = 408 + Math.sin(t * 0.05) * 15 + (Math.random() - 0.5) * 3;
-      const spd = 7.66 + Math.sin(t * 0.03) * 0.15 + (Math.random() - 0.5) * 0.05;
-      const bat = Math.max(20, prev.battery - 0.08 + Math.random() * 0.06);
-      const deb = Math.min(50, prev.debris + (Math.random() > 0.85 ? 1 : 0));
-      return { time: t, altitude: +alt.toFixed(1), speed: +spd.toFixed(2), battery: +bat.toFixed(1), debris: deb };
-    });
+  const fetchISS = useCallback(async () => {
+    try {
+      const res = await fetch(ISS_API);
+      if (!res.ok) throw new Error("ISS API error");
+      const json = await res.json();
+      const point: TelemetryPoint = {
+        time: json.timestamp,
+        altitude: +json.altitude.toFixed(1),
+        speed: +(json.velocity / 3600).toFixed(2), // km/h to km/s
+        latitude: +json.latitude.toFixed(4),
+        longitude: +json.longitude.toFixed(4),
+      };
+      setLatest(point);
+      setData((prev) => [...prev.slice(-59), point]);
+      setStatus("live");
+    } catch {
+      setStatus("error");
+    }
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(tick, 1000);
+    fetchISS();
+    const interval = setInterval(fetchISS, 5000);
     return () => clearInterval(interval);
-  }, [tick]);
+  }, [fetchISS]);
 
-  useEffect(() => {
-    setData((prev) => [...prev.slice(-59), latest]);
-  }, [latest]);
-
-  const stats = [
-    { icon: Gauge, label: "Altitude", value: `${latest.altitude} km`, color: "text-primary" },
-    { icon: Activity, label: "Velocity", value: `${latest.speed} km/s`, color: "text-primary" },
-    { icon: Battery, label: "Battery", value: `${latest.battery}%`, color: latest.battery < 40 ? "text-destructive" : "text-accent" },
-    { icon: Package, label: "Debris Captured", value: latest.debris.toString(), color: "text-primary" },
-  ];
+  const stats = latest
+    ? [
+        { icon: Gauge, label: "Altitude", value: `${latest.altitude} km`, color: "text-primary" },
+        { icon: Activity, label: "Velocity", value: `${latest.speed} km/s`, color: "text-primary" },
+        { icon: MapPin, label: "Latitude", value: `${latest.latitude}°`, color: "text-accent" },
+        { icon: Radar, label: "Longitude", value: `${latest.longitude}°`, color: "text-accent" },
+      ]
+    : [];
 
   const charts: { key: keyof TelemetryPoint; label: string; color: string }[] = [
-    { key: "altitude", label: "Altitude (km)", color: "hsl(199, 100%, 55%)" },
-    { key: "speed", label: "Velocity (km/s)", color: "hsl(170, 80%, 50%)" },
-    { key: "battery", label: "Battery (%)", color: "hsl(45, 100%, 60%)" },
-    { key: "debris", label: "Debris Captured", color: "hsl(280, 80%, 65%)" },
+    { key: "altitude", label: "Altitude (km)", color: "hsl(190, 85%, 52%)" },
+    { key: "speed", label: "Velocity (km/s)", color: "hsl(160, 70%, 48%)" },
+    { key: "latitude", label: "Latitude (°)", color: "hsl(45, 90%, 55%)" },
+    { key: "longitude", label: "Longitude (°)", color: "hsl(280, 70%, 60%)" },
   ];
 
   return (
     <section id="telemetry" className="relative z-10">
       <div className="section-container">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-          <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Simulation</p>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Telemetry Dashboard</h2>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className={`w-2 h-2 rounded-full ${status === "live" ? "bg-accent animate-pulse" : "bg-destructive"}`} />
+            <p className="font-display text-xs tracking-[0.3em] text-primary uppercase">
+              {status === "live" ? "Live ISS Telemetry" : "Connection Lost"}
+            </p>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Real-Time Telemetry</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Simulated real-time satellite telemetry — altitude, velocity, battery, and debris capture count.
+            Live telemetry from the International Space Station — altitude, velocity, and position updated every 5 seconds via the Where The ISS At? API.
           </p>
         </motion.div>
 
@@ -69,6 +85,12 @@ const TelemetrySection = () => {
               <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
             </div>
           ))}
+          {!latest && (
+            <div className="col-span-full glass-card p-6 text-center text-muted-foreground text-sm">
+              <Wifi className="w-5 h-5 mx-auto mb-2 animate-pulse text-primary" />
+              Connecting to ISS...
+            </div>
+          )}
         </div>
 
         {/* Charts */}
@@ -81,8 +103,8 @@ const TelemetrySection = () => {
                   <XAxis dataKey="time" hide />
                   <YAxis hide domain={["auto", "auto"]} />
                   <Tooltip
-                    contentStyle={{ background: "hsl(225 45% 10%)", border: "1px solid hsl(225 30% 16%)", borderRadius: "8px", fontSize: "11px" }}
-                    labelStyle={{ color: "hsl(215 20% 60%)" }}
+                    contentStyle={{ background: "hsl(220 22% 14%)", border: "1px solid hsl(220 18% 22%)", borderRadius: "8px", fontSize: "11px" }}
+                    labelStyle={{ color: "hsl(215 15% 55%)" }}
                     itemStyle={{ color: c.color }}
                   />
                   <Line type="monotone" dataKey={c.key} stroke={c.color} strokeWidth={2} dot={false} isAnimationActive={false} />
