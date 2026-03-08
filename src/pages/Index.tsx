@@ -158,6 +158,7 @@ const Index = () => {
       <Lazy><Footer /></Lazy>
       <Lazy><SpaceChatSection /></Lazy>
 
+      <AmbientMusicPlayer />
       <ScrollToTop />
     </div>
   );
