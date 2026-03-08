@@ -200,14 +200,27 @@ function Earth() {
   });
   return (
     <group>
+      {/* Ocean */}
       <mesh ref={ref}>
         <sphereGeometry args={[1, 48, 48]} />
-        <meshStandardMaterial color="#1a5276" emissive="#0d2b3e" emissiveIntensity={0.4} />
+        <meshStandardMaterial color="#1a6b9c" metalness={0.1} roughness={0.7} />
       </mesh>
+      {/* Continents */}
+      <mesh rotation={[0.15, 1.2, 0]}>
+        <sphereGeometry args={[1.003, 48, 48]} />
+        <meshStandardMaterial color="#2d7a3a" transparent opacity={0.35} />
+      </mesh>
+      {/* Clouds */}
       <mesh>
-        <sphereGeometry args={[1.04, 48, 48]} />
-        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.08} side={THREE.BackSide} />
+        <sphereGeometry args={[1.015, 32, 32]} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.12} />
       </mesh>
+      {/* Atmosphere */}
+      <mesh>
+        <sphereGeometry args={[1.05, 48, 48]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.1} side={THREE.BackSide} />
+      </mesh>
+      {/* Orbit ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.05, 1.15, 64]} />
         <meshStandardMaterial color="#4fc3f7" transparent opacity={0.04} side={THREE.DoubleSide} />

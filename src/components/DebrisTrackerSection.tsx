@@ -37,18 +37,33 @@ function Earth() {
     if (meshRef.current) meshRef.current.rotation.y = state.clock.elapsedTime * 0.05;
   });
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial color="#1a5276" emissive="#0d2b3e" emissiveIntensity={0.4} />
-      <mesh>
-        <sphereGeometry args={[1.02, 32, 32]} />
-        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.12} side={THREE.BackSide} />
+    <group>
+      {/* Ocean */}
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshStandardMaterial color="#1a6b9c" metalness={0.1} roughness={0.7} />
       </mesh>
+      {/* Continents */}
+      <mesh rotation={[0.1, 2.0, 0]}>
+        <sphereGeometry args={[1.003, 32, 32]} />
+        <meshStandardMaterial color="#2d7a3a" transparent opacity={0.35} />
+      </mesh>
+      {/* Clouds */}
+      <mesh>
+        <sphereGeometry args={[1.015, 24, 24]} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.1} />
+      </mesh>
+      {/* Atmosphere */}
+      <mesh>
+        <sphereGeometry args={[1.03, 32, 32]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.1} side={THREE.BackSide} />
+      </mesh>
+      {/* Grid overlay */}
       <mesh>
         <sphereGeometry args={[1.005, 16, 16]} />
-        <meshStandardMaterial wireframe color="#2980b9" transparent opacity={0.15} />
+        <meshStandardMaterial wireframe color="#2980b9" transparent opacity={0.1} />
       </mesh>
-    </mesh>
+    </group>
   );
 }
 
