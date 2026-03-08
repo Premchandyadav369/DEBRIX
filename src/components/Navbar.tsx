@@ -8,6 +8,8 @@ const navItems = [
   { label: "Workflow", href: "#workflow" },
   { label: "Debris", href: "#debris-tracker" },
   { label: "Weather", href: "#space-weather" },
+  { label: "ISS", href: "#iss-tracker" },
+  { label: "EPIC", href: "#epic" },
   { label: "APOD", href: "#apod" },
   { label: "Gallery", href: "#gallery" },
   { label: "Team", href: "#team" },
