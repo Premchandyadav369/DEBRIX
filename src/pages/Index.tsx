@@ -107,6 +107,10 @@ const Index = () => {
 
       <Lazy><ApodSection /></Lazy>
 
+      <RevealOnScroll direction="right">
+        <Lazy><SpaceEventsSection /></Lazy>
+      </RevealOnScroll>
+
       <ParallaxSection offset={20}>
         <RevealOnScroll direction="left">
           <Lazy><GallerySection /></Lazy>
