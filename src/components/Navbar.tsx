@@ -29,6 +29,7 @@ const navGroups = [
       { label: "Priority", href: "#debris-priority" },
       { label: "Growth", href: "#debris-growth" },
       { label: "Decay", href: "#orbital-decay" },
+      { label: "Re-Entry", href: "#reentry-prediction" },
       { label: "Kessler", href: "#kessler" },
     ],
   },
