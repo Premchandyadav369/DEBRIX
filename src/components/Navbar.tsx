@@ -42,8 +42,7 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
         <a href="#home" className="flex items-center gap-2 font-display font-bold text-lg tracking-widest">
-          <Satellite className="w-6 h-6 text-primary" />
-          <span className="gradient-text">DEBRIX</span>
+          <img src={debrixLogo} alt="DEBRIX" className="h-10 w-auto" />
         </a>
 
         <div className="hidden lg:flex items-center gap-1">
