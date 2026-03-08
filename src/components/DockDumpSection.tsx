@@ -222,6 +222,9 @@ function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: nu
     0
   );
 
+  // Calculate how many debris have been captured during phase 2
+  const capturedCount = phase > 2 ? 12 : phase === 2 ? Math.floor(autoProgress * 12) : 0;
+
   return (
     <Canvas camera={{ position: [0, 2, 5.5], fov: 40 }}>
       <color attach="background" args={["#0a1628"]} />
@@ -232,7 +235,7 @@ function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: nu
 
       <DebrixSat position={debrixTarget} glow={phase === 1 || phase === 2} />
       <DumpSat position={dumpTarget} />
-      <DebrisCluster visible={phase <= 2} dispersing={phase === 2} />
+      <DebrisCluster visible={phase <= 2} dispersing={false} capturedCount={capturedCount} />
       <DockingBeam active={phase === 1 || phase === 2} />
       <ThrusterFlame active={phase === 3} position={[0.9, -1.5 - autoProgress * 2, 0]} />
 
