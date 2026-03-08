@@ -101,6 +101,9 @@ const ContactSection = () => {
               <a href="mailto:vcpremchandyadav@gmail.com" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Mail className="w-5 h-5" /> vcpremchandyadav@gmail.com
               </a>
+              <a href="tel:+918977771494" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Phone className="w-5 h-5" /> 🇮🇳 +91 89777 71494
+              </a>
               <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Github className="w-5 h-5" /> GitHub
               </a>
