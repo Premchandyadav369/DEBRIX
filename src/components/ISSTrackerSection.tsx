@@ -30,11 +30,25 @@ const ISSTrackerSection = () => {
       const res = await fetch("https://api.wheretheiss.at/v1/satellites/25544");
       const data = await res.json();
       if (data.latitude !== undefined) {
-        setPosition({ latitude: String(data.latitude), longitude: String(data.longitude) });
+        setPosition({
+          latitude: String(data.latitude),
+          longitude: String(data.longitude),
+          altitude: data.altitude || 0,
+          velocity: data.velocity || 0,
+        });
         const lat = data.latitude;
         const lon = data.longitude;
         if (markerRef.current && mapInstance.current) {
           markerRef.current.setLatLng([lat, lon]);
+          markerRef.current.setPopupContent(
+            `<div style="font-family:monospace;font-size:12px;line-height:1.6;color:#fff;background:hsl(225,45%,10%);padding:8px 12px;border-radius:8px;min-width:160px">
+              <div style="font-size:14px;margin-bottom:4px">🛰️ <b>ISS</b></div>
+              <div>Lat: <b>${data.latitude.toFixed(4)}°</b></div>
+              <div>Lon: <b>${data.longitude.toFixed(4)}°</b></div>
+              <div>Alt: <b>${data.altitude.toFixed(1)} km</b></div>
+              <div>Speed: <b>${data.velocity.toFixed(0)} km/h</b></div>
+            </div>`
+          );
           mapInstance.current.panTo([lat, lon]);
         }
       }
