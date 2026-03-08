@@ -14,6 +14,7 @@
   <a href="#how-it-works">How It Works</a> •
   <a href="#features">Features</a> •
   <a href="#tech-stack">Tech Stack</a> •
+  <a href="#team">Team</a> •
   <a href="#getting-started">Getting Started</a>
 </p>
 
@@ -54,19 +55,46 @@ DEBRIX operates through a 4-phase autonomous mission cycle:
 
 ## ✨ Features
 
-This interactive web platform showcases the DEBRIX mission with:
+This interactive web platform showcases the DEBRIX mission with **25+ sections**:
 
-- 🎮 **SpaceX-style Launch Simulation** — 7-phase interactive launch sequence with 3D graphics and live telemetry
-- 📡 **Real-time ISS Tracker** — Live position tracking using actual orbital data
-- 🌊 **Live Space Weather** — Solar wind, geomagnetic indices, and radiation data
-- 🛰️ **Satellite Dashboard** — Real-time stats on active satellites and debris counts
-- 📊 **Debris Growth Projections** — Interactive charts showing debris population trends
-- 🤖 **Swarm Visualization** — 3D simulation of coordinated debris capture
-- 💬 **K2 AI Assistant** — Space-focused chatbot powered by AI
-- 🌑 **Orbital Decay Simulator** — Model how debris naturally decays over time
-- 🔴 **Kessler Syndrome Visualizer** — See the cascading collision effect in action
-- 🎨 **Dark/Light Theme** — Toggle between mission control dark mode and daylight mode
-- 📸 **NASA APOD** — Daily astronomy picture from NASA's API
+### 🛰️ Space Debris & Orbital Monitoring
+- **Real-time Debris Tracker** — Track debris objects orbiting Earth
+- **Collision Avoidance System** — AI-powered collision prediction and maneuvering
+- **Debris Prioritization Engine** — Classify and rank debris by threat level
+- **Kessler Syndrome Visualizer** — See the cascading collision effect in action
+- **Orbital Decay Simulator** — Model how debris naturally decays over time
+- **Debris Growth Projections** — Interactive charts showing debris population trends
+- **Dock & Dump Architecture** — Visualize the debris capture and deorbit workflow
+
+### 🌞 Space Weather & Re-Entry
+- **Space Weather Intelligence** — Solar flare alerts, geomagnetic storm predictions, and satellite risk assessment (NOAA/NASA data)
+- **Re-Entry Prediction System** — Track objects falling back to Earth with probability heatmaps and ground track visualization
+
+### 🔭 Astronomy & Sky Observation
+- **Interactive Sky Map** — Zoomable/draggable star chart with 240+ stars and constellation overlays
+- **Planet Visibility Tonight** — Real-time visibility tracker for 7 planets with rise/set times and orbit diagrams
+- **NASA APOD** — Daily astronomy picture from NASA's API
+- **Global Telescope Network** — Browse and book telescope time from stations worldwide
+
+### 🚀 Rockets & Launch Intelligence
+- **SpaceX-style Launch Simulation** — 7-phase interactive launch sequence with 3D graphics and live telemetry
+- **Rocket Engine Database** — Searchable reference of 12+ engines with thrust, ISP, fuel type, and cycle details
+- **Space Events Tracker** — Upcoming launches worldwide with countdowns and mission details
+
+### 📡 Satellite Intelligence
+- **Real-time ISS Tracker** — Live position tracking using actual orbital data
+- **Satellite Dashboard** — Real-time stats on active satellites, debris counts, Starlink constellation, and pass predictions
+- **Satellite Mission Analyzer** — Interactive orbit simulation with lifetime estimation, coverage visualization, and fuel depletion
+
+### 🤖 AI & Interaction
+- **K2 AI Assistant** — Space-focused chatbot powered by AI
+- **Swarm Visualization** — 3D simulation of coordinated debris capture
+- **Mission Timeline** — Interactive history of space exploration milestones
+
+### 🎨 Platform
+- **Dark/Light Theme** — Toggle between mission control dark mode and daylight mode
+- **Responsive Design** — Full mobile and desktop support
+- **Contact System** — Get in touch with the DEBRIX team
 
 ## 🛠️ Tech Stack
 
@@ -81,6 +109,25 @@ This interactive web platform showcases the DEBRIX mission with:
 | State | Zustand, TanStack Query |
 | Backend | Lovable Cloud (Edge Functions) |
 | AI | Lovable AI (K2 Chat) |
+
+## 👥 Team
+
+### Faculty Advisor
+
+| Name | Role | Links |
+|------|------|-------|
+| **Dr. Subbaiah Muthu Prabhu** | Faculty Advisor & Mentor | [Google Scholar](https://scholar.google.com/citations?user=D3A13LgAAAAJ&hl=en) · [LinkedIn](https://www.linkedin.com/in/subbaiah-muthu-prabhu-a10762ba) |
+
+### Team Members
+
+| Name | Role | Specialization | Links |
+|------|------|---------------|-------|
+| **V C Premchand Yadav** | Team Lead | CSE (AI & ML) | [LinkedIn](https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/) · [GitHub](https://github.com/Premchandyadav369) |
+| **Edupulapati Sai Praneeth** | AI Engineer | CSE (AI & ML) | [LinkedIn](https://www.linkedin.com/in/edupulapatisaipraneeth/) · [GitHub](https://github.com/SaiPraneeth-E) |
+| **Yamala Liel Stephen** | Full Stack Developer | CSE (AI & ML) | [LinkedIn](https://www.linkedin.com/in/liel-stephen-17a06b295/) · [GitHub](https://github.com/LielStephen) |
+| **Sri Harsha Vardhan K** | 3D Architect & Designer | CSE (AI & ML) | [LinkedIn](https://www.linkedin.com/in/kurapati-sri-harshavardhan-025263290/) · [GitHub](https://github.com/MrAlhm-harsha) |
+| **Sai Krishnan Iyer** | Orbital Mechanics & Simulation | Computer Science & Engineering | [LinkedIn](https://www.linkedin.com/in/sai-krishnan-iyer-b14570289/) |
+| **Chinna Reddy Gari Mohith** | Software Engineering | Integrated M.Tech (Software Engineering) | [LinkedIn](https://www.linkedin.com/in/mohith-reddy-cr-87a585292/) · [GitHub](https://github.com/mohithreddy2810-ops) |
 
 ## 🏁 Getting Started
 
@@ -110,7 +157,15 @@ src/
 │   ├── HeroSection  # Landing hero with 3D satellite
 │   ├── LaunchSim    # Interactive launch simulation
 │   ├── SwarmSection # Swarm coordination visualization
-│   └── ...          # 20+ mission-specific sections
+│   ├── SkyMapSection        # Interactive star chart
+│   ├── PlanetVisibility     # Planet visibility tracker
+│   ├── RocketEngineDatabase # Engine reference database
+│   ├── SpaceWeather         # Solar activity monitor
+│   ├── ReentryPrediction    # Re-entry tracking system
+│   ├── TelescopeNetwork     # Global telescope booking
+│   ├── MissionAnalyzer      # Satellite mission simulator
+│   ├── TeamSection          # Team & faculty information
+│   └── ...          # 25+ mission-specific sections
 ├── hooks/           # Custom React hooks (theme, mobile, etc.)
 ├── integrations/    # Backend client setup
 ├── pages/           # Route pages
