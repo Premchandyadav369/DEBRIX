@@ -1,13 +1,49 @@
 import { motion } from "framer-motion";
-import { User, GraduationCap, ExternalLink } from "lucide-react";
+import { GraduationCap, ExternalLink, Linkedin } from "lucide-react";
 
 const team = [
-  { name: "V C Premchand Yadav", role: "Team Lead", spec: "CSE (AI & ML)" },
-  { name: "Yamala Liel Stephen", role: "AI & Algorithms", spec: "CSE (AI & ML)" },
-  { name: "Sai Krishnan Iyer", role: "Satellite Systems", spec: "Computer Science & Engineering" },
-  { name: "Sri Harsha Vardhan K", role: "Orbital Mechanics", spec: "CSE (AI & ML)" },
-  { name: "Edupulapati Sai Praneeth", role: "Communications & Sensors", spec: "CSE (AI & ML)" },
-  { name: "Chinna Reddy Gari Mohith", role: "Software Engineering", spec: "Integrated M.Tech (Software Engineering)" },
+  {
+    name: "V C Premchand Yadav",
+    role: "Team Lead",
+    spec: "CSE (AI & ML)",
+    linkedin: "https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/",
+    initials: "PY",
+  },
+  {
+    name: "Edupulapati Sai Praneeth",
+    role: "AI Engineer",
+    spec: "CSE (AI & ML)",
+    linkedin: "https://www.linkedin.com/in/edupulapatisaipraneeth/",
+    initials: "SP",
+  },
+  {
+    name: "Yamala Liel Stephen",
+    role: "Full Stack Developer",
+    spec: "CSE (AI & ML)",
+    linkedin: "https://www.linkedin.com/in/liel-stephen-17a06b295/",
+    initials: "LS",
+  },
+  {
+    name: "Sri Harsha Vardhan K",
+    role: "3D Architect & Designer",
+    spec: "CSE (AI & ML)",
+    linkedin: "https://www.linkedin.com/in/kurapati-sri-harshavardhan-025263290/",
+    initials: "HV",
+  },
+  {
+    name: "Sai Krishnan Iyer",
+    role: "Orbital Mechanics & Simulation",
+    spec: "Computer Science & Engineering",
+    linkedin: "https://www.linkedin.com/in/sai-krishnan-iyer-b14570289/",
+    initials: "SI",
+  },
+  {
+    name: "Chinna Reddy Gari Mohith",
+    role: "Software Engineering",
+    spec: "Integrated M.Tech (Software Engineering)",
+    linkedin: "https://www.linkedin.com/in/mohith-reddy-cr-87a585292/",
+    initials: "MR",
+  },
 ];
 
 const guide = {
@@ -65,12 +101,20 @@ const TeamSection = () => {
               transition={{ delay: i * 0.08 }}
               className="glass-card p-6 text-center group hover:border-primary/40 transition-all"
             >
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
-                <User className="w-7 h-7 text-primary" />
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center mx-auto mb-4 group-hover:from-primary/40 group-hover:to-accent/40 transition-all border border-primary/20">
+                <span className="font-display font-bold text-lg text-primary">{member.initials}</span>
               </div>
               <h3 className="font-display font-semibold text-sm">{member.name}</h3>
               <p className="text-primary text-xs font-display mt-1">{member.role}</p>
               <p className="text-muted-foreground text-xs mt-1">{member.spec}</p>
+              <a
+                href={member.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-3 text-muted-foreground hover:text-primary transition-colors text-xs"
+              >
+                <Linkedin className="w-3.5 h-3.5" /> LinkedIn
+              </a>
             </motion.div>
           ))}
         </div>
