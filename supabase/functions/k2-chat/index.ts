@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
         model: 'MBZUAI-IFM/K2-Think-v2',
         messages,
         stream: stream ?? true,
+        max_tokens: 400,
       }),
     });
 
