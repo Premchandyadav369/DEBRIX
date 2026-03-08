@@ -26,6 +26,9 @@ const SpaceWeatherSection = lazy(() => import("@/components/SpaceWeatherSection"
 const ISSTrackerSection = lazy(() => import("@/components/ISSTrackerSection"));
 const ApodSection = lazy(() => import("@/components/ApodSection"));
 const SpaceEventsSection = lazy(() => import("@/components/SpaceEventsSection"));
+const SkyMapSection = lazy(() => import("@/components/SkyMapSection"));
+const PlanetVisibilitySection = lazy(() => import("@/components/PlanetVisibilitySection"));
+const RocketEngineDatabaseSection = lazy(() => import("@/components/RocketEngineDatabaseSection"));
 const GallerySection = lazy(() => import("@/components/GallerySection"));
 const TeamSection = lazy(() => import("@/components/TeamSection"));
 const ContactSection = lazy(() => import("@/components/ContactSection"));
