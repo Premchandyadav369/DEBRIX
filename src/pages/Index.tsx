@@ -2,7 +2,10 @@ import Starfield from "@/components/Starfield";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
+import LaunchSimSection from "@/components/LaunchSimSection";
 import WorkflowSection from "@/components/WorkflowSection";
+import MissionTimeline from "@/components/MissionTimeline";
+import TelemetrySection from "@/components/TelemetrySection";
 import DebrisTrackerSection from "@/components/DebrisTrackerSection";
 import SpaceWeatherSection from "@/components/SpaceWeatherSection";
 import ISSTrackerSection from "@/components/ISSTrackerSection";
@@ -19,7 +22,10 @@ const Index = () => {
       <Navbar />
       <HeroSection />
       <MissionSection />
+      <LaunchSimSection />
       <WorkflowSection />
+      <MissionTimeline />
+      <TelemetrySection />
       <DebrisTrackerSection />
       <SpaceWeatherSection />
       <ISSTrackerSection />
