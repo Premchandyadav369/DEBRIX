@@ -6,6 +6,8 @@ const navItems = [
   { label: "Home", href: "#home" },
   { label: "Mission", href: "#mission" },
   { label: "Workflow", href: "#workflow" },
+  { label: "Debris", href: "#debris-tracker" },
+  { label: "Weather", href: "#space-weather" },
   { label: "APOD", href: "#apod" },
   { label: "Gallery", href: "#gallery" },
   { label: "Team", href: "#team" },
@@ -36,11 +38,7 @@ const Navbar = () => {
 
         <div className="hidden md:flex items-center gap-8">
           {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-muted-foreground hover:text-primary transition-colors text-xs font-display tracking-wider uppercase"
-            >
+            <a key={item.href} href={item.href} className="text-muted-foreground hover:text-primary transition-colors text-xs font-display tracking-wider uppercase">
               {item.label}
             </a>
           ))}
@@ -53,19 +51,9 @@ const Navbar = () => {
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-background/95 backdrop-blur-lg border-b border-border/30"
-          >
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-background/95 backdrop-blur-lg border-b border-border/30">
             {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="block px-6 py-3 text-muted-foreground hover:text-primary text-sm font-display tracking-wider"
-              >
+              <a key={item.href} href={item.href} onClick={() => setOpen(false)} className="block px-6 py-3 text-muted-foreground hover:text-primary text-sm font-display tracking-wider">
                 {item.label}
               </a>
             ))}

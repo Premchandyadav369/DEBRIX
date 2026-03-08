@@ -29,7 +29,6 @@ const WorkflowSection = () => {
         </motion.div>
 
         <div className="relative">
-          {/* Vertical line */}
           <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary/60 via-primary/30 to-transparent hidden md:block" />
 
           <div className="space-y-8">
@@ -57,8 +56,7 @@ const WorkflowSection = () => {
                   </div>
                 </div>
 
-                {/* Center dot */}
-                <div className="hidden md:flex w-4 h-4 rounded-full bg-primary shrink-0 mt-6 shadow-[0_0_15px_hsl(5_100%_69%/0.5)]" />
+                <div className="hidden md:flex w-4 h-4 rounded-full bg-primary shrink-0 mt-6 shadow-[0_0_15px_hsl(199_100%_55%/0.5)]" />
 
                 <div className="flex-1" />
               </motion.div>

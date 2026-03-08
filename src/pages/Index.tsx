@@ -4,6 +4,7 @@ import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
 import WorkflowSection from "@/components/WorkflowSection";
 import DebrisTrackerSection from "@/components/DebrisTrackerSection";
+import SpaceWeatherSection from "@/components/SpaceWeatherSection";
 import ApodSection from "@/components/ApodSection";
 import GallerySection from "@/components/GallerySection";
 import TeamSection from "@/components/TeamSection";
@@ -19,6 +20,7 @@ const Index = () => {
       <MissionSection />
       <WorkflowSection />
       <DebrisTrackerSection />
+      <SpaceWeatherSection />
       <ApodSection />
       <GallerySection />
       <TeamSection />
