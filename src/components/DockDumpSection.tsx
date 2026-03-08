@@ -1,107 +1,308 @@
-import { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { Play, Pause, RotateCcw, ChevronRight } from "lucide-react";
 
-function Satellite({ position, color, label }: { position: [number, number, number]; color: string; label: string }) {
+// --- 3D Components ---
+
+function DebrixSat({ position, glow }: { position: THREE.Vector3; glow: boolean }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
     if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.3;
+      ref.current.position.lerp(position, 0.03);
+      ref.current.rotation.y = state.clock.elapsedTime * 0.2;
     }
   });
   return (
-    <group ref={ref} position={position}>
+    <group ref={ref} position={[-3, 0, 0]}>
+      {/* Body */}
       <mesh>
-        <boxGeometry args={[0.4, 0.2, 0.3]} />
-        <meshStandardMaterial color={color} metalness={0.6} roughness={0.3} />
+        <boxGeometry args={[0.5, 0.25, 0.35]} />
+        <meshStandardMaterial color="#22b8cf" emissive="#22b8cf" emissiveIntensity={glow ? 0.8 : 0.3} metalness={0.8} roughness={0.2} />
       </mesh>
       {/* Solar panels */}
-      <mesh position={[0.5, 0, 0]}>
-        <boxGeometry args={[0.5, 0.02, 0.3]} />
-        <meshStandardMaterial color="#1a5a8a" metalness={0.8} roughness={0.2} />
+      <mesh position={[0.55, 0, 0]}>
+        <boxGeometry args={[0.45, 0.02, 0.25]} />
+        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
       </mesh>
-      <mesh position={[-0.5, 0, 0]}>
-        <boxGeometry args={[0.5, 0.02, 0.3]} />
-        <meshStandardMaterial color="#1a5a8a" metalness={0.8} roughness={0.2} />
+      <mesh position={[-0.55, 0, 0]}>
+        <boxGeometry args={[0.45, 0.02, 0.25]} />
+        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
       </mesh>
+      {/* Capture arm */}
+      <mesh position={[0, -0.18, 0.2]} rotation={[0.4, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.02, 0.25, 6]} />
+        <meshStandardMaterial color="#aaa" metalness={0.7} />
+      </mesh>
+      {/* Gripper */}
+      <mesh position={[0, -0.3, 0.32]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color="#22b8cf" emissive="#22b8cf" emissiveIntensity={0.5} />
+      </mesh>
+      <pointLight color="#22b8cf" intensity={glow ? 1.2 : 0.4} distance={2} />
     </group>
   );
 }
 
-function DebrisParticles({ visible }: { visible: boolean }) {
-  const ref = useRef<THREE.Points>(null);
-  const positions = new Float32Array(30 * 3);
-  for (let i = 0; i < 30; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 0.5;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
-  }
+function DumpSat({ position }: { position: THREE.Vector3 }) {
+  const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
-    if (ref.current && visible) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.5;
+    if (ref.current) {
+      ref.current.position.lerp(position, 0.03);
+      ref.current.rotation.y = state.clock.elapsedTime * 0.15;
     }
   });
-  if (!visible) return null;
   return (
-    <points ref={ref} position={[0, 0.5, 0]}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial size={0.03} color="#ff6b6b" transparent opacity={0.8} />
-    </points>
+    <group ref={ref} position={[3, 0, 0]}>
+      {/* Main cargo bay */}
+      <mesh>
+        <boxGeometry args={[0.7, 0.4, 0.5]} />
+        <meshStandardMaterial color="#38d9a9" emissive="#38d9a9" emissiveIntensity={0.2} metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Bay doors (open look) */}
+      <mesh position={[0, 0.22, 0]} rotation={[-0.2, 0, 0]}>
+        <boxGeometry args={[0.65, 0.02, 0.45]} />
+        <meshStandardMaterial color="#2a9d8f" metalness={0.6} />
+      </mesh>
+      {/* Solar arrays - larger */}
+      <mesh position={[0.65, 0, 0]}>
+        <boxGeometry args={[0.5, 0.015, 0.35]} />
+        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[-0.65, 0, 0]}>
+        <boxGeometry args={[0.5, 0.015, 0.35]} />
+        <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Thrusters */}
+      {[-0.2, 0, 0.2].map((z, i) => (
+        <mesh key={i} position={[-0.36, -0.15, z]}>
+          <coneGeometry args={[0.03, 0.08, 6]} />
+          <meshStandardMaterial color="#666" metalness={0.8} />
+        </mesh>
+      ))}
+      <pointLight color="#38d9a9" intensity={0.5} distance={2} />
+    </group>
   );
 }
 
-function TransferBeam({ active }: { active: boolean }) {
-  if (!active) return null;
+function DebrisCluster({ visible, dispersing }: { visible: boolean; dispersing: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  const pieces = useRef(
+    Array.from({ length: 12 }, () => ({
+      pos: new THREE.Vector3((Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4),
+      vel: new THREE.Vector3((Math.random() - 0.5) * 0.02, Math.random() * 0.015, (Math.random() - 0.5) * 0.02),
+      size: 0.02 + Math.random() * 0.03,
+      rot: Math.random() * 6,
+    }))
+  ).current;
+
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.children.forEach((child, i) => {
+      const p = pieces[i];
+      if (dispersing) {
+        p.pos.add(p.vel);
+      }
+      child.position.copy(p.pos);
+      child.rotation.x = p.rot + state.clock.elapsedTime * 0.5;
+      child.rotation.z = p.rot + state.clock.elapsedTime * 0.3;
+    });
+  });
+
+  if (!visible) return null;
+
   return (
-    <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-      <cylinderGeometry args={[0.02, 0.02, 2, 8]} />
-      <meshStandardMaterial color="#22b8cf" transparent opacity={0.6} emissive="#22b8cf" emissiveIntensity={2} />
+    <group ref={ref} position={[0, 0.3, 0]}>
+      {pieces.map((p, i) => (
+        <mesh key={i} position={p.pos}>
+          <dodecahedronGeometry args={[p.size, 0]} />
+          <meshStandardMaterial color="#ff6b6b" emissive="#ff6b6b" emissiveIntensity={0.3} metalness={0.5} roughness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function DockingBeam({ active, progress }: { active: boolean; progress: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (ref.current && active) {
+      const mat = ref.current.material as THREE.MeshStandardMaterial;
+      mat.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 6) * 0.2;
+    }
+  });
+
+  if (!active) return null;
+
+  return (
+    <group>
+      {/* Main beam */}
+      <mesh ref={ref} position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.025, 0.025, 1.8, 8]} />
+        <meshStandardMaterial color="#22b8cf" transparent opacity={0.4} emissive="#22b8cf" emissiveIntensity={3} />
+      </mesh>
+      {/* Energy rings along beam */}
+      {[0.3, 0, -0.3].map((x, i) => (
+        <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <torusGeometry args={[0.06, 0.008, 8, 16]} />
+          <meshStandardMaterial color="#22b8cf" transparent opacity={0.5} emissive="#22b8cf" emissiveIntensity={2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function ThrusterFlame({ active, position }: { active: boolean; position: [number, number, number] }) {
+  const ref = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (ref.current && active) {
+      const scale = 0.8 + Math.sin(state.clock.elapsedTime * 15) * 0.3;
+      ref.current.scale.set(scale, 1 + Math.random() * 0.5, scale);
+    }
+  });
+
+  if (!active) return null;
+
+  return (
+    <mesh ref={ref} position={position}>
+      <coneGeometry args={[0.06, 0.35, 8]} />
+      <meshStandardMaterial color="#ff8c00" transparent opacity={0.7} emissive="#ff4500" emissiveIntensity={3} />
     </mesh>
   );
 }
 
-function DockingScene({ phase }: { phase: number }) {
+function EarthSmall() {
   return (
-    <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 3, 5]} intensity={1} />
-      <pointLight position={[0, 0, 0]} intensity={0.5} color="#22b8cf" />
-      <Satellite
-        position={phase >= 1 ? [-1, 0, 0] : [-3, 0, 0]}
-        color="#22b8cf"
-        label="Debrix"
-      />
-      <Satellite
-        position={phase >= 1 ? [1, 0, 0] : [3, 0, 0]}
-        color="#38d9a9"
-        label="Dump Sat"
-      />
-      <DebrisParticles visible={phase < 2} />
-      <TransferBeam active={phase === 2} />
-      {phase >= 3 && (
-        <mesh position={[1, -2, 0]}>
-          <sphereGeometry args={[0.8, 16, 16]} />
-          <meshStandardMaterial color="#0a2a4a" transparent opacity={0.3} />
-        </mesh>
-      )}
-      <OrbitControls enableZoom enablePan={false} autoRotate autoRotateSpeed={0.5} />
+    <mesh position={[0, -4, -2]}>
+      <sphereGeometry args={[2.5, 32, 32]} />
+      <meshStandardMaterial color="#0a2a4a" emissive="#051525" emissiveIntensity={0.2} />
+    </mesh>
+  );
+}
+
+function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: number }) {
+  // Interpolated positions based on phase
+  const debrixTarget = new THREE.Vector3(
+    phase === 0 ? -2.5 : phase === 1 ? -0.9 : -0.9,
+    0, 0
+  );
+  const dumpTarget = new THREE.Vector3(
+    phase === 0 ? 2.5 : phase === 1 ? 0.9 : phase === 3 ? 0.9 : 0.9,
+    phase === 3 ? -1 - autoProgress * 2 : 0,
+    0
+  );
+
+  return (
+    <Canvas camera={{ position: [0, 2, 5.5], fov: 40 }}>
+      <color attach="background" args={["#030810"]} />
+      <ambientLight intensity={0.15} />
+      <directionalLight position={[5, 3, 5]} intensity={0.8} color="#cce5ff" />
+      <directionalLight position={[-3, -1, -3]} intensity={0.15} color="#ff6644" />
+
+      <DebrixSat position={debrixTarget} glow={phase === 1 || phase === 2} />
+      <DumpSat position={dumpTarget} />
+      <DebrisCluster visible={phase <= 2} dispersing={phase === 2} />
+      <DockingBeam active={phase === 1 || phase === 2} progress={autoProgress} />
+      <ThrusterFlame active={phase === 3} position={[0.9, -1.5 - autoProgress * 2, 0]} />
+
+      {phase === 3 && <EarthSmall />}
+
+      {/* Ambient particles */}
+      <Stars />
+
+      <OrbitControls enableZoom enablePan={false} autoRotate={phase === 0} autoRotateSpeed={0.3} maxDistance={10} minDistance={3} />
     </Canvas>
   );
 }
 
+function Stars() {
+  const positions = useRef(
+    (() => {
+      const arr = new Float32Array(300 * 3);
+      for (let i = 0; i < 300; i++) {
+        arr[i * 3] = (Math.random() - 0.5) * 30;
+        arr[i * 3 + 1] = (Math.random() - 0.5) * 30;
+        arr[i * 3 + 2] = (Math.random() - 0.5) * 30;
+      }
+      return arr;
+    })()
+  ).current;
+
+  return (
+    <points>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial size={0.03} color="#ffffff" transparent opacity={0.5} sizeAttenuation />
+    </points>
+  );
+}
+
+// --- Phase data ---
 const phases = [
-  { title: "Approach", desc: "Debrix approaches the garbage satellite with captured debris onboard." },
-  { title: "Docking", desc: "Both satellites align and establish a secure magnetic dock connection." },
-  { title: "Debris Transfer", desc: "Captured debris is transferred from Debrix to the dump satellite storage bay." },
-  { title: "Controlled Deorbit", desc: "The dump satellite fires retro-thrusters for controlled atmospheric re-entry." },
+  {
+    title: "Approach & Lock-On",
+    desc: "Debrix identifies the target debris cluster via LiDAR and initiates closing maneuver at 0.5 m/s relative velocity.",
+    icon: "🎯",
+  },
+  {
+    title: "Magnetic Docking",
+    desc: "Electromagnetic docking clamps engage. Both satellites establish a rigid connection with sub-millimeter alignment.",
+    icon: "🔗",
+  },
+  {
+    title: "Debris Transfer",
+    desc: "Robotic arm transfers captured fragments into the dump satellite's cargo bay. Each piece is cataloged in real-time.",
+    icon: "📦",
+  },
+  {
+    title: "Controlled Deorbit",
+    desc: "Dump satellite fires retro-thrusters for targeted atmospheric re-entry over the South Pacific Ocean Uninhabited Area.",
+    icon: "🔥",
+  },
 ];
 
+// --- Main Section ---
 const DockDumpSection = () => {
   const [phase, setPhase] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [autoProgress, setAutoProgress] = useState(0);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setAutoProgress((p) => {
+        if (p >= 1) {
+          setPhase((prev) => {
+            if (prev >= 3) {
+              setIsPlaying(false);
+              return 3;
+            }
+            return prev + 1;
+          });
+          return 0;
+        }
+        return p + 0.02;
+      });
+    }, 50);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const handlePhaseClick = (i: number) => {
+    setPhase(i);
+    setAutoProgress(0);
+    setIsPlaying(false);
+  };
+
+  const reset = () => {
+    setPhase(0);
+    setAutoProgress(0);
+    setIsPlaying(false);
+  };
 
   return (
     <section id="dock-dump" className="relative z-10">
@@ -110,56 +311,105 @@ const DockDumpSection = () => {
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Simulation</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Dock & Dump Mechanism</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Watch the full docking sequence — from approach to controlled deorbit of captured debris.
+            Watch the full docking sequence — approach, magnetic lock, debris transfer, and controlled deorbit burn.
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-3 glass-card p-2 overflow-hidden">
-            <div className="w-full h-[400px] md:h-[450px]">
-              <DockingScene phase={phase} />
+        <div className="grid lg:grid-cols-5 gap-6">
+          {/* 3D Viewport */}
+          <div className="lg:col-span-3 glass-card p-1 overflow-hidden relative">
+            <div className="w-full h-[420px] md:h-[480px] rounded-xl overflow-hidden">
+              <DockingScene phase={phase} autoProgress={autoProgress} />
+            </div>
+
+            {/* Playback controls */}
+            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/70 backdrop-blur-sm border border-border/30">
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors"
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={reset}
+                className="w-8 h-8 rounded-lg bg-secondary/50 text-muted-foreground flex items-center justify-center hover:text-foreground transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Phase progress bar */}
+              <div className="flex-1 flex items-center gap-1">
+                {phases.map((_, i) => (
+                  <div key={i} className="flex-1 h-1.5 rounded-full bg-secondary/50 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-200"
+                      style={{
+                        width: phase > i ? "100%" : phase === i ? `${autoProgress * 100}%` : "0%",
+                        backgroundColor: phase > i ? "hsl(var(--primary))" : phase === i ? "hsl(var(--primary))" : "transparent",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <span className="text-[10px] font-display text-muted-foreground min-w-[60px] text-right">
+                Phase {phase + 1}/4
+              </span>
             </div>
           </div>
 
+          {/* Phase selector */}
           <div className="lg:col-span-2 space-y-3">
-            {phases.map((p, i) => (
-              <motion.button
-                key={i}
-                onClick={() => setPhase(i)}
-                className={`w-full text-left p-4 rounded-xl border transition-all duration-300 ${
-                  phase === i
-                    ? "bg-primary/10 border-primary/40 shadow-[0_0_20px_hsl(199_100%_55%/0.15)]"
-                    : "bg-card/40 border-border/50 hover:border-primary/20"
-                }`}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-display font-bold ${
-                    phase === i ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                  }`}>
-                    {i + 1}
-                  </span>
-                  <span className={`font-display text-sm tracking-wider ${phase === i ? "text-primary" : "text-foreground"}`}>
-                    {p.title}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground pl-11">{p.desc}</p>
-              </motion.button>
-            ))}
+            <AnimatePresence mode="wait">
+              {phases.map((p, i) => (
+                <motion.button
+                  key={i}
+                  onClick={() => handlePhaseClick(i)}
+                  className={`w-full text-left p-4 rounded-xl border transition-all duration-300 ${
+                    phase === i
+                      ? "bg-primary/10 border-primary/40 shadow-[0_0_25px_hsl(var(--primary)/0.12)]"
+                      : i < phase
+                      ? "bg-accent/5 border-accent/20 opacity-60"
+                      : "bg-card/40 border-border/50 hover:border-primary/20"
+                  }`}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm ${
+                      phase === i ? "bg-primary text-primary-foreground" : i < phase ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"
+                    }`}>
+                      {p.icon}
+                    </span>
+                    <div className="flex-1">
+                      <span className={`font-display text-sm tracking-wider block ${phase === i ? "text-primary" : "text-foreground"}`}>
+                        {p.title}
+                      </span>
+                      {phase === i && (
+                        <div className="w-full h-0.5 bg-secondary/50 rounded mt-1.5 overflow-hidden">
+                          <div className="h-full bg-primary rounded transition-all" style={{ width: `${autoProgress * 100}%` }} />
+                        </div>
+                      )}
+                    </div>
+                    {phase === i && <ChevronRight className="w-4 h-4 text-primary animate-pulse" />}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pl-12 leading-relaxed">{p.desc}</p>
+                </motion.button>
+              ))}
+            </AnimatePresence>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-1">
               <button
-                onClick={() => setPhase((p) => Math.max(0, p - 1))}
+                onClick={() => handlePhaseClick(Math.max(0, phase - 1))}
                 disabled={phase === 0}
-                className="flex-1 py-2 text-xs font-display tracking-wider bg-secondary/50 text-muted-foreground rounded-lg border border-border/50 hover:border-primary/20 disabled:opacity-30 transition-all"
+                className="flex-1 py-2.5 text-xs font-display tracking-wider bg-secondary/50 text-muted-foreground rounded-lg border border-border/50 hover:border-primary/20 disabled:opacity-30 transition-all"
               >
                 ← Previous
               </button>
               <button
-                onClick={() => setPhase((p) => Math.min(3, p + 1))}
+                onClick={() => handlePhaseClick(Math.min(3, phase + 1))}
                 disabled={phase === 3}
-                className="flex-1 py-2 text-xs font-display tracking-wider bg-primary/20 text-primary rounded-lg border border-primary/40 hover:bg-primary/30 disabled:opacity-30 transition-all"
+                className="flex-1 py-2.5 text-xs font-display tracking-wider bg-primary/20 text-primary rounded-lg border border-primary/40 hover:bg-primary/30 disabled:opacity-30 transition-all"
               >
                 Next →
               </button>
