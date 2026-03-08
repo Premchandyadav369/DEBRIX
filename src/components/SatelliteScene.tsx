@@ -100,7 +100,7 @@ function DebrisParticles() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.05} color="#22b8cf" transparent opacity={0.6} />
+      <pointsMaterial size={0.05} color="#4fc3f7" transparent opacity={0.5} />
     </points>
   );
 }
