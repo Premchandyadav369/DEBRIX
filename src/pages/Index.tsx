@@ -26,6 +26,9 @@ const SpaceWeatherSection = lazy(() => import("@/components/SpaceWeatherSection"
 const ISSTrackerSection = lazy(() => import("@/components/ISSTrackerSection"));
 const ApodSection = lazy(() => import("@/components/ApodSection"));
 const SpaceEventsSection = lazy(() => import("@/components/SpaceEventsSection"));
+const SkyMapSection = lazy(() => import("@/components/SkyMapSection"));
+const PlanetVisibilitySection = lazy(() => import("@/components/PlanetVisibilitySection"));
+const RocketEngineDatabaseSection = lazy(() => import("@/components/RocketEngineDatabaseSection"));
 const GallerySection = lazy(() => import("@/components/GallerySection"));
 const TeamSection = lazy(() => import("@/components/TeamSection"));
 const ContactSection = lazy(() => import("@/components/ContactSection"));
@@ -110,6 +113,20 @@ const Index = () => {
       <RevealOnScroll direction="right">
         <Lazy><SpaceEventsSection /></Lazy>
       </RevealOnScroll>
+
+      <ParallaxSection offset={25}>
+        <Lazy><SkyMapSection /></Lazy>
+      </ParallaxSection>
+
+      <RevealOnScroll direction="left">
+        <Lazy><PlanetVisibilitySection /></Lazy>
+      </RevealOnScroll>
+
+      <ParallaxSection offset={30}>
+        <RevealOnScroll>
+          <Lazy><RocketEngineDatabaseSection /></Lazy>
+        </RevealOnScroll>
+      </ParallaxSection>
 
       <ParallaxSection offset={20}>
         <RevealOnScroll direction="left">

@@ -40,11 +40,14 @@ const navGroups = [
       { label: "Weather", href: "#space-weather" },
       { label: "ISS", href: "#iss-tracker" },
       { label: "Space Events", href: "#space-events" },
+      { label: "Sky Map", href: "#sky-map" },
+      { label: "Planets", href: "#planet-visibility" },
     ],
   },
   {
-    label: "Media",
+    label: "Reference",
     items: [
+      { label: "Rocket Engines", href: "#rocket-engines" },
       { label: "Gallery", href: "#gallery" },
       { label: "Contact", href: "#contact" },
     ],
