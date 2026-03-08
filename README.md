@@ -1,73 +1,132 @@
-# Welcome to your Lovable project
+# 🛰️ DEBRIX — Toward a Debris-Free Orbit
 
-## Project info
+<p align="center">
+  <img src="src/assets/debrix.png" alt="DEBRIX Logo" width="200" />
+</p>
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+<p align="center">
+  <strong>Smart Satellites for Orbital Cleanup and Space Sustainability</strong>
+</p>
 
-## How can I edit this code?
+<p align="center">
+  <a href="#mission">Mission</a> •
+  <a href="#the-problem">The Problem</a> •
+  <a href="#how-it-works">How It Works</a> •
+  <a href="#features">Features</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#getting-started">Getting Started</a>
+</p>
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🌍 Mission
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+**DEBRIX** (Debris Removal by Intelligent eXploration) is an autonomous swarm-based satellite system designed to **detect, capture, collect, and safely deorbit** space debris — protecting critical orbital infrastructure and ensuring sustainable access to space for future generations.
 
-Changes made via Lovable will be committed automatically to this repo.
+## ⚠️ The Problem
 
-**Use your preferred IDE**
+Space debris is one of the most critical challenges facing humanity's future in orbit:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **36,500+** tracked debris objects larger than 10 cm in LEO
+- **1,000,000+** fragments between 1–10 cm — too small to track, large enough to destroy
+- **130,000,000+** sub-centimeter particles traveling at **7.5 km/s**
+- Each collision generates **thousands** of new fragments — fueling the **Kessler Syndrome**
+- At risk: GPS, weather forecasting, telecommunications, ISS crew safety, and the $400B+ satellite economy
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**If we don't act now, critical orbits could become unusable within decades.**
 
-Follow these steps:
+## 🚀 How It Works
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+DEBRIX operates through a 4-phase autonomous mission cycle:
+
+| Phase | Description |
+|-------|-------------|
+| **1. Launch** | DEBRIX swarm satellites are deployed into target orbital zones via rideshare launches |
+| **2. Orbit & Detect** | AI-powered onboard sensors identify, classify, and prioritize debris targets in real-time |
+| **3. Capture & Dock** | Individual swarm units rendezvous with debris using robotic arms, then dock with a central "Garbage Satellite" |
+| **4. Controlled De-orbit** | The fully-loaded garbage satellite performs a controlled atmospheric reentry, safely burning up all collected debris |
+
+### Key Technologies
+- **Swarm Intelligence** — Multiple satellites coordinate autonomously to cover vast orbital zones
+- **AI-Powered Detection** — Onboard ML models classify debris by size, trajectory, and collision risk
+- **Dock & Dump Architecture** — Efficient transfer of captured debris to a centralized deorbit vehicle
+- **Collision Avoidance AI** — Real-time trajectory prediction and autonomous maneuvering
+
+## ✨ Features
+
+This interactive web platform showcases the DEBRIX mission with:
+
+- 🎮 **SpaceX-style Launch Simulation** — 7-phase interactive launch sequence with 3D graphics and live telemetry
+- 📡 **Real-time ISS Tracker** — Live position tracking using actual orbital data
+- 🌊 **Live Space Weather** — Solar wind, geomagnetic indices, and radiation data
+- 🛰️ **Satellite Dashboard** — Real-time stats on active satellites and debris counts
+- 📊 **Debris Growth Projections** — Interactive charts showing debris population trends
+- 🤖 **Swarm Visualization** — 3D simulation of coordinated debris capture
+- 💬 **K2 AI Assistant** — Space-focused chatbot powered by AI
+- 🌑 **Orbital Decay Simulator** — Model how debris naturally decays over time
+- 🔴 **Kessler Syndrome Visualizer** — See the cascading collision effect in action
+- 🎨 **Dark/Light Theme** — Toggle between mission control dark mode and daylight mode
+- 📸 **NASA APOD** — Daily astronomy picture from NASA's API
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, TypeScript, Vite |
+| Styling | Tailwind CSS, shadcn/ui |
+| 3D Graphics | Three.js, @react-three/fiber |
+| Animations | Framer Motion |
+| Maps | Leaflet (ISS tracker) |
+| Charts | Recharts |
+| State | Zustand, TanStack Query |
+| Backend | Lovable Cloud (Edge Functions) |
+| AI | Lovable AI (K2 Chat) |
+
+## 🏁 Getting Started
+
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project
+cd debrix
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+├── assets/          # Brand assets (logos, images)
+├── components/      # All UI components
+│   ├── ui/          # Reusable shadcn/ui components
+│   ├── HeroSection  # Landing hero with 3D satellite
+│   ├── LaunchSim    # Interactive launch simulation
+│   ├── SwarmSection # Swarm coordination visualization
+│   └── ...          # 20+ mission-specific sections
+├── hooks/           # Custom React hooks (theme, mobile, etc.)
+├── integrations/    # Backend client setup
+├── pages/           # Route pages
+└── lib/             # Utilities
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🌐 Deployment
 
-## What technologies are used for this project?
+This project is deployed via [Lovable](https://lovable.dev). Click **Share → Publish** to deploy.
 
-This project is built with:
+## 📜 License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This project is developed as part of the DEBRIX space sustainability initiative.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+<p align="center">
+  <em>Cleaning orbits, one debris at a time.</em> 🛰️✨
+</p>
