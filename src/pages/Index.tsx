@@ -31,7 +31,7 @@ const SkyMapSection = lazy(() => import("@/components/SkyMapSection"));
 const PlanetVisibilitySection = lazy(() => import("@/components/PlanetVisibilitySection"));
 const RocketEngineDatabaseSection = lazy(() => import("@/components/RocketEngineDatabaseSection"));
 const ReentryPredictionSection = lazy(() => import("@/components/ReentryPredictionSection"));
-const TelescopeNetworkSection = lazy(() => import("@/components/TelescopeNetworkSection"));
+// TelescopeNetworkSection removed
 const MissionAnalyzerSection = lazy(() => import("@/components/MissionAnalyzerSection"));
 const GallerySection = lazy(() => import("@/components/GallerySection"));
 const TeamSection = lazy(() => import("@/components/TeamSection"));
@@ -136,9 +136,6 @@ const Index = () => {
         </RevealOnScroll>
       </ParallaxSection>
 
-      <RevealOnScroll>
-        <Lazy><TelescopeNetworkSection /></Lazy>
-      </RevealOnScroll>
 
       <ParallaxSection offset={25}>
         <Lazy><MissionAnalyzerSection /></Lazy>
