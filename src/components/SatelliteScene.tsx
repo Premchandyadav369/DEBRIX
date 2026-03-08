@@ -111,7 +111,7 @@ const SatelliteScene = () => {
       <Canvas camera={{ position: [4, 2, 5], fov: 45 }}>
         <ambientLight intensity={0.3} />
         <directionalLight position={[5, 5, 5]} intensity={1} color="#ffffff" />
-        <pointLight position={[-3, 2, -3]} intensity={0.5} color="#22b8cf" />
+        <pointLight position={[-3, 2, -3]} intensity={0.5} color="#4fc3f7" />
         <Stars radius={50} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
         <SatelliteModel />
         <DebrisParticles />
