@@ -13,9 +13,9 @@ function SatelliteModel() {
     }
   });
 
-  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#8899aa", metalness: 0.8, roughness: 0.2 }), []);
-  const panelMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1a3a5c", metalness: 0.5, roughness: 0.3 }), []);
-  const accentMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#22b8cf", emissive: "#22b8cf", emissiveIntensity: 0.5 }), []);
+  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#c0c0c0", metalness: 0.9, roughness: 0.15 }), []);
+  const panelMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1565c0", metalness: 0.7, roughness: 0.2 }), []);
+  const accentMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#4fc3f7", emissive: "#4fc3f7", emissiveIntensity: 0.4 }), []);
   const armMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#666", metalness: 0.9, roughness: 0.1 }), []);
 
   return (
