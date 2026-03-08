@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import debrixLogo from "@/assets/debrix.png";
+import { useTheme } from "@/hooks/use-theme";
 
 const navItems = [
   { label: "Home", href: "#home" },
