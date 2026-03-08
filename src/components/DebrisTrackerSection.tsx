@@ -7,10 +7,12 @@ import * as satellite from "satellite.js";
 
 const NASA_API_KEY = "WBkaFckn04xcJlW4NoleN07iZajebOJGZpT4LrZz";
 
-interface TLERecord {
-  OBJECT_NAME: string;
-  TLE_LINE1: string;
-  TLE_LINE2: string;
+interface TLEApiMember {
+  satelliteId: number;
+  name: string;
+  date: string;
+  line1: string;
+  line2: string;
 }
 
 interface DebrisPoint {
