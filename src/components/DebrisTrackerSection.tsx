@@ -62,7 +62,7 @@ function DebrisCloud({ positions }: { positions: Float32Array }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.02} color="#22b8cf" transparent opacity={0.8} sizeAttenuation />
+      <pointsMaterial size={0.02} color="#4fc3f7" transparent opacity={0.7} sizeAttenuation />
     </points>
   );
 }
