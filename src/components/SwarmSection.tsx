@@ -31,7 +31,7 @@ const DEBRIS_ITEMS: DebrisItem[] = Array.from({ length: 18 }, (_, i) => {
     rotation: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6),
     scale: type === "sat" ? 0.12 + Math.random() * 0.08 : type === "panel" ? 0.08 + Math.random() * 0.06 : 0.03 + Math.random() * 0.04,
     type,
-    color: ["#ff6b6b", "#ffa94d", "#ff8787", "#e8590c", "#fa5252", "#fd7e14"][i % 6],
+    color: ["#ff8a65", "#ffab91", "#ef9a9a", "#e57373", "#ffcc80", "#ffb74d"][i % 6],
     tumbleSpeed: new THREE.Vector3(
       (Math.random() - 0.5) * 0.8,
       (Math.random() - 0.5) * 0.8,
@@ -49,7 +49,6 @@ function GarbageSatellite({ item }: { item: DebrisItem }) {
     ref.current.rotation.x += item.tumbleSpeed.x * 0.01;
     ref.current.rotation.y += item.tumbleSpeed.y * 0.01;
     ref.current.rotation.z += item.tumbleSpeed.z * 0.01;
-    // Slight orbital drift
     const drift = t * 0.03;
     ref.current.position.x = item.position.x + Math.sin(drift + item.id) * 0.1;
     ref.current.position.z = item.position.z + Math.cos(drift + item.id) * 0.1;
@@ -60,28 +59,23 @@ function GarbageSatellite({ item }: { item: DebrisItem }) {
   if (item.type === "sat") {
     return (
       <group ref={ref} position={item.position} rotation={item.rotation}>
-        {/* Dead satellite body */}
         <mesh>
           <boxGeometry args={[s * 3, s * 1.5, s * 2]} />
-          <meshStandardMaterial color="#555" metalness={0.7} roughness={0.4} />
+          <meshStandardMaterial color="#9e9e9e" metalness={0.8} roughness={0.3} />
         </mesh>
-        {/* Broken solar panel */}
         <mesh position={[s * 3, 0, 0]} rotation={[0, 0, 0.3]}>
           <boxGeometry args={[s * 2.5, s * 0.1, s * 1.5]} />
-          <meshStandardMaterial color="#1a3a5a" metalness={0.5} roughness={0.3} />
+          <meshStandardMaterial color="#1565c0" metalness={0.6} roughness={0.2} />
         </mesh>
-        {/* Dangling panel */}
         <mesh position={[-s * 2.5, s * 0.3, 0]} rotation={[0.5, 0, -0.4]}>
           <boxGeometry args={[s * 2, s * 0.1, s * 1.2]} />
-          <meshStandardMaterial color="#1a3a5a" metalness={0.5} roughness={0.3} />
+          <meshStandardMaterial color="#1565c0" metalness={0.6} roughness={0.2} />
         </mesh>
-        {/* Antenna */}
         <mesh position={[0, s * 1.2, 0]}>
           <cylinderGeometry args={[s * 0.05, s * 0.05, s * 1.5, 6]} />
-          <meshStandardMaterial color="#888" />
+          <meshStandardMaterial color="#bdbdbd" metalness={0.7} />
         </mesh>
-        {/* Warning glow */}
-        <pointLight color={item.color} intensity={0.4} distance={1.5} />
+        <pointLight color={item.color} intensity={0.3} distance={1.5} />
       </group>
     );
   }
@@ -91,22 +85,21 @@ function GarbageSatellite({ item }: { item: DebrisItem }) {
       <group ref={ref} position={item.position} rotation={item.rotation}>
         <mesh>
           <boxGeometry args={[s * 4, s * 0.15, s * 2.5]} />
-          <meshStandardMaterial color="#1a3a5a" metalness={0.6} roughness={0.3} />
+          <meshStandardMaterial color="#1565c0" metalness={0.7} roughness={0.2} />
         </mesh>
         <mesh position={[s, 0, 0]}>
           <boxGeometry args={[s * 0.5, s * 0.5, s * 0.5]} />
-          <meshStandardMaterial color="#666" metalness={0.5} />
+          <meshStandardMaterial color="#9e9e9e" metalness={0.6} />
         </mesh>
       </group>
     );
   }
 
-  // Fragment
   return (
     <group ref={ref} position={item.position} rotation={item.rotation}>
       <mesh>
         <dodecahedronGeometry args={[s, 0]} />
-        <meshStandardMaterial color="#777" metalness={0.6} roughness={0.5} />
+        <meshStandardMaterial color="#bdbdbd" metalness={0.7} roughness={0.4} />
       </mesh>
     </group>
   );
@@ -120,7 +113,6 @@ interface SwarmSat {
   orbitOffset: number;
   inclination: number;
   color: string;
-  targetDebrisIdx: number;
 }
 
 const SWARM: SwarmSat[] = Array.from({ length: 8 }, (_, i) => ({
@@ -129,8 +121,7 @@ const SWARM: SwarmSat[] = Array.from({ length: 8 }, (_, i) => ({
   orbitSpeed: 0.25 + Math.random() * 0.15,
   orbitOffset: (i / 8) * Math.PI * 2,
   inclination: (Math.random() - 0.5) * 0.5,
-  color: ["#22b8cf", "#38d9a9", "#4dabf7", "#74c0fc", "#22b8cf", "#69db7c", "#38d9a9", "#91a7ff"][i],
-  targetDebrisIdx: i % DEBRIS_ITEMS.length,
+  color: ["#4fc3f7", "#4dd0e1", "#4db6ac", "#81c784", "#4fc3f7", "#aed581", "#4dd0e1", "#90caf9"][i],
 }));
 
 function DebrixHunter({ sat }: { sat: SwarmSat }) {
@@ -150,7 +141,7 @@ function DebrixHunter({ sat }: { sat: SwarmSat }) {
   }, [sat]);
 
   const trailMaterial = useMemo(
-    () => new THREE.LineBasicMaterial({ color: sat.color, transparent: true, opacity: 0.12 }),
+    () => new THREE.LineBasicMaterial({ color: sat.color, transparent: true, opacity: 0.18 }),
     [sat.color]
   );
 
@@ -162,10 +153,9 @@ function DebrixHunter({ sat }: { sat: SwarmSat }) {
     ref.current.position.z = Math.sin(t) * sat.orbitRadius;
     ref.current.rotation.y = t + Math.PI;
 
-    // Pulse the "scanner beam"
     if (laserRef.current) {
       const mat = laserRef.current.material as THREE.MeshStandardMaterial;
-      mat.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 3 + sat.id) * 0.15;
+      mat.opacity = 0.12 + Math.sin(state.clock.elapsedTime * 3 + sat.id) * 0.12;
     }
   });
 
@@ -173,32 +163,31 @@ function DebrixHunter({ sat }: { sat: SwarmSat }) {
     <>
       <primitive object={new THREE.Line(trailGeometry, trailMaterial)} />
       <group ref={ref}>
-        {/* Main body - sleek hexagonal */}
+        {/* Reflective white/silver body */}
         <mesh>
           <boxGeometry args={[0.18, 0.08, 0.12]} />
-          <meshStandardMaterial color={sat.color} emissive={sat.color} emissiveIntensity={0.6} metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial color="#e0e0e0" emissive={sat.color} emissiveIntensity={0.3} metalness={0.9} roughness={0.15} />
         </mesh>
-        {/* Solar panels */}
+        {/* Golden solar panels */}
         <mesh position={[0.18, 0, 0]}>
           <boxGeometry args={[0.14, 0.01, 0.08]} />
-          <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+          <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
         </mesh>
         <mesh position={[-0.18, 0, 0]}>
           <boxGeometry args={[0.14, 0.01, 0.08]} />
-          <meshStandardMaterial color="#0d3b66" metalness={0.9} roughness={0.1} />
+          <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
         </mesh>
         {/* Capture arm */}
         <mesh position={[0, -0.06, 0.08]} rotation={[0.3, 0, 0]}>
           <cylinderGeometry args={[0.008, 0.012, 0.12, 6]} />
-          <meshStandardMaterial color="#aaa" metalness={0.7} />
+          <meshStandardMaterial color="#bdbdbd" metalness={0.8} />
         </mesh>
         {/* Scanner cone */}
-        <mesh ref={laserRef} position={[0, -0.15, 0]} rotation={[0, 0, 0]}>
+        <mesh ref={laserRef} position={[0, -0.15, 0]}>
           <coneGeometry args={[0.15, 0.4, 8, 1, true]} />
-          <meshStandardMaterial color={sat.color} transparent opacity={0.2} emissive={sat.color} emissiveIntensity={1} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={sat.color} transparent opacity={0.15} emissive={sat.color} emissiveIntensity={0.8} side={THREE.DoubleSide} />
         </mesh>
-        {/* Active light */}
-        <pointLight color={sat.color} intensity={0.5} distance={1.2} />
+        <pointLight color={sat.color} intensity={0.4} distance={1.2} />
       </group>
     </>
   );
@@ -213,23 +202,20 @@ function Earth() {
     <group>
       <mesh ref={ref}>
         <sphereGeometry args={[1, 48, 48]} />
-        <meshStandardMaterial color="#0a2a4a" emissive="#051525" emissiveIntensity={0.3} />
+        <meshStandardMaterial color="#1a5276" emissive="#0d2b3e" emissiveIntensity={0.4} />
       </mesh>
-      {/* Atmosphere */}
       <mesh>
         <sphereGeometry args={[1.04, 48, 48]} />
-        <meshStandardMaterial color="#22b8cf" transparent opacity={0.06} side={THREE.BackSide} />
+        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.08} side={THREE.BackSide} />
       </mesh>
-      {/* Glow ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.05, 1.15, 64]} />
-        <meshStandardMaterial color="#22b8cf" transparent opacity={0.04} side={THREE.DoubleSide} />
+        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.04} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
 }
 
-// Tiny particles for micro-debris field
 function MicroDebris() {
   const ref = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
@@ -254,7 +240,7 @@ function MicroDebris() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.015} color="#ff6b6b" transparent opacity={0.4} sizeAttenuation />
+      <pointsMaterial size={0.018} color="#ef9a9a" transparent opacity={0.5} sizeAttenuation />
     </points>
   );
 }
@@ -263,9 +249,10 @@ function SwarmScene() {
   return (
     <div className="w-full h-[480px] md:h-[580px]">
       <Canvas camera={{ position: [0, 3.5, 6.5], fov: 42 }}>
-        <ambientLight intensity={0.15} />
-        <directionalLight position={[5, 3, 5]} intensity={0.7} color="#cce5ff" />
-        <directionalLight position={[-3, -2, -4]} intensity={0.2} color="#ff8866" />
+        <ambientLight intensity={0.3} />
+        <directionalLight position={[5, 3, 5]} intensity={1} color="#ffffff" />
+        <directionalLight position={[-3, -2, -4]} intensity={0.3} color="#ffcc80" />
+        <hemisphereLight args={["#b3e5fc", "#1a237e", 0.2]} />
         <Earth />
         <MicroDebris />
         {DEBRIS_ITEMS.map((item) => (
@@ -297,23 +284,22 @@ const SwarmSection = () => {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-2 mb-8 overflow-hidden relative">
           <SwarmScene />
 
-          {/* Legend overlay */}
           {showLegend && (
-            <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-3 p-3 rounded-lg bg-background/70 backdrop-blur-sm border border-border/30">
+            <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-3 p-3 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#22b8cf] shadow-[0_0_6px_#22b8cf]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#4fc3f7] shadow-[0_0_6px_#4fc3f7]" />
                 <span className="text-[10px] text-foreground font-display">Debrix Hunters</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded bg-[#555]" />
+                <span className="w-2.5 h-2.5 rounded bg-[#9e9e9e]" />
                 <span className="text-[10px] text-foreground font-display">Dead Satellites</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded bg-[#1a3a5a]" />
+                <span className="w-2.5 h-2.5 rounded bg-[#1565c0]" />
                 <span className="text-[10px] text-foreground font-display">Broken Panels</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#ff6b6b]" />
+                <span className="w-2 h-2 rounded-full bg-[#ef9a9a]" />
                 <span className="text-[10px] text-foreground font-display">Micro-debris</span>
               </div>
               <button onClick={() => setShowLegend(false)} className="ml-auto text-[10px] text-muted-foreground hover:text-foreground">✕</button>
