@@ -50,6 +50,14 @@ const team = [
     github: "https://github.com/mohithreddy2810-ops",
     initials: "MR",
   },
+  {
+    name: "P R Kiran Kumar Reddy",
+    role: "General Support",
+    spec: "Generalist",
+    linkedin: "https://www.linkedin.com/in/kiran-kumar-reddy-57576b216/",
+    github: "https://github.com/kirancube",
+    initials: "KR",
+  },
 ];
 
 const guide = {
