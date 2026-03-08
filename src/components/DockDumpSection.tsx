@@ -181,10 +181,28 @@ function ThrusterFlame({ active, position }: { active: boolean; position: [numbe
 
 function EarthSmall() {
   return (
-    <mesh position={[0, -4, -2]}>
-      <sphereGeometry args={[2.5, 32, 32]} />
-      <meshStandardMaterial color="#1a5276" emissive="#0d2b3e" emissiveIntensity={0.3} />
-    </mesh>
+    <group position={[0, -4, -2]}>
+      {/* Ocean */}
+      <mesh>
+        <sphereGeometry args={[2.5, 32, 32]} />
+        <meshStandardMaterial color="#1a6b9c" metalness={0.1} roughness={0.7} />
+      </mesh>
+      {/* Continents */}
+      <mesh rotation={[0.2, 1.5, 0]}>
+        <sphereGeometry args={[2.51, 32, 32]} />
+        <meshStandardMaterial color="#2d7a3a" transparent opacity={0.35} />
+      </mesh>
+      {/* Clouds */}
+      <mesh>
+        <sphereGeometry args={[2.54, 24, 24]} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.1} />
+      </mesh>
+      {/* Atmosphere */}
+      <mesh>
+        <sphereGeometry args={[2.65, 32, 32]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.08} side={THREE.BackSide} />
+      </mesh>
+    </group>
   );
 }
 
