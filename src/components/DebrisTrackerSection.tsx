@@ -39,14 +39,14 @@ function Earth() {
   return (
     <mesh ref={meshRef}>
       <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial color="#0a2a4a" emissive="#051525" emissiveIntensity={0.3} />
+      <meshStandardMaterial color="#1a5276" emissive="#0d2b3e" emissiveIntensity={0.4} />
       <mesh>
         <sphereGeometry args={[1.02, 32, 32]} />
-        <meshStandardMaterial color="#22b8cf" transparent opacity={0.15} side={THREE.BackSide} />
+        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.12} side={THREE.BackSide} />
       </mesh>
       <mesh>
         <sphereGeometry args={[1.005, 16, 16]} />
-        <meshStandardMaterial wireframe color="#1a6a8a" transparent opacity={0.2} />
+        <meshStandardMaterial wireframe color="#2980b9" transparent opacity={0.15} />
       </mesh>
     </mesh>
   );
