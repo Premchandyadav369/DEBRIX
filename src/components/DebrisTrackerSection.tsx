@@ -76,22 +76,18 @@ function DebrisCloud({ positions }: { positions: Float32Array }) {
 }
 
 function OrbitRing({ radius, color, opacity = 0.15 }: { radius: number; color: string; opacity?: number }) {
-  const points = useMemo(() => {
+  const geometry = useMemo(() => {
     const pts: THREE.Vector3[] = [];
     for (let i = 0; i <= 64; i++) {
       const angle = (i / 64) * Math.PI * 2;
       pts.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
     }
-    return pts;
+    return new THREE.BufferGeometry().setFromPoints(pts);
   }, [radius]);
 
-  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
+  const material = useMemo(() => new THREE.LineBasicMaterial({ color, transparent: true, opacity }), [color, opacity]);
 
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={opacity} />
-    </line>
-  );
+  return <primitive object={new THREE.Line(geometry, material)} />;
 }
 
 function DebrisScene({ debrisPositions }: { debrisPositions: Float32Array }) {
