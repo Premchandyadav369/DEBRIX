@@ -2,12 +2,12 @@ import { motion } from "framer-motion";
 import { User } from "lucide-react";
 
 const team = [
-  { name: "Team Lead", role: "Project Manager", spec: "Systems Engineering" },
-  { name: "Engineer A", role: "Satellite Design", spec: "Mechanical Engineering" },
-  { name: "Engineer B", role: "AI & Algorithms", spec: "Computer Science" },
-  { name: "Engineer C", role: "Orbital Mechanics", spec: "Aerospace Engineering" },
-  { name: "Engineer D", role: "Communications", spec: "Electrical Engineering" },
-  { name: "Project Guide", role: "Faculty Advisor", spec: "Space Science" },
+  { name: "V C Premchand Yadav", role: "Team Lead", spec: "CSE (AI & ML)" },
+  { name: "Yamala Liel Stephen", role: "AI & Algorithms", spec: "CSE (AI & ML)" },
+  { name: "Sai Krishnan Iyer", role: "Satellite Systems", spec: "Computer Science & Engineering" },
+  { name: "Sri Harsha Vardhan K", role: "Orbital Mechanics", spec: "CSE (AI & ML)" },
+  { name: "Edupulapati Sai Praneeth", role: "Communications & Sensors", spec: "CSE (AI & ML)" },
+  { name: "Chinna Reddy Gari Mohith", role: "Software Engineering", spec: "Integrated M.Tech (Software Engineering)" },
 ];
 
 const TeamSection = () => {
