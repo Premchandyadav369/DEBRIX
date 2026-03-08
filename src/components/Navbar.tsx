@@ -39,6 +39,7 @@ const navGroups = [
       { label: "Dashboard", href: "#sat-dashboard" },
       { label: "Weather", href: "#space-weather" },
       { label: "ISS", href: "#iss-tracker" },
+      { label: "Space Events", href: "#space-events" },
     ],
   },
   {

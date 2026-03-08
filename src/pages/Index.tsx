@@ -25,6 +25,7 @@ const SatelliteDashboardSection = lazy(() => import("@/components/SatelliteDashb
 const SpaceWeatherSection = lazy(() => import("@/components/SpaceWeatherSection"));
 const ISSTrackerSection = lazy(() => import("@/components/ISSTrackerSection"));
 const ApodSection = lazy(() => import("@/components/ApodSection"));
+const SpaceEventsSection = lazy(() => import("@/components/SpaceEventsSection"));
 const GallerySection = lazy(() => import("@/components/GallerySection"));
 const TeamSection = lazy(() => import("@/components/TeamSection"));
 const ContactSection = lazy(() => import("@/components/ContactSection"));
@@ -105,6 +106,10 @@ const Index = () => {
       </RevealOnScroll>
 
       <Lazy><ApodSection /></Lazy>
+
+      <RevealOnScroll direction="right">
+        <Lazy><SpaceEventsSection /></Lazy>
+      </RevealOnScroll>
 
       <ParallaxSection offset={20}>
         <RevealOnScroll direction="left">
