@@ -151,14 +151,12 @@ export default function SpaceChatSection() {
 
         if (!assistantContent) {
           // Non-streaming fallback
-          const fallbackRes = await fetch(K2_API_URL, {
+          const fallbackRes = await fetch(EDGE_FN_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${K2_API_KEY}`,
             },
             body: JSON.stringify({
-              model: "MBZUAI-IFM/K2-Think-v2",
               messages: [
                 { role: "system", content: SYSTEM_PROMPT },
                 ...history.map((m) => ({ role: m.role, content: m.content })),
