@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import debrixLogo from "@/assets/debrix.png";
+import { useTheme } from "@/hooks/use-theme";
 
 const navItems = [
   { label: "Home", href: "#home" },
@@ -27,6 +28,7 @@ const navItems = [
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -55,9 +57,18 @@ const Navbar = () => {
           </div>
         </div>
 
-        <button onClick={() => setOpen(!open)} className="lg:hidden text-foreground">
-          {open ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-foreground transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button onClick={() => setOpen(!open)} className="lg:hidden text-foreground">
+            {open ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
