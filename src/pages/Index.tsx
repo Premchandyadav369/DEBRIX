@@ -97,6 +97,10 @@ const Index = () => {
         </RevealOnScroll>
       </ParallaxSection>
 
+      <RevealOnScroll direction="left">
+        <Lazy><ReentryPredictionSection /></Lazy>
+      </RevealOnScroll>
+
       <Lazy><KesslerSection /></Lazy>
 
       <RevealOnScroll direction="right">
