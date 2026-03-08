@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import Starfield from "@/components/Starfield";
+import AmbientMusicPlayer from "@/components/AmbientMusicPlayer";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
