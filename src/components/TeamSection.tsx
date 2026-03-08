@@ -113,14 +113,26 @@ const TeamSection = () => {
               <h3 className="font-display font-semibold text-sm">{member.name}</h3>
               <p className="text-primary text-xs font-display mt-1">{member.role}</p>
               <p className="text-muted-foreground text-xs mt-1">{member.spec}</p>
-              <a
-                href={member.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 mt-3 text-muted-foreground hover:text-primary transition-colors text-xs"
-              >
-                <Linkedin className="w-3.5 h-3.5" /> LinkedIn
-              </a>
+              <div className="flex items-center justify-center gap-3 mt-3">
+                <a
+                  href={member.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors text-xs"
+                >
+                  <Linkedin className="w-3.5 h-3.5" /> LinkedIn
+                </a>
+                {member.github && (
+                  <a
+                    href={member.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors text-xs"
+                  >
+                    <Github className="w-3.5 h-3.5" /> GitHub
+                  </a>
+                )}
+              </div>
             </motion.div>
           ))}
         </div>
