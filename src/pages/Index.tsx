@@ -6,7 +6,15 @@ import LaunchSimSection from "@/components/LaunchSimSection";
 import WorkflowSection from "@/components/WorkflowSection";
 import MissionTimeline from "@/components/MissionTimeline";
 import TelemetrySection from "@/components/TelemetrySection";
+import DockDumpSection from "@/components/DockDumpSection";
+import SwarmSection from "@/components/SwarmSection";
+import CollisionAvoidanceSection from "@/components/CollisionAvoidanceSection";
 import DebrisTrackerSection from "@/components/DebrisTrackerSection";
+import DebrisPrioritizationSection from "@/components/DebrisPrioritizationSection";
+import DebrisGrowthSection from "@/components/DebrisGrowthSection";
+import OrbitalDecaySection from "@/components/OrbitalDecaySection";
+import KesslerSection from "@/components/KesslerSection";
+import SatelliteDashboardSection from "@/components/SatelliteDashboardSection";
 import SpaceWeatherSection from "@/components/SpaceWeatherSection";
 import ISSTrackerSection from "@/components/ISSTrackerSection";
 import ApodSection from "@/components/ApodSection";
@@ -26,7 +34,15 @@ const Index = () => {
       <WorkflowSection />
       <MissionTimeline />
       <TelemetrySection />
+      <DockDumpSection />
+      <SwarmSection />
+      <CollisionAvoidanceSection />
       <DebrisTrackerSection />
+      <DebrisPrioritizationSection />
+      <DebrisGrowthSection />
+      <OrbitalDecaySection />
+      <KesslerSection />
+      <SatelliteDashboardSection />
       <SpaceWeatherSection />
       <ISSTrackerSection />
       <ApodSection />

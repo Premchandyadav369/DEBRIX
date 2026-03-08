@@ -8,11 +8,18 @@ const navItems = [
   { label: "Launch", href: "#launch-sim" },
   { label: "Timeline", href: "#timeline" },
   { label: "Telemetry", href: "#telemetry" },
+  { label: "Dock & Dump", href: "#dock-dump" },
+  { label: "Swarm", href: "#swarm" },
+  { label: "AI Avoidance", href: "#collision-avoidance" },
   { label: "Debris", href: "#debris-tracker" },
+  { label: "Priority", href: "#debris-priority" },
+  { label: "Growth", href: "#debris-growth" },
+  { label: "Decay", href: "#orbital-decay" },
+  { label: "Kessler", href: "#kessler" },
+  { label: "Dashboard", href: "#sat-dashboard" },
   { label: "Weather", href: "#space-weather" },
   { label: "ISS", href: "#iss-tracker" },
   { label: "Gallery", href: "#gallery" },
-  { label: "Team", href: "#team" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -38,22 +45,24 @@ const Navbar = () => {
           <span className="gradient-text">DEBRIX</span>
         </a>
 
-        <div className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
-            <a key={item.href} href={item.href} className="text-muted-foreground hover:text-primary transition-colors text-xs font-display tracking-wider uppercase">
-              {item.label}
-            </a>
-          ))}
+        <div className="hidden lg:flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto max-w-[900px] scrollbar-none">
+            {navItems.map((item) => (
+              <a key={item.href} href={item.href} className="text-muted-foreground hover:text-primary transition-colors text-[10px] font-display tracking-wider uppercase whitespace-nowrap px-2 py-1">
+                {item.label}
+              </a>
+            ))}
+          </div>
         </div>
 
-        <button onClick={() => setOpen(!open)} className="md:hidden text-foreground">
+        <button onClick={() => setOpen(!open)} className="lg:hidden text-foreground">
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-background/95 backdrop-blur-lg border-b border-border/30">
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="lg:hidden bg-background/95 backdrop-blur-lg border-b border-border/30 max-h-[70vh] overflow-y-auto">
             {navItems.map((item) => (
               <a key={item.href} href={item.href} onClick={() => setOpen(false)} className="block px-6 py-3 text-muted-foreground hover:text-primary text-sm font-display tracking-wider">
                 {item.label}
