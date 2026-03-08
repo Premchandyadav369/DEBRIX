@@ -24,12 +24,13 @@ const ISSTrackerSection = () => {
 
   const fetchISS = useCallback(async () => {
     try {
-      const res = await fetch("http://api.open-notify.org/iss-now.json");
+      // Use Where the ISS At API (HTTPS) as primary source
+      const res = await fetch("https://api.wheretheiss.at/v1/satellites/25544");
       const data = await res.json();
-      if (data.message === "success") {
-        setPosition(data.iss_position);
-        const lat = parseFloat(data.iss_position.latitude);
-        const lon = parseFloat(data.iss_position.longitude);
+      if (data.latitude !== undefined) {
+        setPosition({ latitude: String(data.latitude), longitude: String(data.longitude) });
+        const lat = data.latitude;
+        const lon = data.longitude;
         if (markerRef.current && mapInstance.current) {
           markerRef.current.setLatLng([lat, lon]);
           mapInstance.current.panTo([lat, lon]);
@@ -40,13 +41,16 @@ const ISSTrackerSection = () => {
 
   const fetchAstronauts = useCallback(async () => {
     try {
-      const res = await fetch("http://api.open-notify.org/astros.json");
+      // open-notify is HTTP only; use corsproxy to fetch
+      const res = await fetch("https://corsproxy.io/?http://api.open-notify.org/astros.json");
       const data = await res.json();
       if (data.message === "success") {
         setPeopleCount(data.number);
         setAstronauts(data.people);
       }
-    } catch {}
+    } catch {
+      // Fallback: just show count as unknown
+    }
   }, []);
 
   useEffect(() => {
