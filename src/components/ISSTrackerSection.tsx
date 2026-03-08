@@ -88,13 +88,17 @@ const ISSTrackerSection = () => {
     }).addTo(map);
 
     const issIcon = L.divIcon({
-      html: `<div style="background:hsl(199,100%,55%);width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 12px hsl(199,100%,55%)"></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+      html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 0 8px hsl(199,100%,55%))">🚀</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
       className: "",
     });
 
     markerRef.current = L.marker([0, 0], { icon: issIcon }).addTo(map);
+    markerRef.current.bindPopup("Loading ISS data...", {
+      className: "iss-popup",
+      closeButton: true,
+    });
     mapInstance.current = map;
 
     fetchISS();
