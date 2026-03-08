@@ -7,6 +7,8 @@ import "leaflet/dist/leaflet.css";
 interface ISSPosition {
   latitude: string;
   longitude: string;
+  altitude: number;
+  velocity: number;
 }
 
 interface Astronaut {
@@ -28,11 +30,25 @@ const ISSTrackerSection = () => {
       const res = await fetch("https://api.wheretheiss.at/v1/satellites/25544");
       const data = await res.json();
       if (data.latitude !== undefined) {
-        setPosition({ latitude: String(data.latitude), longitude: String(data.longitude) });
+        setPosition({
+          latitude: String(data.latitude),
+          longitude: String(data.longitude),
+          altitude: data.altitude || 0,
+          velocity: data.velocity || 0,
+        });
         const lat = data.latitude;
         const lon = data.longitude;
         if (markerRef.current && mapInstance.current) {
           markerRef.current.setLatLng([lat, lon]);
+          markerRef.current.setPopupContent(
+            `<div style="font-family:monospace;font-size:12px;line-height:1.6;color:#fff;background:hsl(225,45%,10%);padding:8px 12px;border-radius:8px;min-width:160px">
+              <div style="font-size:14px;margin-bottom:4px">🛰️ <b>ISS</b></div>
+              <div>Lat: <b>${data.latitude.toFixed(4)}°</b></div>
+              <div>Lon: <b>${data.longitude.toFixed(4)}°</b></div>
+              <div>Alt: <b>${data.altitude.toFixed(1)} km</b></div>
+              <div>Speed: <b>${data.velocity.toFixed(0)} km/h</b></div>
+            </div>`
+          );
           mapInstance.current.panTo([lat, lon]);
         }
       }
@@ -72,13 +88,17 @@ const ISSTrackerSection = () => {
     }).addTo(map);
 
     const issIcon = L.divIcon({
-      html: `<div style="background:hsl(199,100%,55%);width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 12px hsl(199,100%,55%)"></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+      html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 0 8px hsl(199,100%,55%))">🚀</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
       className: "",
     });
 
     markerRef.current = L.marker([0, 0], { icon: issIcon }).addTo(map);
+    markerRef.current.bindPopup("Loading ISS data...", {
+      className: "iss-popup",
+      closeButton: true,
+    });
     mapInstance.current = map;
 
     fetchISS();
