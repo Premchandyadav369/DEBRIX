@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { GraduationCap, ExternalLink, Linkedin } from "lucide-react";
+import { GraduationCap, ExternalLink, Linkedin, Github } from "lucide-react";
 
 const team = [
   {
@@ -7,6 +7,7 @@ const team = [
     role: "Team Lead",
     spec: "CSE (AI & ML)",
     linkedin: "https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/",
+    github: "https://github.com/Premchandyadav369",
     initials: "PY",
   },
   {
@@ -14,6 +15,7 @@ const team = [
     role: "AI Engineer",
     spec: "CSE (AI & ML)",
     linkedin: "https://www.linkedin.com/in/edupulapatisaipraneeth/",
+    github: "https://github.com/SaiPraneeth-E",
     initials: "SP",
   },
   {
@@ -21,6 +23,7 @@ const team = [
     role: "Full Stack Developer",
     spec: "CSE (AI & ML)",
     linkedin: "https://www.linkedin.com/in/liel-stephen-17a06b295/",
+    github: "https://github.com/LielStephen",
     initials: "LS",
   },
   {
@@ -28,6 +31,7 @@ const team = [
     role: "3D Architect & Designer",
     spec: "CSE (AI & ML)",
     linkedin: "https://www.linkedin.com/in/kurapati-sri-harshavardhan-025263290/",
+    github: "https://github.com/MrAlhm-harsha",
     initials: "HV",
   },
   {
@@ -35,6 +39,7 @@ const team = [
     role: "Orbital Mechanics & Simulation",
     spec: "Computer Science & Engineering",
     linkedin: "https://www.linkedin.com/in/sai-krishnan-iyer-b14570289/",
+    github: "",
     initials: "SI",
   },
   {
@@ -42,6 +47,7 @@ const team = [
     role: "Software Engineering",
     spec: "Integrated M.Tech (Software Engineering)",
     linkedin: "https://www.linkedin.com/in/mohith-reddy-cr-87a585292/",
+    github: "https://github.com/mohithreddy2810-ops",
     initials: "MR",
   },
 ];
