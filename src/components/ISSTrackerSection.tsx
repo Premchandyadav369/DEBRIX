@@ -7,6 +7,8 @@ import "leaflet/dist/leaflet.css";
 interface ISSPosition {
   latitude: string;
   longitude: string;
+  altitude: number;
+  velocity: number;
 }
 
 interface Astronaut {
