@@ -77,22 +77,40 @@ function DumpSat({ position }: { position: THREE.Vector3 }) {
   );
 }
 
-function DebrisCluster({ visible, dispersing }: { visible: boolean; dispersing: boolean }) {
+function DebrisCluster({ visible, dispersing, capturedCount }: { visible: boolean; dispersing: boolean; capturedCount: number }) {
   const ref = useRef<THREE.Group>(null);
+  const totalPieces = 12;
   const pieces = useRef(
-    Array.from({ length: 12 }, () => ({
+    Array.from({ length: totalPieces }, () => ({
       pos: new THREE.Vector3((Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4),
       vel: new THREE.Vector3((Math.random() - 0.5) * 0.02, Math.random() * 0.015, (Math.random() - 0.5) * 0.02),
       size: 0.02 + Math.random() * 0.03,
       rot: Math.random() * 6,
+      captured: false,
+      captureTarget: new THREE.Vector3(-0.9, 0, 0),
     }))
   ).current;
 
   useFrame((state) => {
     if (!ref.current) return;
+    // Mark pieces as captured based on capturedCount
+    pieces.forEach((p, i) => {
+      if (i < capturedCount && !p.captured) {
+        p.captured = true;
+        p.captureTarget = new THREE.Vector3(-0.9 + (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15);
+      }
+    });
+
     ref.current.children.forEach((child, i) => {
       const p = pieces[i];
-      if (dispersing) p.pos.add(p.vel);
+      if (p.captured) {
+        // Shrink and move toward the Debrix satellite
+        p.pos.lerp(p.captureTarget, 0.04);
+        const scale = Math.max(0, 1 - (capturedCount - i) * 0.3);
+        child.scale.setScalar(scale);
+      } else if (dispersing) {
+        p.pos.add(p.vel);
+      }
       child.position.copy(p.pos);
       child.rotation.x = p.rot + state.clock.elapsedTime * 0.5;
       child.rotation.z = p.rot + state.clock.elapsedTime * 0.3;
@@ -204,6 +222,9 @@ function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: nu
     0
   );
 
+  // Calculate how many debris have been captured during phase 2
+  const capturedCount = phase > 2 ? 12 : phase === 2 ? Math.floor(autoProgress * 12) : 0;
+
   return (
     <Canvas camera={{ position: [0, 2, 5.5], fov: 40 }}>
       <color attach="background" args={["#0a1628"]} />
@@ -214,7 +235,7 @@ function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: nu
 
       <DebrixSat position={debrixTarget} glow={phase === 1 || phase === 2} />
       <DumpSat position={dumpTarget} />
-      <DebrisCluster visible={phase <= 2} dispersing={phase === 2} />
+      <DebrisCluster visible={phase <= 2} dispersing={false} capturedCount={capturedCount} />
       <DockingBeam active={phase === 1 || phase === 2} />
       <ThrusterFlame active={phase === 3} position={[0.9, -1.5 - autoProgress * 2, 0]} />
 
