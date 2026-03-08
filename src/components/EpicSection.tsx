@@ -13,8 +13,9 @@ interface EpicImage {
 }
 
 function buildImageUrl(image: string, date: string): string {
+  // date format from API: "2024-05-30 01:13:59"
   const d = date.split(" ")[0].split("-");
-  return `https://api.nasa.gov/EPIC/archive/natural/${d[0]}/${d[1]}/${d[2]}/png/${image}.png?api_key=${NASA_API_KEY}`;
+  return `https://epic.gsfc.nasa.gov/archive/natural/${d[0]}/${d[1]}/${d[2]}/png/${image}.png`;
 }
 
 const EpicSection = () => {
@@ -24,8 +25,29 @@ const EpicSection = () => {
 
   const fetchEpic = useCallback(async () => {
     try {
-      const res = await fetch(`https://api.nasa.gov/EPIC/api/natural/images?api_key=${NASA_API_KEY}`);
-      const data: EpicImage[] = await res.json();
+      // Try fetching latest images
+      let res = await fetch(`https://api.nasa.gov/EPIC/api/natural/images?api_key=${NASA_API_KEY}`);
+      let data: EpicImage[] = [];
+      
+      if (res.ok) {
+        data = await res.json();
+      }
+      
+      // If empty or failed, try fetching available dates and get the most recent one
+      if (!Array.isArray(data) || data.length === 0) {
+        const datesRes = await fetch(`https://api.nasa.gov/EPIC/api/natural/available?api_key=${NASA_API_KEY}`);
+        if (datesRes.ok) {
+          const dates: string[] = await datesRes.json();
+          if (dates.length > 0) {
+            const latestDate = dates[dates.length - 1];
+            const dateRes = await fetch(`https://api.nasa.gov/EPIC/api/natural/date/${latestDate}?api_key=${NASA_API_KEY}`);
+            if (dateRes.ok) {
+              data = await dateRes.json();
+            }
+          }
+        }
+      }
+
       if (Array.isArray(data) && data.length > 0) {
         setImages(data);
       }
@@ -64,7 +86,6 @@ const EpicSection = () => {
                   className="w-full h-full object-contain"
                   loading="lazy"
                 />
-                {/* Navigation */}
                 <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-4">
                   <button
                     onClick={() => setIndex((i) => Math.max(0, i - 1))}
