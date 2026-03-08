@@ -71,15 +71,13 @@ export default function SpaceChatSection() {
       let assistantContent = "";
 
       try {
-        const res = await fetch(K2_API_URL, {
+        const res = await fetch(EDGE_FN_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${K2_API_KEY}`,
-            Accept: "application/json, text/event-stream",
+            Accept: "text/event-stream",
           },
           body: JSON.stringify({
-            model: "MBZUAI-IFM/K2-Think-v2",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               ...history.map((m) => ({ role: m.role, content: m.content })),
