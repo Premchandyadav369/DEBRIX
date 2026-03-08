@@ -6,7 +6,6 @@ import WorkflowSection from "@/components/WorkflowSection";
 import DebrisTrackerSection from "@/components/DebrisTrackerSection";
 import SpaceWeatherSection from "@/components/SpaceWeatherSection";
 import ISSTrackerSection from "@/components/ISSTrackerSection";
-import EpicSection from "@/components/EpicSection";
 import ApodSection from "@/components/ApodSection";
 import GallerySection from "@/components/GallerySection";
 import TeamSection from "@/components/TeamSection";
@@ -24,7 +23,6 @@ const Index = () => {
       <DebrisTrackerSection />
       <SpaceWeatherSection />
       <ISSTrackerSection />
-      <EpicSection />
       <ApodSection />
       <GallerySection />
       <TeamSection />
