@@ -1,15 +1,36 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Github, Linkedin, Mail } from "lucide-react";
+import { Send, Github, Linkedin, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const ContactSection = () => {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Message sent! We'll get back to you soon.");
-    setForm({ name: "", email: "", message: "" });
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('contact-form', {
+        body: { name: form.name.trim(), email: form.email.trim(), message: form.message.trim() },
+      });
+
+      if (error) throw error;
+
+      toast.success("Message sent! We'll get back to you soon.");
+      setForm({ name: "", email: "", message: "" });
+    } catch (err) {
+      console.error('Contact form error:', err);
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -39,6 +60,7 @@ const ContactSection = () => {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
+              maxLength={100}
               className="w-full bg-secondary/50 border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-body"
             />
             <input
@@ -47,6 +69,7 @@ const ContactSection = () => {
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
+              maxLength={255}
               className="w-full bg-secondary/50 border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-body"
             />
             <textarea
@@ -55,10 +78,12 @@ const ContactSection = () => {
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               required
+              maxLength={1000}
               className="w-full bg-secondary/50 border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none font-body"
             />
-            <button type="submit" className="gradient-button flex items-center gap-2 text-sm">
-              <Send className="w-4 h-4" /> Send Message
+            <button type="submit" disabled={sending} className="gradient-button flex items-center gap-2 text-sm disabled:opacity-50">
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {sending ? "Sending..." : "Send Message"}
             </button>
           </motion.form>
 
@@ -73,8 +98,8 @@ const ContactSection = () => {
               Interested in Debrix or want to collaborate on orbital debris solutions? Reach out!
             </p>
             <div className="space-y-3">
-              <a href="mailto:contact@debrix.space" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
-                <Mail className="w-5 h-5" /> contact@debrix.space
+              <a href="mailto:vcpremchandyadav@gmail.com" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Mail className="w-5 h-5" /> vcpremchandyadav@gmail.com
               </a>
               <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Github className="w-5 h-5" /> GitHub
