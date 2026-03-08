@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, Send, X, Bot, User, Sparkles, Rocket } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-const K2_API_URL = "https://api.k2think.ai/v1/chat/completions";
-const K2_API_KEY = "IFM-4SpQ0qEg0Wlsw04O";
+const EDGE_FN_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/k2-chat`;
 
 const SYSTEM_PROMPT = `You are **DEBRIX AI** — a highly knowledgeable space & orbital-mechanics assistant embedded in the Debrix Space Debris Removal mission control website.
 
