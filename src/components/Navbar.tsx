@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Sun, Moon, ChevronDown } from "lucide-react";
+import { Menu, X, Sun, Moon, Sunrise, Sunset, Clock, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import debrixLogo from "@/assets/debrix.png";
 import { useTheme } from "@/hooks/use-theme";
@@ -104,16 +104,58 @@ function NavDropdown({ group }: { group: typeof navGroups[0] }) {
   );
 }
 
+function LiveClock() {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+  const date = now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+
+  return (
+    <div className="hidden md:flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+      <Clock className="w-3 h-3 text-primary" />
+      <span className="text-foreground font-semibold">{time}</span>
+      <span className="text-muted-foreground">·</span>
+      <span>{date}</span>
+    </div>
+  );
+}
+
+const THEME_ICONS = {
+  auto: Clock,
+  dark: Moon,
+  light: Sun,
+} as const;
+
+const THEME_LABELS: Record<string, string> = {
+  auto: "Auto",
+  dark: "Night",
+  light: "Day",
+};
+
+const RESOLVED_LABELS: Record<string, string> = {
+  dawn: "🌅 Dawn",
+  day: "☀️ Day",
+  dusk: "🌆 Dusk",
+  night: "🌙 Night",
+};
+
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const { mode, resolved, toggleTheme } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const ThemeIcon = THEME_ICONS[mode];
 
   return (
     <nav
@@ -132,14 +174,21 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <LiveClock />
+
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-foreground transition-colors"
+            className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-foreground transition-colors flex items-center gap-1.5"
             aria-label="Toggle theme"
+            title={`Mode: ${THEME_LABELS[mode]} · Currently: ${RESOLVED_LABELS[resolved]}`}
           >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            <ThemeIcon size={16} />
+            <span className="hidden md:inline text-[10px] font-display tracking-wider text-muted-foreground">
+              {mode === "auto" ? RESOLVED_LABELS[resolved] : THEME_LABELS[mode]}
+            </span>
           </button>
+
           <a
             href="#contact"
             className="hidden lg:inline-flex px-4 py-1.5 text-[11px] font-display tracking-wider uppercase border border-primary/40 text-primary rounded-md hover:bg-primary/10 transition-colors"
@@ -160,6 +209,10 @@ const Navbar = () => {
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden bg-background/95 backdrop-blur-lg border-b border-border/30 max-h-[70vh] overflow-y-auto"
           >
+            {/* Mobile clock */}
+            <div className="flex items-center justify-center gap-2 py-3 border-b border-border/20">
+              <LiveClock />
+            </div>
             {navGroups.map((group) => (
               <div key={group.label}>
                 <p className="px-6 pt-4 pb-1 text-[10px] font-display tracking-[0.2em] text-primary uppercase">
