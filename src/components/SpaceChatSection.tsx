@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, Send, X, Bot, User, Sparkles, Rocket } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-const K2_API_URL = "https://api.k2think.ai/v1/chat/completions";
-const K2_API_KEY = "IFM-4SpQ0qEg0Wlsw04O";
+const EDGE_FN_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/k2-chat`;
 
 const SYSTEM_PROMPT = `You are **DEBRIX AI** — a highly knowledgeable space & orbital-mechanics assistant embedded in the Debrix Space Debris Removal mission control website.
 
@@ -72,15 +71,13 @@ export default function SpaceChatSection() {
       let assistantContent = "";
 
       try {
-        const res = await fetch(K2_API_URL, {
+        const res = await fetch(EDGE_FN_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${K2_API_KEY}`,
-            Accept: "application/json, text/event-stream",
+            Accept: "text/event-stream",
           },
           body: JSON.stringify({
-            model: "MBZUAI-IFM/K2-Think-v2",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               ...history.map((m) => ({ role: m.role, content: m.content })),
@@ -154,14 +151,12 @@ export default function SpaceChatSection() {
 
         if (!assistantContent) {
           // Non-streaming fallback
-          const fallbackRes = await fetch(K2_API_URL, {
+          const fallbackRes = await fetch(EDGE_FN_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${K2_API_KEY}`,
             },
             body: JSON.stringify({
-              model: "MBZUAI-IFM/K2-Think-v2",
               messages: [
                 { role: "system", content: SYSTEM_PROMPT },
                 ...history.map((m) => ({ role: m.role, content: m.content })),

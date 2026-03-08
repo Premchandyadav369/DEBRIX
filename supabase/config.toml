@@ -1,1 +1,4 @@
 project_id = "wbosoolzygckmbfynkit"
+
+[functions.k2-chat]
+verify_jwt = false
