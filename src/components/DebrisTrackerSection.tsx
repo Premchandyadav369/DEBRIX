@@ -7,10 +7,12 @@ import * as satellite from "satellite.js";
 
 const NASA_API_KEY = "WBkaFckn04xcJlW4NoleN07iZajebOJGZpT4LrZz";
 
-interface TLERecord {
-  OBJECT_NAME: string;
-  TLE_LINE1: string;
-  TLE_LINE2: string;
+interface TLEApiMember {
+  satelliteId: number;
+  name: string;
+  date: string;
+  line1: string;
+  line2: string;
 }
 
 interface DebrisPoint {
@@ -121,24 +123,25 @@ const DebrisTrackerSection = () => {
 
   const fetchDebrisData = useCallback(async () => {
     try {
-      const res = await fetch("https://celestrak.org/NORAD/elements/gp.php?GROUP=cosmos-1408-debris&FORMAT=json");
-      if (!res.ok) throw new Error("Celestrak fetch failed");
-      const data: TLERecord[] = await res.json();
+      const res = await fetch("https://tle.ivanstanojevic.me/api/tle?search=cosmos+1408+deb&page-size=100&sort=name&sort-dir=asc");
+      if (!res.ok) throw new Error("TLE API fetch failed");
+      const data = await res.json();
+      const members: TLEApiMember[] = data.member || [];
       const now = new Date();
       const points: DebrisPoint[] = [];
-      data.slice(0, 200).forEach((rec) => {
+      members.forEach((rec) => {
         try {
-          const satrec = satellite.twoline2satrec(rec.TLE_LINE1, rec.TLE_LINE2);
+          const satrec = satellite.twoline2satrec(rec.line1, rec.line2);
           const posVel = satellite.propagate(satrec, now);
           if (posVel.position && typeof posVel.position !== "boolean") {
             const pos = posVel.position as { x: number; y: number; z: number };
             const alt = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2) - 6371;
-            points.push({ name: rec.OBJECT_NAME, position: scalePosition(pos), altitude: Math.round(alt) });
+            points.push({ name: rec.name, position: scalePosition(pos), altitude: Math.round(alt) });
           }
         } catch {}
       });
       setDebrisPoints(points);
-      setDebrisCount(data.length);
+      setDebrisCount(data.totalItems || members.length);
     } catch {
       const points: DebrisPoint[] = [];
       for (let i = 0; i < 150; i++) {
