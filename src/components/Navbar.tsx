@@ -29,6 +29,7 @@ const navGroups = [
       { label: "Priority", href: "#debris-priority" },
       { label: "Growth", href: "#debris-growth" },
       { label: "Decay", href: "#orbital-decay" },
+      { label: "Re-Entry", href: "#reentry-prediction" },
       { label: "Kessler", href: "#kessler" },
     ],
   },
@@ -48,6 +49,8 @@ const navGroups = [
     label: "Reference",
     items: [
       { label: "Rocket Engines", href: "#rocket-engines" },
+      { label: "Telescopes", href: "#telescope-network" },
+      { label: "Mission Analyzer", href: "#mission-analyzer" },
       { label: "Gallery", href: "#gallery" },
       { label: "Contact", href: "#contact" },
     ],
