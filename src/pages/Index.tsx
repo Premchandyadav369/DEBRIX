@@ -123,6 +123,14 @@ const Index = () => {
         <Lazy><SpaceEventsSection /></Lazy>
       </RevealOnScroll>
 
+      <ParallaxSection offset={20}>
+        <Lazy><UpcomingLaunchesSection /></Lazy>
+      </ParallaxSection>
+
+      <RevealOnScroll>
+        <Lazy><NeoAsteroidsSection /></Lazy>
+      </RevealOnScroll>
+
       <ParallaxSection offset={25}>
         <Lazy><SkyMapSection /></Lazy>
       </ParallaxSection>
