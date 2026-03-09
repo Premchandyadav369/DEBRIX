@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Calendar, Cpu, ExternalLink } from "lucide-react";
-
-const NASA_API_KEY = "WBkaFckn04xcJlW4NoleN07iZajebOJGZpT4LrZz";
+import { Camera, Calendar, Cpu, RefreshCw, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RoverPhoto {
   id: number;
@@ -18,29 +17,22 @@ const MarsRoverSection = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<RoverPhoto | null>(null);
 
-  useEffect(() => {
-    const fetchPhotos = async () => {
-      try {
-        // Try latest photos from Perseverance first, then Curiosity
-        const rovers = ["perseverance", "curiosity"];
-        let allPhotos: RoverPhoto[] = [];
-        for (const rover of rovers) {
-          const res = await fetch(
-            `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=${NASA_API_KEY}`
-          );
-          const data = await res.json();
-          if (data.latest_photos?.length) {
-            allPhotos = [...allPhotos, ...data.latest_photos.slice(0, 6)];
-          }
-          if (allPhotos.length >= 12) break;
-        }
-        setPhotos(allPhotos.slice(0, 12));
-      } catch {
-        // silent
-      } finally {
-        setLoading(false);
+  const fetchPhotos = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("mars-rover-proxy");
+      if (error) throw error;
+      if (data?.photos?.length) {
+        setPhotos(data.photos);
       }
-    };
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPhotos();
   }, []);
 
@@ -56,13 +48,16 @@ const MarsRoverSection = () => {
         </motion.div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="glass-card aspect-square animate-pulse" />
-            ))}
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : photos.length === 0 ? (
-          <p className="text-center text-muted-foreground">No Mars photos available right now.</p>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-3">No Mars photos available right now.</p>
+            <button onClick={fetchPhotos} className="gradient-button text-xs">
+              <RefreshCw className="w-3 h-3 mr-1 inline" /> Retry
+            </button>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -94,7 +89,6 @@ const MarsRoverSection = () => {
               ))}
             </div>
 
-            {/* Lightbox */}
             {selectedPhoto && (
               <motion.div
                 initial={{ opacity: 0 }}

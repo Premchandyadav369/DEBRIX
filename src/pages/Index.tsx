@@ -42,6 +42,8 @@ const NeoAsteroidsSection = lazy(() => import("@/components/NeoAsteroidsSection"
 const FireballTrackerSection = lazy(() => import("@/components/FireballTrackerSection"));
 const EarthEventsSection = lazy(() => import("@/components/EarthEventsSection"));
 const MarsRoverSection = lazy(() => import("@/components/MarsRoverSection"));
+const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
+const AuroraForecastSection = lazy(() => import("@/components/AuroraForecastSection"));
 
 
 const Lazy = ({ children }: { children: React.ReactNode }) => (
@@ -151,6 +153,8 @@ const Index = () => {
         <Lazy><PlanetVisibilitySection /></Lazy>
       </RevealOnScroll>
 
+      <Lazy><AuroraForecastSection /></Lazy>
+
       <ParallaxSection offset={30}>
         <RevealOnScroll>
           <Lazy><RocketEngineDatabaseSection /></Lazy>
@@ -160,6 +164,10 @@ const Index = () => {
       <RevealOnScroll>
         <Lazy><MarsRoverSection /></Lazy>
       </RevealOnScroll>
+
+      <ParallaxSection offset={20}>
+        <Lazy><SpaceNewsSection /></Lazy>
+      </ParallaxSection>
 
       <ParallaxSection offset={25}>
         <Lazy><MissionAnalyzerSection /></Lazy>

@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.astros-proxy]
 verify_jwt = false
+
+[functions.mars-rover-proxy]
+verify_jwt = false
+
+[functions.aurora-proxy]
+verify_jwt = false
