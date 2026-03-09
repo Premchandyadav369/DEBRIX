@@ -1,147 +1,49 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Flame, MapPin, Clock, AlertTriangle, Globe, CalendarDays, ArrowDown } from "lucide-react";
+import { Flame, MapPin, Clock, AlertTriangle, Globe, ArrowDown, RefreshCw, Loader2 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import * as satellite from "satellite.js";
+import { supabase } from "@/integrations/supabase/client";
 
-interface ReentryObject {
+interface SatObject {
   name: string;
   noradId: string;
-  type: "Rocket Body" | "Satellite" | "Debris";
-  origin: string;
-  estimatedDate: string;
-  uncertainty: string;
-  mass: number;
   inclination: number;
   perigee: number;
   apogee: number;
-  status: "Imminent" | "This Week" | "This Month" | "Monitoring";
-  controlled: boolean;
-  riskLevel: "low" | "moderate" | "high";
-  description: string;
-  predictedRegions: string[];
+  meanMotion: number;
+  eccentricity: number;
+  tle1: string;
+  tle2: string;
   lat: number;
   lng: number;
+  altitude: number;
+  velocity: number;
+  riskLevel: "low" | "moderate" | "high";
 }
 
-const REENTRY_OBJECTS: ReentryObject[] = [
-  {
-    name: "CZ-5B R/B",
-    noradId: "54217",
-    type: "Rocket Body",
-    origin: "🇨🇳 China",
-    estimatedDate: "2026-03-15",
-    uncertainty: "±36 hours",
-    mass: 21000,
-    inclination: 41.5,
-    perigee: 175,
-    apogee: 190,
-    status: "This Week",
-    controlled: false,
-    riskLevel: "high",
-    description: "Long March 5B core stage. Uncontrolled reentry expected.",
-    predictedRegions: ["Atlantic Ocean", "Central Africa", "Indian Ocean", "Southeast Asia"],
-    lat: 12.5,
-    lng: -25.3,
-  },
-  {
-    name: "COSMOS 2560",
-    noradId: "54890",
-    type: "Satellite",
-    origin: "🇷🇺 Russia",
-    estimatedDate: "2026-03-22",
-    uncertainty: "±5 days",
-    mass: 3200,
-    inclination: 64.8,
-    perigee: 210,
-    apogee: 235,
-    status: "This Month",
-    controlled: false,
-    riskLevel: "moderate",
-    description: "Defunct Russian military satellite. Natural decay.",
-    predictedRegions: ["Northern Hemisphere", "Southern Hemisphere"],
-    lat: 52.1,
-    lng: 45.8,
-  },
-  {
-    name: "H-IIA R/B",
-    noradId: "55102",
-    type: "Rocket Body",
-    origin: "🇯🇵 Japan",
-    estimatedDate: "2026-03-12",
-    uncertainty: "±18 hours",
-    mass: 2800,
-    inclination: 28.5,
-    perigee: 168,
-    apogee: 172,
-    status: "Imminent",
-    controlled: false,
-    riskLevel: "moderate",
-    description: "Japanese H-IIA second stage from recent launch.",
-    predictedRegions: ["Pacific Ocean", "South America", "Atlantic Ocean"],
-    lat: -8.2,
-    lng: -155.4,
-  },
-  {
-    name: "Starlink-2145",
-    noradId: "48901",
-    type: "Satellite",
-    origin: "🇺🇸 USA",
-    estimatedDate: "2026-03-18",
-    uncertainty: "±2 days",
-    mass: 260,
-    inclination: 53.0,
-    perigee: 220,
-    apogee: 228,
-    status: "This Week",
-    controlled: true,
-    riskLevel: "low",
-    description: "Deorbiting Starlink satellite. Controlled descent.",
-    predictedRegions: ["Complete burnup expected"],
-    lat: 35.2,
-    lng: -120.5,
-  },
-  {
-    name: "SL-16 R/B",
-    noradId: "22285",
-    type: "Rocket Body",
-    origin: "🇷🇺 Russia",
-    estimatedDate: "2026-04-05",
-    uncertainty: "±10 days",
-    mass: 8200,
-    inclination: 71.0,
-    perigee: 285,
-    apogee: 310,
-    status: "Monitoring",
-    controlled: false,
-    riskLevel: "high",
-    description: "Soviet-era Zenit-2 upper stage. One of the largest debris in LEO.",
-    predictedRegions: ["Global coverage due to high inclination"],
-    lat: 62.3,
-    lng: 78.1,
-  },
-  {
-    name: "ERS-2",
-    noradId: "23560",
-    type: "Satellite",
-    origin: "🇪🇺 ESA",
-    estimatedDate: "2026-03-28",
-    uncertainty: "±7 days",
-    mass: 2516,
-    inclination: 98.5,
-    perigee: 250,
-    apogee: 260,
-    status: "This Month",
-    controlled: false,
-    riskLevel: "moderate",
-    description: "ESA Earth observation satellite, decommissioned 2011.",
-    predictedRegions: ["Polar regions", "Mid-latitudes"],
-    lat: -45.6,
-    lng: 168.2,
-  },
-];
+function propagatePosition(tle1: string, tle2: string): { lat: number; lng: number; alt: number; vel: number } | null {
+  try {
+    const satrec = satellite.twoline2satrec(tle1, tle2);
+    const now = new Date();
+    const posVel = satellite.propagate(satrec, now);
+    if (!posVel.position || typeof posVel.position === "boolean") return null;
+    const gmst = satellite.gstime(now);
+    const geo = satellite.eciToGeodetic(posVel.position as satellite.EciVec3<number>, gmst);
+    const vel = posVel.velocity as satellite.EciVec3<number>;
+    return {
+      lat: satellite.degreesLat(geo.latitude),
+      lng: satellite.degreesLong(geo.longitude),
+      alt: Math.round(geo.height),
+      vel: Math.round(Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2) * 100) / 100,
+    };
+  } catch {
+    return null;
+  }
+}
 
-function ReentryMap({ objects, selected, onSelect }: { objects: ReentryObject[]; selected: string | null; onSelect: (id: string | null) => void }) {
+function ReentryMap({ objects, selected, onSelect }: { objects: SatObject[]; selected: string | null; onSelect: (id: string | null) => void }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
@@ -149,30 +51,16 @@ function ReentryMap({ objects, selected, onSelect }: { objects: ReentryObject[];
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-
     const map = L.map(mapRef.current, {
-      center: [20, 0],
-      zoom: 2,
-      minZoom: 2,
-      maxZoom: 6,
-      zoomControl: false,
-      attributionControl: false,
+      center: [20, 0], zoom: 2, minZoom: 2, maxZoom: 6,
+      zoomControl: false, attributionControl: false,
     });
-
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nopoi/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd",
-    }).addTo(map);
-
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nopoi/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
     L.control.zoom({ position: "topright" }).addTo(map);
-
     mapInstance.current = map;
     markersRef.current = L.layerGroup().addTo(map);
     bandsRef.current = L.layerGroup().addTo(map);
-
-    return () => {
-      map.remove();
-      mapInstance.current = null;
-    };
+    return () => { map.remove(); mapInstance.current = null; };
   }, []);
 
   useEffect(() => {
@@ -180,85 +68,144 @@ function ReentryMap({ objects, selected, onSelect }: { objects: ReentryObject[];
     markersRef.current.clearLayers();
     bandsRef.current.clearLayers();
 
-    // Draw inclination bands for uncontrolled objects
-    objects.filter(o => !o.controlled).forEach((obj) => {
-      const color = obj.riskLevel === "high" ? "#ef4444" : obj.riskLevel === "moderate" ? "#f59e0b" : "#22d3ee";
-      const bounds: L.LatLngBoundsExpression = [[-obj.inclination, -180], [obj.inclination, 180]];
-      L.rectangle(bounds, {
-        color: color,
-        weight: 1,
-        opacity: 0.15,
-        fillColor: color,
-        fillOpacity: 0.04,
-        interactive: false,
+    const highRisk = objects.filter((o) => o.riskLevel === "high");
+    const uniqueInc = [...new Set(highRisk.map((o) => Math.round(o.inclination)))];
+    uniqueInc.forEach((inc) => {
+      L.rectangle([[-inc, -180], [inc, 180]], {
+        color: "#ef4444", weight: 1, opacity: 0.1, fillColor: "#ef4444", fillOpacity: 0.03, interactive: false,
       }).addTo(bandsRef.current!);
     });
 
-    // Add markers
     objects.forEach((obj) => {
       const color = obj.riskLevel === "high" ? "#ef4444" : obj.riskLevel === "moderate" ? "#f59e0b" : "#22d3ee";
-      const radius = obj.riskLevel === "high" ? 8 : 6;
+      const radius = obj.riskLevel === "high" ? 7 : obj.riskLevel === "moderate" ? 5 : 4;
       const isSelected = selected === obj.noradId;
 
       const marker = L.circleMarker([obj.lat, obj.lng], {
         radius: isSelected ? radius + 3 : radius,
-        fillColor: color,
-        color: isSelected ? "#ffffff" : color,
-        weight: isSelected ? 2 : 1,
-        opacity: 0.9,
-        fillOpacity: obj.status === "Imminent" ? 0.9 : 0.7,
+        fillColor: color, color: isSelected ? "#ffffff" : color,
+        weight: isSelected ? 2 : 1, opacity: 0.9,
+        fillOpacity: obj.riskLevel === "high" ? 0.9 : 0.7,
       });
 
       marker.bindTooltip(
-        `<div style="font-family:Space Grotesk,sans-serif;font-size:11px;line-height:1.4">
+        `<div style="font-family:Space Grotesk,sans-serif;font-size:11px;line-height:1.5">
           <strong>${obj.name}</strong><br/>
-          ${obj.type} · ${obj.origin}<br/>
-          <span style="color:${color}">● ${obj.status}</span> · ${obj.estimatedDate}<br/>
-          Mass: ${obj.mass >= 1000 ? (obj.mass / 1000).toFixed(1) + "t" : obj.mass + "kg"} · Inc: ${obj.inclination}°<br/>
-          Perigee: ${obj.perigee}km · Apogee: ${obj.apogee}km
+          NORAD ${obj.noradId}<br/>
+          <span style="color:${color}">● Perigee: ${obj.perigee}km</span><br/>
+          Alt: ${obj.altitude}km · Inc: ${obj.inclination.toFixed(1)}°<br/>
+          Vel: ${obj.velocity} km/s
         </div>`,
         { className: "reentry-tooltip", direction: "top", offset: [0, -8] }
       );
-
       marker.on("click", () => onSelect(selected === obj.noradId ? null : obj.noradId));
       marker.addTo(markersRef.current!);
     });
   }, [objects, selected, onSelect]);
 
-  return <div ref={mapRef} className="w-full h-[320px] md:h-[400px] rounded-lg z-0" />;
+  return <div ref={mapRef} className="w-full h-[320px] md:h-[420px] rounded-lg z-0" />;
 }
 
 const ReentryPredictionSection = () => {
+  const [objects, setObjects] = useState<SatObject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedObject, setSelectedObject] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [filterRisk, setFilterRisk] = useState<string>("All");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("celestrak-proxy");
+      if (fnError) throw fnError;
+
+      const items = Array.isArray(data) ? data : [];
+      const parsed: SatObject[] = items
+        .map((item: any) => {
+          const pos = propagatePosition(item.tle1, item.tle2);
+          if (!pos) return null;
+
+          let riskLevel: "low" | "moderate" | "high" = "low";
+          if (item.perigee < 200) riskLevel = "high";
+          else if (item.perigee < 300) riskLevel = "moderate";
+
+          return {
+            name: item.name,
+            noradId: item.noradId,
+            inclination: item.inclination,
+            perigee: item.perigee,
+            apogee: item.apogee,
+            meanMotion: item.meanMotion,
+            eccentricity: item.eccentricity,
+            tle1: item.tle1,
+            tle2: item.tle2,
+            lat: pos.lat,
+            lng: pos.lng,
+            altitude: pos.alt,
+            velocity: pos.vel,
+            riskLevel,
+          };
+        })
+        .filter((o: any): o is SatObject => o !== null)
+        .sort((a: SatObject, b: SatObject) => a.perigee - b.perigee);
+
+      setObjects(parsed);
+      setLastUpdated(new Date());
+    } catch (err: any) {
+      console.error("CelesTrak fetch error:", err);
+      setError("Failed to fetch satellite data.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 120000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // Re-propagate positions every 10s
+  useEffect(() => {
+    if (objects.length === 0) return;
+    const interval = setInterval(() => {
+      setObjects((prev) =>
+        prev.map((obj) => {
+          const pos = propagatePosition(obj.tle1, obj.tle2);
+          return pos ? { ...obj, lat: pos.lat, lng: pos.lng, altitude: pos.alt, velocity: pos.vel } : obj;
+        })
+      );
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [objects.length]);
 
   const filtered = useMemo(() => {
-    if (filterStatus === "All") return REENTRY_OBJECTS;
-    return REENTRY_OBJECTS.filter((o) => o.status === filterStatus);
-  }, [filterStatus]);
+    if (filterRisk === "All") return objects;
+    return objects.filter((o) => o.riskLevel === filterRisk.toLowerCase());
+  }, [filterRisk, objects]);
 
-  const imminentCount = REENTRY_OBJECTS.filter((o) => o.status === "Imminent").length;
-  const uncontrolledCount = REENTRY_OBJECTS.filter((o) => !o.controlled).length;
-  const totalMass = REENTRY_OBJECTS.reduce((s, o) => s + o.mass, 0);
+  const highCount = objects.filter((o) => o.riskLevel === "high").length;
+  const moderateCount = objects.filter((o) => o.riskLevel === "moderate").length;
 
   return (
     <section id="reentry-prediction" className="relative z-10">
       <div className="section-container">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
-          <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Prediction</p>
+          <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Tracking</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Re-Entry Prediction System</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Tracking {REENTRY_OBJECTS.length} objects predicted to re-enter Earth's atmosphere. {uncontrolledCount} are uncontrolled descents.
+            Real-time tracking of {objects.length} low-perigee objects via CelesTrak. Positions propagated using SGP4 orbital mechanics every 10 seconds.
           </p>
         </motion.div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: Flame, label: "Tracked Objects", value: REENTRY_OBJECTS.length.toString(), color: "text-primary" },
-            { icon: AlertTriangle, label: "Imminent", value: imminentCount.toString(), color: "text-destructive" },
-            { icon: ArrowDown, label: "Uncontrolled", value: uncontrolledCount.toString(), color: "text-accent" },
-            { icon: Globe, label: "Total Mass", value: `${(totalMass / 1000).toFixed(1)}t`, color: "text-primary" },
+            { icon: Flame, label: "Tracked Objects", value: objects.length.toString(), color: "text-primary" },
+            { icon: AlertTriangle, label: "High Risk (<200km)", value: highCount.toString(), color: "text-destructive" },
+            { icon: ArrowDown, label: "Moderate Risk", value: moderateCount.toString(), color: "text-accent" },
+            { icon: Globe, label: "Data Source", value: "CelesTrak", color: "text-primary" },
           ].map((s) => (
             <div key={s.label} className="glass-card p-4 text-center">
               <s.icon className={`w-5 h-5 mx-auto mb-2 ${s.color}`} />
@@ -268,25 +215,54 @@ const ReentryPredictionSection = () => {
           ))}
         </div>
 
-        {/* Leaflet Map */}
         <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-3 mb-8 overflow-hidden">
-          <p className="font-display text-xs tracking-wider text-muted-foreground mb-3 px-2">RE-ENTRY GROUND TRACK & INCLINATION BANDS</p>
-          <ReentryMap objects={filtered} selected={selectedObject} onSelect={setSelectedObject} />
+          <div className="flex items-center justify-between px-2 mb-3">
+            <p className="font-display text-xs tracking-wider text-muted-foreground">LIVE POSITIONS · SGP4 PROPAGATION</p>
+            <div className="flex items-center gap-3">
+              {lastUpdated && (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+              <button onClick={fetchData} disabled={loading} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-primary transition-colors">
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          </div>
+
+          {loading && objects.length === 0 ? (
+            <div className="w-full h-[320px] md:h-[420px] flex items-center justify-center bg-[hsl(220,25%,8%)] rounded-lg">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Fetching orbital data from CelesTrak...</p>
+              </div>
+            </div>
+          ) : error && objects.length === 0 ? (
+            <div className="w-full h-[320px] md:h-[420px] flex items-center justify-center bg-[hsl(220,25%,8%)] rounded-lg">
+              <div className="text-center">
+                <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">{error}</p>
+                <button onClick={fetchData} className="mt-3 gradient-button text-xs">Retry</button>
+              </div>
+            </div>
+          ) : (
+            <ReentryMap objects={filtered} selected={selectedObject} onSelect={setSelectedObject} />
+          )}
+
           <div className="flex flex-wrap justify-center gap-4 mt-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-destructive" /> High risk</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-[#f59e0b]" /> Moderate risk</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-primary" /> Low / Controlled</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-destructive" /> High risk (&lt;200km)</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-[#f59e0b]" /> Moderate (&lt;300km)</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-primary" /> Low (&lt;400km)</span>
           </div>
         </motion.div>
 
-        {/* Filters */}
         <div className="flex gap-2 mb-4 flex-wrap">
-          {["All", "Imminent", "This Week", "This Month", "Monitoring"].map((s) => (
+          {["All", "High", "Moderate", "Low"].map((s) => (
             <button
               key={s}
-              onClick={() => setFilterStatus(s)}
+              onClick={() => setFilterRisk(s)}
               className={`px-3 py-1.5 text-[10px] font-display tracking-wider rounded-full border transition-colors ${
-                filterStatus === s ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/20"
+                filterRisk === s ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/20"
               }`}
             >
               {s}
@@ -294,9 +270,8 @@ const ReentryPredictionSection = () => {
           ))}
         </div>
 
-        {/* Object cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((obj) => (
+          {filtered.slice(0, 12).map((obj) => (
             <motion.div
               key={obj.noradId}
               initial={{ opacity: 0, y: 15 }}
@@ -309,67 +284,63 @@ const ReentryPredictionSection = () => {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-display font-semibold text-foreground">{obj.name}</h4>
-                  <p className="text-[10px] text-muted-foreground">{obj.origin} · {obj.type} · NORAD {obj.noradId}</p>
+                  <h4 className="font-display font-semibold text-foreground text-sm">{obj.name}</h4>
+                  <p className="text-[10px] text-muted-foreground">NORAD {obj.noradId}</p>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider ${
-                  obj.status === "Imminent" ? "bg-destructive/20 text-destructive animate-pulse" :
-                  obj.status === "This Week" ? "bg-accent/15 text-accent" :
+                  obj.riskLevel === "high" ? "bg-destructive/20 text-destructive" :
+                  obj.riskLevel === "moderate" ? "bg-accent/15 text-accent" :
                   "bg-primary/15 text-primary"
                 }`}>
-                  {obj.status}
+                  {obj.riskLevel.toUpperCase()}
                 </span>
               </div>
 
-              <p className="text-xs text-muted-foreground mb-3">{obj.description}</p>
-
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <div className="flex items-center gap-1.5 text-[10px]">
-                  <CalendarDays className="w-3 h-3 text-primary" />
-                  <span className="text-muted-foreground">Est:</span>
-                  <span className="font-mono text-foreground">{obj.estimatedDate}</span>
+                  <MapPin className="w-3 h-3 text-primary" />
+                  <span className="text-muted-foreground">Alt:</span>
+                  <span className="font-mono text-foreground">{obj.altitude}km</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px]">
                   <Clock className="w-3 h-3 text-accent" />
-                  <span className="text-muted-foreground">±</span>
-                  <span className="font-mono text-foreground">{obj.uncertainty}</span>
+                  <span className="text-muted-foreground">Vel:</span>
+                  <span className="font-mono text-foreground">{obj.velocity} km/s</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <ArrowDown className="w-3 h-3 text-destructive" />
+                  <span className="text-muted-foreground">Perigee:</span>
+                  <span className="font-mono text-foreground">{obj.perigee}km</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px]">
                   <Globe className="w-3 h-3 text-primary" />
-                  <span className="text-muted-foreground">Mass:</span>
-                  <span className="font-mono text-foreground">{obj.mass >= 1000 ? `${(obj.mass / 1000).toFixed(1)}t` : `${obj.mass}kg`}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <MapPin className="w-3 h-3 text-destructive" />
                   <span className="text-muted-foreground">Inc:</span>
-                  <span className="font-mono text-foreground">{obj.inclination}°</span>
+                  <span className="font-mono text-foreground">{obj.inclination.toFixed(1)}°</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 text-[10px] mb-2">
-                <span className="text-muted-foreground">Perigee: <span className="font-mono text-foreground">{obj.perigee}km</span></span>
+              <div className="flex items-center gap-3 text-[10px]">
                 <span className="text-muted-foreground">Apogee: <span className="font-mono text-foreground">{obj.apogee}km</span></span>
-              </div>
-
-              <div className={`flex items-center gap-1.5 text-[10px] p-2 rounded-lg ${
-                obj.controlled ? "bg-accent/10 text-accent" : "bg-destructive/10 text-destructive"
-              }`}>
-                {obj.controlled ? "✓ Controlled descent" : "⚠ Uncontrolled reentry"}
+                <span className="text-muted-foreground">Ecc: <span className="font-mono text-foreground">{obj.eccentricity.toFixed(4)}</span></span>
               </div>
 
               {selectedObject === obj.noradId && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 border-t border-border/40">
-                  <p className="text-[10px] text-muted-foreground mb-1">Predicted impact regions:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {obj.predictedRegions.map((r) => (
-                      <span key={r} className="px-2 py-0.5 rounded-full text-[10px] bg-secondary/50 text-foreground">{r}</span>
-                    ))}
-                  </div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Live position:</p>
+                  <p className="font-mono text-[11px] text-foreground">
+                    {Math.abs(obj.lat).toFixed(4)}° {obj.lat >= 0 ? "N" : "S"}, {Math.abs(obj.lng).toFixed(4)}° {obj.lng >= 0 ? "E" : "W"}
+                  </p>
                 </motion.div>
               )}
             </motion.div>
           ))}
         </div>
+
+        {filtered.length > 12 && (
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            Showing 12 of {filtered.length} objects. All plotted on map above.
+          </p>
+        )}
       </div>
     </section>
   );
