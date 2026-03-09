@@ -15,8 +15,8 @@ const Footer = () => {
             © {new Date().getFullYear()} Debrix Project. Cleaning orbits, one debris at a time.
           </p>
           <div className="flex gap-4">
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-xs font-display">GitHub</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-xs font-display">LinkedIn</a>
+            <a href="https://github.com/Premchandyadav369" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-xs font-display">GitHub</a>
+            <a href="https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-xs font-display">LinkedIn</a>
           </div>
         </div>
 
