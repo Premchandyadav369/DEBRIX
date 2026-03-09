@@ -57,9 +57,8 @@ const ISSTrackerSection = () => {
 
   const fetchAstronauts = useCallback(async () => {
     try {
-      // Use the Open Notify API via a CORS proxy
-      const res = await fetch("https://corsproxy.io/?" + encodeURIComponent("http://api.open-notify.org/astros.json"));
-      const data = await res.json();
+      const { data: fnData, error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("astros-proxy");
+      const data = error ? null : fnData;
       if (data.message === "success") {
         setPeopleCount(data.number);
         setAstronauts(data.people);
