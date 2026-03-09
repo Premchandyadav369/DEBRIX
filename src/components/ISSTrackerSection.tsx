@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Users, Satellite } from "lucide-react";
+import { MapPin, Users, Satellite, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -24,10 +24,10 @@ const ISSTrackerSection = () => {
   const [position, setPosition] = useState<ISSPosition | null>(null);
   const [astronauts, setAstronauts] = useState<Astronaut[]>([]);
   const [peopleCount, setPeopleCount] = useState(0);
+  const [showLiveFeed, setShowLiveFeed] = useState(false);
 
   const fetchISS = useCallback(async () => {
     try {
-      // Use Where the ISS At API (HTTPS) as primary source
       const res = await fetch("https://api.wheretheiss.at/v1/satellites/25544");
       const data = await res.json();
       if (data.latitude !== undefined) {
@@ -66,7 +66,6 @@ const ISSTrackerSection = () => {
         return;
       }
     } catch {}
-    // 2026 fallback — Expedition 72/73 era crew + Tiangong
     setPeopleCount(12);
     setAstronauts([
       { name: "Oleg Kononenko", craft: "ISS" },
@@ -158,6 +157,41 @@ const ISSTrackerSection = () => {
         {/* Map */}
         <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-2 mb-8 overflow-hidden">
           <div ref={mapRef} className="w-full h-[350px] md:h-[450px] rounded-lg" style={{ background: "hsl(225 50% 6%)" }} />
+        </motion.div>
+
+        {/* ISS Live Feed */}
+        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="glass-card p-5 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Video className="w-4 h-4 text-primary" />
+              <h3 className="font-display font-semibold text-sm">ISS Live Earth View</h3>
+              <span className="flex items-center gap-1 text-[10px] text-destructive">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" /> LIVE
+              </span>
+            </div>
+            <button
+              onClick={() => setShowLiveFeed(!showLiveFeed)}
+              className="px-3 py-1.5 text-[10px] font-display tracking-wider rounded-full border transition-colors bg-primary/20 text-primary border-primary/40 hover:bg-primary/30"
+            >
+              {showLiveFeed ? "Hide Feed" : "Show Feed"}
+            </button>
+          </div>
+          {showLiveFeed && (
+            <div className="aspect-video rounded-lg overflow-hidden bg-black">
+              <iframe
+                src="https://ustream.tv/embed/17074538"
+                className="w-full h-full"
+                allowFullScreen
+                allow="autoplay; encrypted-media"
+                title="ISS Live Stream - Earth View"
+              />
+            </div>
+          )}
+          {!showLiveFeed && (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              Click "Show Feed" to watch NASA's live HD camera from the ISS. Video may be dark when ISS is on the night side of Earth.
+            </p>
+          )}
         </motion.div>
 
         {/* Astronauts */}
