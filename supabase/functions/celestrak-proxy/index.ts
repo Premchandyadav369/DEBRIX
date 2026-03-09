@@ -9,42 +9,72 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Fetch GP data from CelesTrak for objects that recently decayed or have very low perigee
-    // We'll fetch from multiple categories to get a good set of reentry candidates
-    const categories = [
-      'https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=json',
-      'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json',
-    ];
+    // Fetch TLE data from CelesTrak for recently launched objects (most likely to have low perigees)
+    const tleUrl = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle';
+    const stationsUrl = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle';
 
-    const results = await Promise.allSettled(
-      categories.map(url => fetch(url).then(r => r.json()))
-    );
+    const [tleRes, stationsRes] = await Promise.allSettled([
+      fetch(tleUrl).then(r => r.text()),
+      fetch(stationsUrl).then(r => r.text()),
+    ]);
 
-    const allObjects: any[] = [];
+    const allTles: { name: string; tle1: string; tle2: string }[] = [];
 
-    for (const result of results) {
-      if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-        allObjects.push(...result.value);
+    for (const result of [tleRes, stationsRes]) {
+      if (result.status === 'fulfilled') {
+        const lines = result.value.trim().split('\n').map((l: string) => l.trim());
+        for (let i = 0; i < lines.length - 2; i += 3) {
+          if (lines[i + 1]?.startsWith('1 ') && lines[i + 2]?.startsWith('2 ')) {
+            allTles.push({
+              name: lines[i],
+              tle1: lines[i + 1],
+              tle2: lines[i + 2],
+            });
+          }
+        }
       }
     }
 
-    // Filter for objects with low perigee (< 400km) - potential reentry candidates
-    // Calculate perigee from mean motion, eccentricity
-    const reentryCandiates = allObjects
-      .filter((obj: any) => {
-        if (!obj.MEAN_MOTION || !obj.ECCENTRICITY) return false;
-        const n = obj.MEAN_MOTION; // revs per day
-        const e = obj.ECCENTRICITY;
-        // Semi-major axis from mean motion: a = (GM / (2*pi*n/86400)^2)^(1/3)
-        const GM = 398600.4418; // km^3/s^2
-        const nRadPerSec = (n * 2 * Math.PI) / 86400;
-        const a = Math.pow(GM / (nRadPerSec * nRadPerSec), 1 / 3);
-        const perigee = a * (1 - e) - 6371; // altitude in km
-        return perigee < 400 && perigee > 100; // low but not yet decayed
-      })
-      .slice(0, 30); // Limit to 30 objects
+    // Calculate perigee and filter for low-perigee objects
+    const GM = 398600.4418;
+    const reentryObjects = allTles
+      .map(({ name, tle1, tle2 }) => {
+        try {
+          // Parse mean motion and eccentricity from TLE line 2
+          const meanMotion = parseFloat(tle2.substring(52, 63).trim());
+          const eccStr = '0.' + tle2.substring(26, 33).trim();
+          const eccentricity = parseFloat(eccStr);
+          const inclination = parseFloat(tle2.substring(8, 16).trim());
+          const noradId = tle1.substring(2, 7).trim();
 
-    return new Response(JSON.stringify(reentryCandiates), {
+          const nRadPerSec = (meanMotion * 2 * Math.PI) / 86400;
+          const a = Math.pow(GM / (nRadPerSec * nRadPerSec), 1 / 3);
+          const perigee = a * (1 - eccentricity) - 6371;
+          const apogee = a * (1 + eccentricity) - 6371;
+
+          if (perigee < 400 && perigee > 50) {
+            return {
+              name,
+              noradId,
+              tle1,
+              tle2,
+              meanMotion,
+              eccentricity,
+              inclination,
+              perigee: Math.round(perigee),
+              apogee: Math.round(apogee),
+            };
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.perigee - b.perigee)
+      .slice(0, 40);
+
+    return new Response(JSON.stringify(reentryObjects), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
