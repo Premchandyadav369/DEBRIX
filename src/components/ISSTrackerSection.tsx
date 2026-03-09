@@ -58,9 +58,9 @@ const ISSTrackerSection = () => {
 
   const fetchAstronauts = useCallback(async () => {
     try {
-      const { data: fnData, error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("astros-proxy");
-      const data = error ? null : fnData;
-      if (data.message === "success") {
+      const { data, error } = await supabase.functions.invoke("astros-proxy");
+      if (error) throw error;
+      if (data?.message === "success") {
         setPeopleCount(data.number);
         setAstronauts(data.people);
         return;

@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Flame, Zap, MapPin, Calendar, ArrowDown } from "lucide-react";
-
-const NASA_API_KEY = "WBkaFckn04xcJlW4NoleN07iZajebOJGZpT4LrZz";
+import { Flame, MapPin } from "lucide-react";
 
 interface Fireball {
   date: string;
@@ -88,7 +86,7 @@ const FireballTrackerSection = () => {
                 className="glass-card p-5 hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Flame className="w-4 h-4 text-orange-400" />
+                  <Flame className="w-4 h-4 text-primary" />
                   <span className="font-mono text-xs text-muted-foreground">{fb.date}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -123,3 +121,4 @@ const FireballTrackerSection = () => {
 };
 
 export default FireballTrackerSection;
+

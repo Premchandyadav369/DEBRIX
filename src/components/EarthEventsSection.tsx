@@ -11,10 +11,10 @@ interface EONETEvent {
 }
 
 const categoryIcon = (catId: string) => {
-  if (catId === "wildfires") return <Flame className="w-4 h-4 text-orange-400" />;
-  if (catId === "volcanoes") return <Mountain className="w-4 h-4 text-red-400" />;
-  if (catId === "severeStorms") return <Wind className="w-4 h-4 text-blue-400" />;
-  if (catId === "floods") return <Droplets className="w-4 h-4 text-cyan-400" />;
+  if (catId === "wildfires") return <Flame className="w-4 h-4 text-primary" />;
+  if (catId === "volcanoes") return <Mountain className="w-4 h-4 text-primary" />;
+  if (catId === "severeStorms") return <Wind className="w-4 h-4 text-primary" />;
+  if (catId === "floods") return <Droplets className="w-4 h-4 text-primary" />;
   return <Globe className="w-4 h-4 text-primary" />;
 };
 
@@ -103,3 +103,4 @@ const EarthEventsSection = () => {
 };
 
 export default EarthEventsSection;
+
