@@ -104,10 +104,10 @@ const ContactSection = () => {
               <a href="tel:+918977771494" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Phone className="w-5 h-5" /> 🇮🇳 +91 89777 71494
               </a>
-              <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
+              <a href="https://github.com/Premchandyadav369" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Github className="w-5 h-5" /> GitHub
               </a>
-              <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
+              <a href="https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors text-sm">
                 <Linkedin className="w-5 h-5" /> LinkedIn
               </a>
             </div>
