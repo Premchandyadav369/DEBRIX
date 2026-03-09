@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Flame, MapPin, Clock, AlertTriangle, Globe, CalendarDays, ArrowDown } from "lucide-react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 interface ReentryObject {
   name: string;
@@ -18,6 +20,8 @@ interface ReentryObject {
   riskLevel: "low" | "moderate" | "high";
   description: string;
   predictedRegions: string[];
+  lat: number;
+  lng: number;
 }
 
 const REENTRY_OBJECTS: ReentryObject[] = [
@@ -35,8 +39,10 @@ const REENTRY_OBJECTS: ReentryObject[] = [
     status: "This Week",
     controlled: false,
     riskLevel: "high",
-    description: "Long March 5B core stage. Uncontrolled reentry expected. Large mass means significant debris may survive to ground.",
+    description: "Long March 5B core stage. Uncontrolled reentry expected.",
     predictedRegions: ["Atlantic Ocean", "Central Africa", "Indian Ocean", "Southeast Asia"],
+    lat: 12.5,
+    lng: -25.3,
   },
   {
     name: "COSMOS 2560",
@@ -52,8 +58,10 @@ const REENTRY_OBJECTS: ReentryObject[] = [
     status: "This Month",
     controlled: false,
     riskLevel: "moderate",
-    description: "Defunct Russian military satellite. Natural decay due to increased solar activity raising atmospheric density.",
+    description: "Defunct Russian military satellite. Natural decay.",
     predictedRegions: ["Northern Hemisphere", "Southern Hemisphere"],
+    lat: 52.1,
+    lng: 45.8,
   },
   {
     name: "H-IIA R/B",
@@ -69,8 +77,10 @@ const REENTRY_OBJECTS: ReentryObject[] = [
     status: "Imminent",
     controlled: false,
     riskLevel: "moderate",
-    description: "Japanese H-IIA second stage from recent launch. Lower inclination limits potential impact zones.",
+    description: "Japanese H-IIA second stage from recent launch.",
     predictedRegions: ["Pacific Ocean", "South America", "Atlantic Ocean"],
+    lat: -8.2,
+    lng: -155.4,
   },
   {
     name: "Starlink-2145",
@@ -86,8 +96,10 @@ const REENTRY_OBJECTS: ReentryObject[] = [
     status: "This Week",
     controlled: true,
     riskLevel: "low",
-    description: "Deorbiting Starlink satellite. Controlled descent ensures complete burnup in atmosphere. No ground risk.",
+    description: "Deorbiting Starlink satellite. Controlled descent.",
     predictedRegions: ["Complete burnup expected"],
+    lat: 35.2,
+    lng: -120.5,
   },
   {
     name: "SL-16 R/B",
@@ -103,8 +115,10 @@ const REENTRY_OBJECTS: ReentryObject[] = [
     status: "Monitoring",
     controlled: false,
     riskLevel: "high",
-    description: "Soviet-era Zenit-2 upper stage. One of the largest debris objects in LEO. Solar activity accelerating decay.",
+    description: "Soviet-era Zenit-2 upper stage. One of the largest debris in LEO.",
     predictedRegions: ["Global coverage due to high inclination"],
+    lat: 62.3,
+    lng: 78.1,
   },
   {
     name: "ERS-2",
@@ -120,10 +134,99 @@ const REENTRY_OBJECTS: ReentryObject[] = [
     status: "This Month",
     controlled: false,
     riskLevel: "moderate",
-    description: "ESA Earth observation satellite, decommissioned 2011. Sun-synchronous orbit means predictable ground track.",
+    description: "ESA Earth observation satellite, decommissioned 2011.",
     predictedRegions: ["Polar regions", "Mid-latitudes"],
+    lat: -45.6,
+    lng: 168.2,
   },
 ];
+
+function ReentryMap({ objects, selected, onSelect }: { objects: ReentryObject[]; selected: string | null; onSelect: (id: string | null) => void }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  const bandsRef = useRef<L.LayerGroup | null>(null);
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstance.current) return;
+
+    const map = L.map(mapRef.current, {
+      center: [20, 0],
+      zoom: 2,
+      minZoom: 2,
+      maxZoom: 6,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nopoi/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+    }).addTo(map);
+
+    L.control.zoom({ position: "topright" }).addTo(map);
+
+    mapInstance.current = map;
+    markersRef.current = L.layerGroup().addTo(map);
+    bandsRef.current = L.layerGroup().addTo(map);
+
+    return () => {
+      map.remove();
+      mapInstance.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapInstance.current || !markersRef.current || !bandsRef.current) return;
+    markersRef.current.clearLayers();
+    bandsRef.current.clearLayers();
+
+    // Draw inclination bands for uncontrolled objects
+    objects.filter(o => !o.controlled).forEach((obj) => {
+      const color = obj.riskLevel === "high" ? "#ef4444" : obj.riskLevel === "moderate" ? "#f59e0b" : "#22d3ee";
+      const bounds: L.LatLngBoundsExpression = [[-obj.inclination, -180], [obj.inclination, 180]];
+      L.rectangle(bounds, {
+        color: color,
+        weight: 1,
+        opacity: 0.15,
+        fillColor: color,
+        fillOpacity: 0.04,
+        interactive: false,
+      }).addTo(bandsRef.current!);
+    });
+
+    // Add markers
+    objects.forEach((obj) => {
+      const color = obj.riskLevel === "high" ? "#ef4444" : obj.riskLevel === "moderate" ? "#f59e0b" : "#22d3ee";
+      const radius = obj.riskLevel === "high" ? 8 : 6;
+      const isSelected = selected === obj.noradId;
+
+      const marker = L.circleMarker([obj.lat, obj.lng], {
+        radius: isSelected ? radius + 3 : radius,
+        fillColor: color,
+        color: isSelected ? "#ffffff" : color,
+        weight: isSelected ? 2 : 1,
+        opacity: 0.9,
+        fillOpacity: obj.status === "Imminent" ? 0.9 : 0.7,
+      });
+
+      marker.bindTooltip(
+        `<div style="font-family:Space Grotesk,sans-serif;font-size:11px;line-height:1.4">
+          <strong>${obj.name}</strong><br/>
+          ${obj.type} · ${obj.origin}<br/>
+          <span style="color:${color}">● ${obj.status}</span> · ${obj.estimatedDate}<br/>
+          Mass: ${obj.mass >= 1000 ? (obj.mass / 1000).toFixed(1) + "t" : obj.mass + "kg"} · Inc: ${obj.inclination}°<br/>
+          Perigee: ${obj.perigee}km · Apogee: ${obj.apogee}km
+        </div>`,
+        { className: "reentry-tooltip", direction: "top", offset: [0, -8] }
+      );
+
+      marker.on("click", () => onSelect(selected === obj.noradId ? null : obj.noradId));
+      marker.addTo(markersRef.current!);
+    });
+  }, [objects, selected, onSelect]);
+
+  return <div ref={mapRef} className="w-full h-[320px] md:h-[400px] rounded-lg z-0" />;
+}
 
 const ReentryPredictionSection = () => {
   const [selectedObject, setSelectedObject] = useState<string | null>(null);
@@ -134,7 +237,6 @@ const ReentryPredictionSection = () => {
     return REENTRY_OBJECTS.filter((o) => o.status === filterStatus);
   }, [filterStatus]);
 
-  const selected = REENTRY_OBJECTS.find((o) => o.noradId === selectedObject);
   const imminentCount = REENTRY_OBJECTS.filter((o) => o.status === "Imminent").length;
   const uncontrolledCount = REENTRY_OBJECTS.filter((o) => !o.controlled).length;
   const totalMass = REENTRY_OBJECTS.reduce((s, o) => s + o.mass, 0);
@@ -166,71 +268,19 @@ const ReentryPredictionSection = () => {
           ))}
         </div>
 
-        {/* Probability visualization */}
-        <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-6 mb-8">
-          <p className="font-display text-xs tracking-wider text-muted-foreground mb-4">RE-ENTRY GROUND TRACK PROBABILITY</p>
-          <div className="relative w-full h-[220px] bg-[hsl(220,25%,8%)] rounded-lg overflow-hidden border border-border/30">
-            {/* Simplified world map grid */}
-            <svg viewBox="0 0 360 180" className="w-full h-full" preserveAspectRatio="none">
-              {/* Grid lines */}
-              {Array.from({ length: 7 }, (_, i) => (
-                <line key={`h${i}`} x1="0" y1={i * 30} x2="360" y2={i * 30} stroke="hsl(220, 18%, 18%)" strokeWidth="0.5" />
-              ))}
-              {Array.from({ length: 13 }, (_, i) => (
-                <line key={`v${i}`} x1={i * 30} y1="0" x2={i * 30} y2="180" stroke="hsl(220, 18%, 18%)" strokeWidth="0.5" />
-              ))}
-              {/* Equator */}
-              <line x1="0" y1="90" x2="360" y2="90" stroke="hsl(190, 85%, 52%)" strokeWidth="0.5" opacity="0.3" />
-              {/* Continents (simplified outlines) */}
-              <path d="M80,35 L95,32 L100,40 L110,42 L115,50 L105,55 L95,52 L85,45 Z" fill="hsl(160, 70%, 30%)" opacity="0.3" />
-              <path d="M160,30 L200,25 L220,35 L230,50 L225,65 L210,75 L195,70 L180,55 L165,40 Z" fill="hsl(160, 70%, 30%)" opacity="0.3" />
-              <path d="M155,65 L175,60 L185,75 L180,90 L170,95 L160,80 Z" fill="hsl(160, 70%, 30%)" opacity="0.3" />
-              <path d="M270,55 L310,50 L320,70 L315,90 L290,85 L275,70 Z" fill="hsl(160, 70%, 30%)" opacity="0.3" />
-              <path d="M60,75 L90,68 L100,80 L95,95 L80,105 L70,120 L55,115 L50,100 L55,85 Z" fill="hsl(160, 70%, 30%)" opacity="0.3" />
-              {/* Inclination bands for each object */}
-              {REENTRY_OBJECTS.filter((o) => !o.controlled).map((obj, i) => {
-                const incBand = obj.inclination;
-                const y1 = 90 - incBand;
-                const y2 = 90 + incBand;
-                return (
-                  <rect
-                    key={obj.noradId}
-                    x="0" y={Math.max(0, y1)}
-                    width="360" height={Math.min(180, y2) - Math.max(0, y1)}
-                    fill={obj.riskLevel === "high" ? "hsl(0, 72%, 55%)" : "hsl(160, 70%, 48%)"}
-                    opacity={0.06 + i * 0.02}
-                  />
-                );
-              })}
-              {/* Object position markers */}
-              {REENTRY_OBJECTS.map((obj, i) => {
-                const x = (i * 55 + 30) % 360;
-                const y = 90 - obj.inclination * 0.5 * Math.sin(i * 1.2);
-                return (
-                  <g key={obj.noradId}>
-                    <circle
-                      cx={x} cy={y} r={obj.riskLevel === "high" ? 5 : 3}
-                      fill={obj.riskLevel === "high" ? "hsl(0, 72%, 55%)" : obj.riskLevel === "moderate" ? "hsl(160, 70%, 48%)" : "hsl(190, 85%, 52%)"}
-                      opacity={0.8}
-                      className={obj.status === "Imminent" ? "animate-pulse" : ""}
-                    />
-                    <text x={x} y={y - 8} textAnchor="middle" fill="hsl(210, 30%, 70%)" fontSize="5" fontFamily="Space Grotesk">
-                      {obj.name}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
+        {/* Leaflet Map */}
+        <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-3 mb-8 overflow-hidden">
+          <p className="font-display text-xs tracking-wider text-muted-foreground mb-3 px-2">RE-ENTRY GROUND TRACK & INCLINATION BANDS</p>
+          <ReentryMap objects={filtered} selected={selectedObject} onSelect={setSelectedObject} />
           <div className="flex flex-wrap justify-center gap-4 mt-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-destructive" /> High risk zone</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-accent" /> Moderate risk</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-primary" /> Low risk / Controlled</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-destructive" /> High risk</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-[#f59e0b]" /> Moderate risk</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-primary" /> Low / Controlled</span>
           </div>
         </motion.div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           {["All", "Imminent", "This Week", "This Month", "Monitoring"].map((s) => (
             <button
               key={s}
@@ -296,20 +346,17 @@ const ReentryPredictionSection = () => {
                 </div>
               </div>
 
-              {/* Orbit info */}
               <div className="flex items-center gap-3 text-[10px] mb-2">
                 <span className="text-muted-foreground">Perigee: <span className="font-mono text-foreground">{obj.perigee}km</span></span>
                 <span className="text-muted-foreground">Apogee: <span className="font-mono text-foreground">{obj.apogee}km</span></span>
               </div>
 
-              {/* Control status */}
               <div className={`flex items-center gap-1.5 text-[10px] p-2 rounded-lg ${
                 obj.controlled ? "bg-accent/10 text-accent" : "bg-destructive/10 text-destructive"
               }`}>
                 {obj.controlled ? "✓ Controlled descent" : "⚠ Uncontrolled reentry"}
               </div>
 
-              {/* Predicted regions */}
               {selectedObject === obj.noradId && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 border-t border-border/40">
                   <p className="text-[10px] text-muted-foreground mb-1">Predicted impact regions:</p>
