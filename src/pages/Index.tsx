@@ -42,6 +42,8 @@ const NeoAsteroidsSection = lazy(() => import("@/components/NeoAsteroidsSection"
 const FireballTrackerSection = lazy(() => import("@/components/FireballTrackerSection"));
 const EarthEventsSection = lazy(() => import("@/components/EarthEventsSection"));
 const MarsRoverSection = lazy(() => import("@/components/MarsRoverSection"));
+const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
+const AuroraForecastSection = lazy(() => import("@/components/AuroraForecastSection"));
 
 
 const Lazy = ({ children }: { children: React.ReactNode }) => (
