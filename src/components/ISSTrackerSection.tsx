@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Users, Satellite } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -57,10 +58,9 @@ const ISSTrackerSection = () => {
 
   const fetchAstronauts = useCallback(async () => {
     try {
-      // Use the Open Notify API via a CORS proxy
-      const res = await fetch("https://corsproxy.io/?" + encodeURIComponent("http://api.open-notify.org/astros.json"));
-      const data = await res.json();
-      if (data.message === "success") {
+      const { data, error } = await supabase.functions.invoke("astros-proxy");
+      if (error) throw error;
+      if (data?.message === "success") {
         setPeopleCount(data.number);
         setAstronauts(data.people);
         return;
