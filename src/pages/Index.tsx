@@ -135,6 +135,14 @@ const Index = () => {
         <Lazy><NeoAsteroidsSection /></Lazy>
       </RevealOnScroll>
 
+      <ParallaxSection offset={20}>
+        <Lazy><FireballTrackerSection /></Lazy>
+      </ParallaxSection>
+
+      <RevealOnScroll direction="right">
+        <Lazy><EarthEventsSection /></Lazy>
+      </RevealOnScroll>
+
       <ParallaxSection offset={25}>
         <Lazy><SkyMapSection /></Lazy>
       </ParallaxSection>
@@ -143,12 +151,17 @@ const Index = () => {
         <Lazy><PlanetVisibilitySection /></Lazy>
       </RevealOnScroll>
 
+      <Lazy><SolarImagerySection /></Lazy>
+
       <ParallaxSection offset={30}>
         <RevealOnScroll>
           <Lazy><RocketEngineDatabaseSection /></Lazy>
         </RevealOnScroll>
       </ParallaxSection>
 
+      <RevealOnScroll>
+        <Lazy><MarsRoverSection /></Lazy>
+      </RevealOnScroll>
 
       <ParallaxSection offset={25}>
         <Lazy><MissionAnalyzerSection /></Lazy>
