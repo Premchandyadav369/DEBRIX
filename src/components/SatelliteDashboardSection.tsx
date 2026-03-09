@@ -1,67 +1,49 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Satellite, Trash2, Rocket, Globe, RefreshCw, Radio, Eye } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 
-const orbitData = [
-  { name: "LEO (200-2000km)", count: 9450, color: "hsl(190, 85%, 52%)" },
-  { name: "MEO (2000-35786km)", count: 180, color: "hsl(160, 70%, 48%)" },
-  { name: "GEO (~35786km)", count: 620, color: "hsl(45, 90%, 55%)" },
-  { name: "HEO (Elliptical)", count: 85, color: "hsl(280, 70%, 60%)" },
-];
-
-const countryData = [
-  { country: "USA", active: 5800, debris: 5200 },
-  { country: "China", active: 850, debris: 4500 },
-  { country: "Russia", active: 220, debris: 7200 },
-  { country: "ESA", active: 110, debris: 350 },
-  { country: "India", active: 75, debris: 250 },
-  { country: "Japan", active: 60, debris: 140 },
-  { country: "Other", active: 520, debris: 1800 },
-];
-
-// Starlink constellation stats (approximate March 2026)
-const STARLINK_DATA = [
-  { shell: "Shell 1 (550km)", count: 1584, inclination: "53°", status: "Complete" },
-  { shell: "Shell 2 (540km)", count: 1584, inclination: "53.2°", status: "Complete" },
-  { shell: "Shell 3 (570km)", count: 720, inclination: "70°", status: "Deploying" },
-  { shell: "Shell 4 (560km)", count: 348, inclination: "97.6°", status: "Deploying" },
-  { shell: "V2 Mini (530km)", count: 2800, inclination: "43°", status: "Deploying" },
-];
-
-interface PassPrediction {
-  satellite: string;
-  time: string;
-  duration: string;
-  maxEl: number;
-  direction: string;
-  brightness: number;
+interface SatStats {
+  totalActive: number;
+  byOrbit: { leo: number; meo: number; geo: number; heo: number };
+  constellations: Record<string, number>;
 }
 
-const PASS_PREDICTIONS: PassPrediction[] = [
-  { satellite: "ISS (ZARYA)", time: "19:42", duration: "6m 12s", maxEl: 72, direction: "SW → NE", brightness: -3.9 },
-  { satellite: "Starlink-31205", time: "20:15", duration: "3m 45s", maxEl: 45, direction: "W → E", brightness: 2.1 },
-  { satellite: "Hubble Space Telescope", time: "21:08", duration: "4m 33s", maxEl: 38, direction: "NW → SE", brightness: 1.8 },
-  { satellite: "NOAA 19", time: "05:22", duration: "5m 10s", maxEl: 55, direction: "N → SE", brightness: 3.2 },
-  { satellite: "Tiangong (CSS)", time: "22:35", duration: "5m 48s", maxEl: 61, direction: "SW → NE", brightness: -1.2 },
-];
-
 const SatelliteDashboardSection = () => {
-  const [activeSats, setActiveSats] = useState(10335);
-  const [totalDebris, setTotalDebris] = useState(36500);
-  const [launchesThisYear, setLaunchesThisYear] = useState(42);
+  const [stats, setStats] = useState<SatStats | null>(null);
+  const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [activeTab, setActiveTab] = useState<"overview" | "starlink" | "passes">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "constellations">("overview");
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveSats((v) => v + (Math.random() > 0.7 ? 1 : 0));
-      setTotalDebris((v) => v + (Math.random() > 0.4 ? 1 : 0));
-      setLaunchesThisYear((v) => v + (Math.random() > 0.97 ? 1 : 0));
-      setLastUpdated(new Date());
-    }, 5000);
+    const fetchStats = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('satellite-stats-proxy');
+        if (error) throw error;
+        if (data && !data.error) {
+          setStats(data);
+          setLastUpdated(new Date());
+        }
+      } catch (err) {
+        console.error('Satellite stats error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 300000); // refresh every 5 min
     return () => clearInterval(interval);
   }, []);
+
+  const activeSats = stats?.totalActive || 0;
+  const orbitData = stats ? [
+    { name: "LEO (200-2000km)", count: stats.byOrbit.leo, color: "hsl(190, 85%, 52%)" },
+    { name: "MEO (2000-35786km)", count: stats.byOrbit.meo, color: "hsl(160, 70%, 48%)" },
+    { name: "GEO (~35786km)", count: stats.byOrbit.geo, color: "hsl(45, 90%, 55%)" },
+    { name: "HEO (Elliptical)", count: stats.byOrbit.heo, color: "hsl(280, 70%, 60%)" },
+  ] : [];
+  const constellationData = stats ? Object.entries(stats.constellations).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count) : [];
 
   const ratio = (totalDebris / activeSats).toFixed(1);
   const starlinkTotal = STARLINK_DATA.reduce((s, d) => s + d.count, 0);
