@@ -42,7 +42,7 @@ const NeoAsteroidsSection = lazy(() => import("@/components/NeoAsteroidsSection"
 const FireballTrackerSection = lazy(() => import("@/components/FireballTrackerSection"));
 const EarthEventsSection = lazy(() => import("@/components/EarthEventsSection"));
 const MarsRoverSection = lazy(() => import("@/components/MarsRoverSection"));
-const SolarImagerySection = lazy(() => import("@/components/SolarImagerySection"));
+
 
 const Lazy = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<SectionSkeleton />}>{children}</Suspense>

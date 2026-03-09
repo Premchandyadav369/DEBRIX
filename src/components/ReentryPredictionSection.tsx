@@ -1,8 +1,6 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Flame, MapPin, Clock, AlertTriangle, Globe, ArrowDown, RefreshCw, Loader2 } from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import * as satellite from "satellite.js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -41,69 +39,6 @@ function propagatePosition(tle1: string, tle2: string): { lat: number; lng: numb
   } catch {
     return null;
   }
-}
-
-function ReentryMap({ objects, selected, onSelect }: { objects: SatObject[]; selected: string | null; onSelect: (id: string | null) => void }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.LayerGroup | null>(null);
-  const bandsRef = useRef<L.LayerGroup | null>(null);
-
-  useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return;
-    const map = L.map(mapRef.current, {
-      center: [20, 0], zoom: 2, minZoom: 2, maxZoom: 6,
-      zoomControl: false, attributionControl: false,
-    });
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nopoi/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
-    L.control.zoom({ position: "topright" }).addTo(map);
-    mapInstance.current = map;
-    markersRef.current = L.layerGroup().addTo(map);
-    bandsRef.current = L.layerGroup().addTo(map);
-    return () => { map.remove(); mapInstance.current = null; };
-  }, []);
-
-  useEffect(() => {
-    if (!mapInstance.current || !markersRef.current || !bandsRef.current) return;
-    markersRef.current.clearLayers();
-    bandsRef.current.clearLayers();
-
-    const highRisk = objects.filter((o) => o.riskLevel === "high");
-    const uniqueInc = [...new Set(highRisk.map((o) => Math.round(o.inclination)))];
-    uniqueInc.forEach((inc) => {
-      L.rectangle([[-inc, -180], [inc, 180]], {
-        color: "#ef4444", weight: 1, opacity: 0.1, fillColor: "#ef4444", fillOpacity: 0.03, interactive: false,
-      }).addTo(bandsRef.current!);
-    });
-
-    objects.forEach((obj) => {
-      const color = obj.riskLevel === "high" ? "#ef4444" : obj.riskLevel === "moderate" ? "#f59e0b" : "#22d3ee";
-      const radius = obj.riskLevel === "high" ? 7 : obj.riskLevel === "moderate" ? 5 : 4;
-      const isSelected = selected === obj.noradId;
-
-      const marker = L.circleMarker([obj.lat, obj.lng], {
-        radius: isSelected ? radius + 3 : radius,
-        fillColor: color, color: isSelected ? "#ffffff" : color,
-        weight: isSelected ? 2 : 1, opacity: 0.9,
-        fillOpacity: obj.riskLevel === "high" ? 0.9 : 0.7,
-      });
-
-      marker.bindTooltip(
-        `<div style="font-family:Space Grotesk,sans-serif;font-size:11px;line-height:1.5">
-          <strong>${obj.name}</strong><br/>
-          NORAD ${obj.noradId}<br/>
-          <span style="color:${color}">● Perigee: ${obj.perigee}km</span><br/>
-          Alt: ${obj.altitude}km · Inc: ${obj.inclination.toFixed(1)}°<br/>
-          Vel: ${obj.velocity} km/s
-        </div>`,
-        { className: "reentry-tooltip", direction: "top", offset: [0, -8] }
-      );
-      marker.on("click", () => onSelect(selected === obj.noradId ? null : obj.noradId));
-      marker.addTo(markersRef.current!);
-    });
-  }, [objects, selected, onSelect]);
-
-  return <div ref={mapRef} className="w-full h-[320px] md:h-[420px] rounded-lg z-0" />;
 }
 
 const ReentryPredictionSection = () => {
@@ -167,7 +102,6 @@ const ReentryPredictionSection = () => {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Re-propagate positions every 10s
   useEffect(() => {
     if (objects.length === 0) return;
     const interval = setInterval(() => {
@@ -215,131 +149,121 @@ const ReentryPredictionSection = () => {
           ))}
         </div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-3 mb-8 overflow-hidden">
-          <div className="flex items-center justify-between px-2 mb-3">
-            <p className="font-display text-xs tracking-wider text-muted-foreground">LIVE POSITIONS · SGP4 PROPAGATION</p>
-            <div className="flex items-center gap-3">
-              {lastUpdated && (
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  Updated {lastUpdated.toLocaleTimeString()}
-                </span>
-              )}
-              <button onClick={fetchData} disabled={loading} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-primary transition-colors">
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              </button>
+        {loading && objects.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Fetching orbital data from CelesTrak...</p>
             </div>
           </div>
-
-          {loading && objects.length === 0 ? (
-            <div className="w-full h-[320px] md:h-[420px] flex items-center justify-center bg-[hsl(220,25%,8%)] rounded-lg">
-              <div className="text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Fetching orbital data from CelesTrak...</p>
-              </div>
+        ) : error && objects.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <button onClick={fetchData} className="mt-3 gradient-button text-xs">Retry</button>
             </div>
-          ) : error && objects.length === 0 ? (
-            <div className="w-full h-[320px] md:h-[420px] flex items-center justify-center bg-[hsl(220,25%,8%)] rounded-lg">
-              <div className="text-center">
-                <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <button onClick={fetchData} className="mt-3 gradient-button text-xs">Retry</button>
-              </div>
-            </div>
-          ) : (
-            <ReentryMap objects={filtered} selected={selectedObject} onSelect={setSelectedObject} />
-          )}
-
-          <div className="flex flex-wrap justify-center gap-4 mt-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-destructive" /> High risk (&lt;200km)</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-[#f59e0b]" /> Moderate (&lt;300km)</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-primary" /> Low (&lt;400km)</span>
           </div>
-        </motion.div>
-
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {["All", "High", "Moderate", "Low"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilterRisk(s)}
-              className={`px-3 py-1.5 text-[10px] font-display tracking-wider rounded-full border transition-colors ${
-                filterRisk === s ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/20"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.slice(0, 12).map((obj) => (
-            <motion.div
-              key={obj.noradId}
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              onClick={() => setSelectedObject(selectedObject === obj.noradId ? null : obj.noradId)}
-              className={`glass-card p-5 cursor-pointer transition-all ${
-                selectedObject === obj.noradId ? "border-primary/60 ring-1 ring-primary/20" : "hover:border-primary/40"
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="font-display font-semibold text-foreground text-sm">{obj.name}</h4>
-                  <p className="text-[10px] text-muted-foreground">NORAD {obj.noradId}</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider ${
-                  obj.riskLevel === "high" ? "bg-destructive/20 text-destructive" :
-                  obj.riskLevel === "moderate" ? "bg-accent/15 text-accent" :
-                  "bg-primary/15 text-primary"
-                }`}>
-                  {obj.riskLevel.toUpperCase()}
-                </span>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex gap-2 flex-wrap">
+                {["All", "High", "Moderate", "Low"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setFilterRisk(s)}
+                    className={`px-3 py-1.5 text-[10px] font-display tracking-wider rounded-full border transition-colors ${
+                      filterRisk === s ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/20"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
-
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <MapPin className="w-3 h-3 text-primary" />
-                  <span className="text-muted-foreground">Alt:</span>
-                  <span className="font-mono text-foreground">{obj.altitude}km</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <Clock className="w-3 h-3 text-accent" />
-                  <span className="text-muted-foreground">Vel:</span>
-                  <span className="font-mono text-foreground">{obj.velocity} km/s</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <ArrowDown className="w-3 h-3 text-destructive" />
-                  <span className="text-muted-foreground">Perigee:</span>
-                  <span className="font-mono text-foreground">{obj.perigee}km</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <Globe className="w-3 h-3 text-primary" />
-                  <span className="text-muted-foreground">Inc:</span>
-                  <span className="font-mono text-foreground">{obj.inclination.toFixed(1)}°</span>
-                </div>
+              <div className="flex items-center gap-3">
+                {lastUpdated && (
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    Updated {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+                <button onClick={fetchData} disabled={loading} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-primary transition-colors">
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+                </button>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3 text-[10px]">
-                <span className="text-muted-foreground">Apogee: <span className="font-mono text-foreground">{obj.apogee}km</span></span>
-                <span className="text-muted-foreground">Ecc: <span className="font-mono text-foreground">{obj.eccentricity.toFixed(4)}</span></span>
-              </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.slice(0, 12).map((obj) => (
+                <motion.div
+                  key={obj.noradId}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  onClick={() => setSelectedObject(selectedObject === obj.noradId ? null : obj.noradId)}
+                  className={`glass-card p-5 cursor-pointer transition-all ${
+                    selectedObject === obj.noradId ? "border-primary/60 ring-1 ring-primary/20" : "hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-display font-semibold text-foreground text-sm">{obj.name}</h4>
+                      <p className="text-[10px] text-muted-foreground">NORAD {obj.noradId}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider ${
+                      obj.riskLevel === "high" ? "bg-destructive/20 text-destructive" :
+                      obj.riskLevel === "moderate" ? "bg-accent/15 text-accent" :
+                      "bg-primary/15 text-primary"
+                    }`}>
+                      {obj.riskLevel.toUpperCase()}
+                    </span>
+                  </div>
 
-              {selectedObject === obj.noradId && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 border-t border-border/40">
-                  <p className="text-[10px] text-muted-foreground mb-1">Live position:</p>
-                  <p className="font-mono text-[11px] text-foreground">
-                    {Math.abs(obj.lat).toFixed(4)}° {obj.lat >= 0 ? "N" : "S"}, {Math.abs(obj.lng).toFixed(4)}° {obj.lng >= 0 ? "E" : "W"}
-                  </p>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <MapPin className="w-3 h-3 text-primary" />
+                      <span className="text-muted-foreground">Alt:</span>
+                      <span className="font-mono text-foreground">{obj.altitude}km</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <Clock className="w-3 h-3 text-accent" />
+                      <span className="text-muted-foreground">Vel:</span>
+                      <span className="font-mono text-foreground">{obj.velocity} km/s</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <ArrowDown className="w-3 h-3 text-destructive" />
+                      <span className="text-muted-foreground">Perigee:</span>
+                      <span className="font-mono text-foreground">{obj.perigee}km</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <Globe className="w-3 h-3 text-primary" />
+                      <span className="text-muted-foreground">Inc:</span>
+                      <span className="font-mono text-foreground">{obj.inclination.toFixed(1)}°</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[10px]">
+                    <span className="text-muted-foreground">Apogee: <span className="font-mono text-foreground">{obj.apogee}km</span></span>
+                    <span className="text-muted-foreground">Ecc: <span className="font-mono text-foreground">{obj.eccentricity.toFixed(4)}</span></span>
+                  </div>
+
+                  {selectedObject === obj.noradId && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 border-t border-border/40">
+                      <p className="text-[10px] text-muted-foreground mb-1">Live position:</p>
+                      <p className="font-mono text-[11px] text-foreground">
+                        {Math.abs(obj.lat).toFixed(4)}° {obj.lat >= 0 ? "N" : "S"}, {Math.abs(obj.lng).toFixed(4)}° {obj.lng >= 0 ? "E" : "W"}
+                      </p>
+                    </motion.div>
+                  )}
                 </motion.div>
-              )}
-            </motion.div>
-          ))}
-        </div>
+              ))}
+            </div>
 
-        {filtered.length > 12 && (
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Showing 12 of {filtered.length} objects. All plotted on map above.
-          </p>
+            {filtered.length > 12 && (
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                Showing 12 of {filtered.length} objects.
+              </p>
+            )}
+          </>
         )}
       </div>
     </section>
