@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Users, Satellite } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
