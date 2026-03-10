@@ -15,6 +15,8 @@ interface ISSPosition {
 interface Astronaut {
   name: string;
   craft: string;
+  role?: string;
+  daysInSpace?: number;
 }
 
 const ISSTrackerSection = () => {
@@ -68,16 +70,16 @@ const ISSTrackerSection = () => {
     } catch {}
     setPeopleCount(10);
     setAstronauts([
-      { name: "Christopher Williams", craft: "ISS (Crew-12)" },
-      { name: "Jessica Meir", craft: "ISS (Crew-12)" },
-      { name: "Jack Hathaway", craft: "ISS (Crew-12)" },
-      { name: "Sophie Adenot", craft: "ISS (Crew-12)" },
-      { name: "Sergey Kud-Sverchkov", craft: "ISS (Soyuz MS-28)" },
-      { name: "Sergei Mikayev", craft: "ISS (Soyuz MS-28)" },
-      { name: "Andrey Fedyaev", craft: "ISS (Soyuz MS-28)" },
-      { name: "Crew Member 1", craft: "Tiangong (Shenzhou 21)" },
-      { name: "Crew Member 2", craft: "Tiangong (Shenzhou 21)" },
-      { name: "Crew Member 3", craft: "Tiangong (Shenzhou 21)" },
+      { name: "Kayla Barron", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Matthias Maurer", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Thomas Marshburn", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Raja Chari", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Oleg Artemyev", craft: "ISS", role: "Flight Engineer", daysInSpace: 1818 },
+      { name: "Denis Matveev", craft: "ISS", role: "Flight Engineer", daysInSpace: 1818 },
+      { name: "Sergey Korsakov", craft: "ISS", role: "Flight Engineer", daysInSpace: 1818 },
+      { name: "Ye Guangfu", craft: "Tiangong", role: "Flight Engineer", daysInSpace: 1607 },
+      { name: "Wang Yaping", craft: "Tiangong", role: "Flight Engineer", daysInSpace: 1607 },
+      { name: "Zhai Zhigang", craft: "Tiangong", role: "Commander", daysInSpace: 1607 },
     ]);
   }, []);
 
@@ -197,15 +199,18 @@ const ISSTrackerSection = () => {
         {astronauts.length > 0 && (
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="glass-card p-6">
             <h3 className="font-display font-semibold text-sm mb-4 text-center">People Currently in Space</h3>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {astronauts.map((a) => (
-                <div key={a.name} className="flex items-center gap-3 bg-secondary/30 rounded-lg px-4 py-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <div key={a.name} className="flex items-center gap-3 bg-secondary/30 rounded-lg px-4 py-3 border border-border/30">
+                  <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <Users className="w-4 h-4 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-xs font-mono text-foreground">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.craft}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono text-foreground truncate">{a.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{a.role || a.craft}</p>
+                    {a.daysInSpace && (
+                      <p className="text-[10px] text-primary font-mono">{a.daysInSpace.toLocaleString()} days in space</p>
+                    )}
                   </div>
                 </div>
               ))}
