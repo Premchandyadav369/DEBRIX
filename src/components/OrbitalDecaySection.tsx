@@ -65,6 +65,8 @@ const presets = [
   { label: "ISS (if abandoned)", mass: 420000, area: 1640, alt: 420 },
 ];
 
+const CD_DISPLAY = 2.2;
+
 const OrbitalDecaySection = () => {
   const [initialAlt, setInitialAlt] = useState(500);
   const [mass, setMass] = useState(100);
