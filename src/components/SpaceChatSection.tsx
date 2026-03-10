@@ -126,8 +126,25 @@ export default function SpaceChatSection() {
               const parsed = JSON.parse(jsonStr);
               const delta = parsed.choices?.[0]?.delta?.content;
               if (delta) {
-                assistantContent += delta;
-                updateAssistant(assistantContent);
+                // Filter out <think>...</think> blocks from K2-Think model
+                for (const char of delta) {
+                  if (assistantContent.endsWith("<think") && char === ">") {
+                    assistantContent = assistantContent.slice(0, -6);
+                    insideThink = true;
+                    continue;
+                  }
+                  if (insideThink) {
+                    if (assistantContent.endsWith("</think") && char === ">") {
+                      assistantContent = assistantContent.slice(0, -7);
+                      insideThink = false;
+                    } else {
+                      assistantContent += char;
+                    }
+                    continue;
+                  }
+                  assistantContent += char;
+                }
+                if (!insideThink) updateAssistant(assistantContent);
               }
             } catch {
               // partial JSON, skip
