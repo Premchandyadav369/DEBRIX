@@ -71,6 +71,7 @@ export default function SpaceChatSection() {
       setIsStreaming(true);
 
       let assistantContent = "";
+      let insideThink = false;
 
       try {
         const res = await fetch(EDGE_FN_URL, {
