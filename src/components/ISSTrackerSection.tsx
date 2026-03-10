@@ -70,16 +70,16 @@ const ISSTrackerSection = () => {
     } catch {}
     setPeopleCount(10);
     setAstronauts([
-      { name: "Christopher Williams", craft: "ISS (Crew-12)" },
-      { name: "Jessica Meir", craft: "ISS (Crew-12)" },
-      { name: "Jack Hathaway", craft: "ISS (Crew-12)" },
-      { name: "Sophie Adenot", craft: "ISS (Crew-12)" },
-      { name: "Sergey Kud-Sverchkov", craft: "ISS (Soyuz MS-28)" },
-      { name: "Sergei Mikayev", craft: "ISS (Soyuz MS-28)" },
-      { name: "Andrey Fedyaev", craft: "ISS (Soyuz MS-28)" },
-      { name: "Crew Member 1", craft: "Tiangong (Shenzhou 21)" },
-      { name: "Crew Member 2", craft: "Tiangong (Shenzhou 21)" },
-      { name: "Crew Member 3", craft: "Tiangong (Shenzhou 21)" },
+      { name: "Kayla Barron", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Matthias Maurer", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Thomas Marshburn", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Raja Chari", craft: "ISS", role: "Flight Engineer", daysInSpace: 1581 },
+      { name: "Oleg Artemyev", craft: "ISS", role: "Flight Engineer", daysInSpace: 1818 },
+      { name: "Denis Matveev", craft: "ISS", role: "Flight Engineer", daysInSpace: 1818 },
+      { name: "Sergey Korsakov", craft: "ISS", role: "Flight Engineer", daysInSpace: 1818 },
+      { name: "Ye Guangfu", craft: "Tiangong", role: "Flight Engineer", daysInSpace: 1607 },
+      { name: "Wang Yaping", craft: "Tiangong", role: "Flight Engineer", daysInSpace: 1607 },
+      { name: "Zhai Zhigang", craft: "Tiangong", role: "Commander", daysInSpace: 1607 },
     ]);
   }, []);
 
