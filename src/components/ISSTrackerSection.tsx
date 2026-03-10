@@ -66,20 +66,18 @@ const ISSTrackerSection = () => {
         return;
       }
     } catch {}
-    setPeopleCount(12);
+    setPeopleCount(10);
     setAstronauts([
-      { name: "Oleg Kononenko", craft: "ISS" },
-      { name: "Nikolai Chub", craft: "ISS" },
-      { name: "Don Pettit", craft: "ISS" },
-      { name: "Butch Wilmore", craft: "ISS" },
-      { name: "Suni Williams", craft: "ISS" },
-      { name: "Jonny Kim", craft: "ISS" },
-      { name: "Anne McClain", craft: "ISS" },
-      { name: "Ye Guangfu", craft: "Tiangong" },
-      { name: "Li Cong", craft: "Tiangong" },
-      { name: "Li Guangsu", craft: "Tiangong" },
-      { name: "Jing Haipeng", craft: "Tiangong" },
-      { name: "Zhu Yangzhu", craft: "Tiangong" },
+      { name: "Christopher Williams", craft: "ISS (Crew-12)" },
+      { name: "Jessica Meir", craft: "ISS (Crew-12)" },
+      { name: "Jack Hathaway", craft: "ISS (Crew-12)" },
+      { name: "Sophie Adenot", craft: "ISS (Crew-12)" },
+      { name: "Sergey Kud-Sverchkov", craft: "ISS (Soyuz MS-28)" },
+      { name: "Sergei Mikayev", craft: "ISS (Soyuz MS-28)" },
+      { name: "Andrey Fedyaev", craft: "ISS (Soyuz MS-28)" },
+      { name: "Crew Member 1", craft: "Tiangong (Shenzhou 21)" },
+      { name: "Crew Member 2", craft: "Tiangong (Shenzhou 21)" },
+      { name: "Crew Member 3", craft: "Tiangong (Shenzhou 21)" },
     ]);
   }, []);
 
