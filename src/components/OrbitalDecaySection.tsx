@@ -202,6 +202,4 @@ const OrbitalDecaySection = () => {
   );
 };
 
-const CD_DISPLAY = 2.2;
-
 export default OrbitalDecaySection;
