@@ -179,17 +179,18 @@ const ISSTrackerSection = () => {
           {showLiveFeed && (
             <div className="aspect-video rounded-lg overflow-hidden bg-black">
               <iframe
-                src="https://ustream.tv/embed/17074538"
+                src="https://www.youtube.com/embed/vytmBNhc9ig?si=NXkGTcMV62c3vz-Z"
                 className="w-full h-full"
                 allowFullScreen
-                allow="autoplay; encrypted-media"
-                title="ISS Live Stream - Earth View"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                title="ISS Live Camera - YouTube"
               />
             </div>
           )}
           {!showLiveFeed && (
             <p className="text-xs text-muted-foreground text-center py-6">
-              Click "Show Feed" to watch NASA's live HD camera from the ISS. Video may be dark when ISS is on the night side of Earth.
+              Click "Show Feed" to watch the live ISS camera stream. Video may be dark when ISS is on the night side of Earth.
             </p>
           )}
         </motion.div>
