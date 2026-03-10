@@ -154,14 +154,14 @@ export default function SpaceChatSection() {
 
         // flush remaining buffer
         if (buffer.trim()) {
-          for (let raw of buffer.split("\n")) {
+          for (const raw of buffer.split("\n")) {
             if (!raw.startsWith("data: ")) continue;
             const jsonStr = raw.slice(6).trim();
             if (jsonStr === "[DONE]") continue;
             try {
               const parsed = JSON.parse(jsonStr);
               const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) {
+              if (delta && !insideThink) {
                 assistantContent += delta;
                 updateAssistant(assistantContent);
               }
