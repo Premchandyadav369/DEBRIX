@@ -15,6 +15,8 @@ interface ISSPosition {
 interface Astronaut {
   name: string;
   craft: string;
+  role?: string;
+  daysInSpace?: number;
 }
 
 const ISSTrackerSection = () => {
