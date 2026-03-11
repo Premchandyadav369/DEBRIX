@@ -1,8 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
-// NRLMSISE-00 inspired exponential atmosphere model (scale heights by altitude band)
 function atmosphericDensity(altKm: number): number {
   if (altKm <= 100) return 5.0e-7;
   if (altKm <= 150) return 2.07e-9 * Math.exp(-(altKm - 100) / 22.5);
@@ -19,41 +18,30 @@ function simulateDecay(initialAlt: number, mass: number, area: number, solarActi
   const data: { day: number; altitude: number }[] = [];
   let alt = initialAlt;
   const CD = 2.2;
-  const RE = 6371; // Earth radius km
-  const GM = 3.986004418e14; // m^3/s^2
-
-  // Solar activity multiplier (F10.7 proxy: low=70, moderate=150, high=250)
+  const RE = 6371;
+  const GM = 3.986004418e14;
   const solarMultiplier = 0.5 + (solarActivity / 150) * 1.5;
-
-  const dtSeconds = 86400; // 1 day step
-  const maxDays = 7300; // 20 years
+  const dtSeconds = 86400;
+  const maxDays = 7300;
 
   for (let day = 0; day <= maxDays && alt > 80; day++) {
     if (day % Math.max(1, Math.floor((maxDays - day) / 500 + 1)) === 0 || day <= 30 || alt < 200) {
       data.push({ day, altitude: Math.round(alt * 100) / 100 });
     }
-
-    const r = (RE + alt) * 1000; // meters
-    const v = Math.sqrt(GM / r); // orbital velocity m/s
-    const rho = atmosphericDensity(alt) * solarMultiplier; // kg/m^3
-    const dragAccel = 0.5 * rho * v * v * CD * area / mass; // m/s^2
-    
-    // Semi-major axis decay rate: da/dt ≈ -2*a^2 * rho * CD * A/m * v / (r)
-    // Simplified: altitude loss per orbit period
-    const period = 2 * Math.PI * Math.sqrt(r * r * r / GM); // seconds
+    const r = (RE + alt) * 1000;
+    const v = Math.sqrt(GM / r);
+    const rho = atmosphericDensity(alt) * solarMultiplier;
+    const dragAccel = 0.5 * rho * v * v * CD * area / mass;
+    const period = 2 * Math.PI * Math.sqrt(r * r * r / GM);
     const orbitsPerDay = dtSeconds / period;
-    const deltaAPerOrbit = 2 * Math.PI * r * dragAccel / (v); // meters per orbit
+    const deltaAPerOrbit = 2 * Math.PI * r * dragAccel / v;
     const altLossKm = (deltaAPerOrbit * orbitsPerDay) / 1000;
-
     alt -= altLossKm;
     if (alt < 80) alt = 80;
   }
-
-  // Ensure last point is included
   if (data.length === 0 || data[data.length - 1].altitude > 80) {
     data.push({ day: data.length > 0 ? data[data.length - 1].day : 0, altitude: Math.max(80, alt) });
   }
-
   return data;
 }
 
@@ -73,6 +61,9 @@ const OrbitalDecaySection = () => {
   const [area, setArea] = useState(1);
   const [solarActivity, setSolarActivity] = useState(150);
   const [preset, setPreset] = useState<number | null>(null);
+  const [compareList, setCompareList] = useState<{ label: string; data: { day: number; altitude: number }[]; color: string }[]>([]);
+
+  const COLORS = ["hsl(330, 80%, 60%)", "hsl(45, 100%, 55%)", "hsl(170, 80%, 50%)", "hsl(270, 70%, 60%)", "hsl(15, 90%, 55%)"];
 
   const decayData = useMemo(() => simulateDecay(initialAlt, mass, area, solarActivity), [initialAlt, mass, area, solarActivity]);
 
@@ -86,6 +77,12 @@ const OrbitalDecaySection = () => {
     setMass(presets[i].mass);
     setArea(presets[i].area);
   };
+
+  const addToCompare = useCallback(() => {
+    if (compareList.length >= 5) return;
+    const label = preset !== null ? presets[preset].label : `Custom (${initialAlt}km, ${mass}kg)`;
+    setCompareList((prev) => [...prev, { label, data: decayData, color: COLORS[prev.length % COLORS.length] }]);
+  }, [decayData, preset, initialAlt, mass, compareList.length]);
 
   const formatTime = (days: number | undefined) => {
     if (!days) return ">20 yr";
@@ -101,7 +98,7 @@ const OrbitalDecaySection = () => {
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Simulator</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Orbital Decay Predictor</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Physically-modeled atmospheric drag decay using altitude-dependent density profiles and solar activity.
+            Physically-modeled atmospheric drag decay. Compare multiple objects side by side.
           </p>
         </motion.div>
 
@@ -112,9 +109,7 @@ const OrbitalDecaySection = () => {
               <p className="font-display text-xs tracking-wider text-muted-foreground mb-4">PRESETS</p>
               <div className="space-y-2">
                 {presets.map((p, i) => (
-                  <button
-                    key={i}
-                    onClick={() => applyPreset(i)}
+                  <button key={i} onClick={() => applyPreset(i)}
                     className={`w-full text-left p-3 rounded-lg border text-xs transition-all ${
                       preset === i ? "bg-primary/10 border-primary/40 text-primary" : "bg-card/40 border-border/50 text-muted-foreground hover:border-primary/20"
                     }`}
@@ -142,13 +137,21 @@ const OrbitalDecaySection = () => {
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
                   Solar Activity (F10.7): {solarActivity} SFU
-                  <span className="ml-2 text-primary/60">
-                    ({solarActivity < 100 ? "Low" : solarActivity < 180 ? "Moderate" : "High"})
-                  </span>
+                  <span className="ml-2 text-primary/60">({solarActivity < 100 ? "Low" : solarActivity < 180 ? "Moderate" : "High"})</span>
                 </label>
                 <input type="range" min={70} max={300} value={solarActivity} onChange={(e) => setSolarActivity(+e.target.value)} className="w-full accent-[hsl(199,100%,55%)]" />
               </div>
             </div>
+
+            <button onClick={addToCompare} disabled={compareList.length >= 5}
+              className="w-full px-4 py-2.5 text-xs font-display tracking-wider rounded-lg border bg-accent/20 text-accent border-accent/40 hover:bg-accent/30 transition-all disabled:opacity-30">
+              + Add to Comparison ({compareList.length}/5)
+            </button>
+            {compareList.length > 0 && (
+              <button onClick={() => setCompareList([])} className="w-full px-4 py-2 text-xs font-display tracking-wider rounded-lg border bg-secondary/50 text-muted-foreground border-border/50 hover:border-primary/20 transition-all">
+                Clear Comparisons
+              </button>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="glass-card p-4 text-center">
@@ -170,30 +173,43 @@ const OrbitalDecaySection = () => {
 
           {/* Chart */}
           <div className="lg:col-span-2 glass-card p-6">
-            <p className="font-display text-xs tracking-wider text-muted-foreground mb-4">ALTITUDE vs TIME</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-display text-xs tracking-wider text-muted-foreground">ALTITUDE vs TIME</p>
+              {compareList.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {compareList.map((c, i) => (
+                    <span key={i} className="text-[10px] font-mono flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full" style={{ background: c.color }} />
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <ResponsiveContainer width="100%" height={450}>
-              <LineChart data={decayData}>
+              <LineChart>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 30%, 16%)" />
-                <XAxis
-                  dataKey="day"
-                  stroke="hsl(215, 20%, 40%)"
-                  tick={{ fontSize: 10 }}
+                <XAxis dataKey="day" stroke="hsl(215, 20%, 40%)" tick={{ fontSize: 10 }}
                   tickFormatter={(d: number) => d < 365 ? `${d}d` : `${(d / 365.25).toFixed(1)}y`}
+                  type="number" domain={[0, "auto"]} allowDuplicatedCategory={false}
                 />
                 <YAxis stroke="hsl(215, 20%, 40%)" tick={{ fontSize: 10 }} domain={[0, "auto"]} unit=" km" />
                 <Tooltip
                   contentStyle={{ background: "hsl(225, 45%, 10%)", border: "1px solid hsl(225, 30%, 16%)", borderRadius: "8px", fontSize: "11px" }}
                   labelStyle={{ color: "hsl(215, 20%, 60%)" }}
-                  formatter={(value: number) => [`${value.toFixed(1)} km`, "Altitude"]}
+                  formatter={(value: number, name: string) => [`${value.toFixed(1)} km`, name]}
                   labelFormatter={(day: number) => `Day ${day} (${(day / 365.25).toFixed(2)} yr)`}
                 />
                 <ReferenceLine y={120} stroke="hsl(0, 84%, 60%)" strokeDasharray="5 5" label={{ value: "Re-entry ~120 km", position: "right", fill: "hsl(0, 84%, 60%)", fontSize: 10 }} />
                 <ReferenceLine y={200} stroke="hsl(45, 80%, 50%)" strokeDasharray="3 3" label={{ value: "Rapid decay zone", position: "right", fill: "hsl(45, 80%, 50%)", fontSize: 10 }} />
-                <Line type="monotone" dataKey="altitude" stroke="hsl(199, 100%, 55%)" strokeWidth={2} dot={false} animationDuration={800} />
+                <Line data={decayData} type="monotone" dataKey="altitude" name="Current" stroke="hsl(199, 100%, 55%)" strokeWidth={2} dot={false} animationDuration={800} />
+                {compareList.map((c, i) => (
+                  <Line key={i} data={c.data} type="monotone" dataKey="altitude" name={c.label} stroke={c.color} strokeWidth={1.5} dot={false} strokeDasharray="4 2" animationDuration={400} />
+                ))}
               </LineChart>
             </ResponsiveContainer>
             <p className="text-[10px] text-muted-foreground mt-3 text-center">
-              Model uses altitude-band density profiles · CD = 2.2 · Solar F10.7 = {solarActivity} SFU · Circular orbit assumption
+              CD = 2.2 · Solar F10.7 = {solarActivity} SFU · Circular orbit · NRLMSISE-00 density model
             </p>
           </div>
         </div>
