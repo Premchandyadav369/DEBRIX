@@ -200,7 +200,7 @@ const Features = () => {
                         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                           {feat.desc}
                         </p>
-                      </motion.a>
+                      </motion.div>
                     );
                   })}
                 </motion.div>
