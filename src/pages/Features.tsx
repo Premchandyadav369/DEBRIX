@@ -89,7 +89,15 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } 
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
 const Features = () => {
-  return (
+  const navigate = useNavigate();
+
+  const goToSection = useCallback((section: string) => {
+    navigate("/");
+    setTimeout(() => {
+      const el = document.getElementById(section);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }, 300);
+  }, [navigate]);
     <div className="relative min-h-screen overflow-x-hidden">
       <Starfield />
 
