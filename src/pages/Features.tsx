@@ -104,7 +104,7 @@ const Features = () => {
       <Starfield />
 
       {/* Header */}
-      <div className="relative z-10 pt-8 pb-4 px-6">
+      <div className="relative z-10 pt-20 pb-4 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <Link
             to="/"
@@ -122,7 +122,7 @@ const Features = () => {
             <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">
               Platform Overview
             </p>
-            <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-3">
               All {features.length} Features
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-sm leading-relaxed">
@@ -131,7 +131,7 @@ const Features = () => {
           </motion.div>
 
           {/* Quick category nav */}
-          <div className="flex flex-wrap justify-center gap-2 mb-12">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-8 sm:mb-12">
             {categories.map((cat) => {
               const Icon = categoryIcons[cat];
               const count = features.filter((f) => f.category === cat).length;
@@ -139,7 +139,7 @@ const Features = () => {
                 <a
                   key={cat}
                   href={`#cat-${cat.toLowerCase().replace(/\s/g, "-")}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-display tracking-wider border border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[10px] sm:text-xs font-display tracking-wider border border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {cat}
@@ -152,8 +152,8 @@ const Features = () => {
       </div>
 
       {/* Categories */}
-      <div className="relative z-10 px-6 pb-20">
-        <div className="max-w-7xl mx-auto space-y-16">
+      <div className="relative z-10 px-4 sm:px-6 pb-20">
+        <div className="max-w-7xl mx-auto space-y-10 sm:space-y-16">
           {categories.map((cat) => {
             const catFeatures = features.filter((f) => f.category === cat);
             const CatIcon = categoryIcons[cat];
@@ -179,7 +179,7 @@ const Features = () => {
                   initial="hidden"
                   whileInView="show"
                   viewport={{ once: true, amount: 0.1 }}
-                  className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
                 >
                   {catFeatures.map((feat) => {
                     const Icon = feat.icon;
@@ -188,7 +188,7 @@ const Features = () => {
                         key={feat.section}
                         variants={item}
                         onClick={() => goToSection(feat.section)}
-                        className={`group relative rounded-xl border bg-gradient-to-br ${categoryColors[cat]} p-5 hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 cursor-pointer`}
+                        className={`group relative rounded-xl border bg-gradient-to-br ${categoryColors[cat]} p-4 sm:p-5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 cursor-pointer`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="p-2 rounded-lg bg-background/50 border border-border/30 group-hover:border-primary/30 transition-colors">
