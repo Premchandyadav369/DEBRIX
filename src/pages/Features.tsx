@@ -98,6 +98,8 @@ const Features = () => {
       if (el) el.scrollIntoView({ behavior: "smooth" });
     }, 300);
   }, [navigate]);
+
+  return (
     <div className="relative min-h-screen overflow-x-hidden">
       <Starfield />
 
