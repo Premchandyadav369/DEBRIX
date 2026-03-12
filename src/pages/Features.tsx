@@ -1,5 +1,6 @@
+import { useCallback } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Rocket, Orbit, Satellite, Radio, Globe, Sun, Moon, Star,
   Activity, Shield, BarChart3, Telescope, Flame, Wind, Sparkles,
