@@ -131,7 +131,7 @@ const Features = () => {
           </motion.div>
 
           {/* Quick category nav */}
-          <div className="flex flex-wrap justify-center gap-2 mb-12">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-8 sm:mb-12">
             {categories.map((cat) => {
               const Icon = categoryIcons[cat];
               const count = features.filter((f) => f.category === cat).length;
