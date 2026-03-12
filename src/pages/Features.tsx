@@ -152,8 +152,8 @@ const Features = () => {
       </div>
 
       {/* Categories */}
-      <div className="relative z-10 px-6 pb-20">
-        <div className="max-w-7xl mx-auto space-y-16">
+      <div className="relative z-10 px-4 sm:px-6 pb-20">
+        <div className="max-w-7xl mx-auto space-y-10 sm:space-y-16">
           {categories.map((cat) => {
             const catFeatures = features.filter((f) => f.category === cat);
             const CatIcon = categoryIcons[cat];
