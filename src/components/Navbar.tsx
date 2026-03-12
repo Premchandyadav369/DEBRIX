@@ -189,6 +189,13 @@ const Navbar = () => {
             </span>
           </button>
 
+          <Link
+            to="/features"
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-display tracking-wider uppercase text-muted-foreground hover:text-primary transition-colors"
+          >
+            <LayoutGrid className="w-3 h-3" />
+            Features
+          </Link>
           <a
             href="#contact"
             className="hidden lg:inline-flex px-4 py-1.5 text-[11px] font-display tracking-wider uppercase border border-primary/40 text-primary rounded-md hover:bg-primary/10 transition-colors"
