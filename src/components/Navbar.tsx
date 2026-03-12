@@ -237,6 +237,17 @@ const Navbar = () => {
                 ))}
               </div>
             ))}
+            {/* Features link in mobile */}
+            <div className="border-t border-border/20 pt-3 pb-2 px-6">
+              <Link
+                to="/features"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 py-2.5 text-primary text-sm font-display tracking-wider"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                All Features
+              </Link>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
