@@ -1,5 +1,6 @@
+import { useCallback } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Rocket, Orbit, Satellite, Radio, Globe, Sun, Moon, Star,
   Activity, Shield, BarChart3, Telescope, Flame, Wind, Sparkles,
@@ -88,6 +89,16 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } 
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
 const Features = () => {
+  const navigate = useNavigate();
+
+  const goToSection = useCallback((section: string) => {
+    navigate("/");
+    setTimeout(() => {
+      const el = document.getElementById(section);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }, 300);
+  }, [navigate]);
+
   return (
     <div className="relative min-h-screen overflow-x-hidden">
       <Starfield />
@@ -173,11 +184,11 @@ const Features = () => {
                   {catFeatures.map((feat) => {
                     const Icon = feat.icon;
                     return (
-                      <motion.a
+                      <motion.div
                         key={feat.section}
                         variants={item}
-                        href={`/#${feat.section}`}
-                        className={`group relative rounded-xl border bg-gradient-to-br ${categoryColors[cat]} p-5 hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5`}
+                        onClick={() => goToSection(feat.section)}
+                        className={`group relative rounded-xl border bg-gradient-to-br ${categoryColors[cat]} p-5 hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 cursor-pointer`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="p-2 rounded-lg bg-background/50 border border-border/30 group-hover:border-primary/30 transition-colors">
@@ -191,7 +202,7 @@ const Features = () => {
                         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                           {feat.desc}
                         </p>
-                      </motion.a>
+                      </motion.div>
                     );
                   })}
                 </motion.div>
