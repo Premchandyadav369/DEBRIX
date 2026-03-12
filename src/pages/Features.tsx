@@ -182,11 +182,11 @@ const Features = () => {
                   {catFeatures.map((feat) => {
                     const Icon = feat.icon;
                     return (
-                      <motion.a
+                      <motion.div
                         key={feat.section}
                         variants={item}
-                        href={`/#${feat.section}`}
-                        className={`group relative rounded-xl border bg-gradient-to-br ${categoryColors[cat]} p-5 hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5`}
+                        onClick={() => goToSection(feat.section)}
+                        className={`group relative rounded-xl border bg-gradient-to-br ${categoryColors[cat]} p-5 hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 cursor-pointer`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="p-2 rounded-lg bg-background/50 border border-border/30 group-hover:border-primary/30 transition-colors">
