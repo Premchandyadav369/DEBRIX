@@ -139,7 +139,7 @@ const Features = () => {
                 <a
                   key={cat}
                   href={`#cat-${cat.toLowerCase().replace(/\s/g, "-")}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-display tracking-wider border border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[10px] sm:text-xs font-display tracking-wider border border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {cat}
