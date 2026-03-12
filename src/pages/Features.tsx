@@ -104,7 +104,7 @@ const Features = () => {
       <Starfield />
 
       {/* Header */}
-      <div className="relative z-10 pt-8 pb-4 px-6">
+      <div className="relative z-10 pt-20 pb-4 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <Link
             to="/"
