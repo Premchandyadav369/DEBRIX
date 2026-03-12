@@ -122,7 +122,7 @@ const Features = () => {
             <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">
               Platform Overview
             </p>
-            <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-3">
               All {features.length} Features
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-sm leading-relaxed">
