@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Sun, Moon, Sunrise, Sunset, Clock, ChevronDown } from "lucide-react";
+import { Menu, X, Sun, Moon, Sunrise, Sunset, Clock, ChevronDown, LayoutGrid } from "lucide-react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import debrixLogo from "@/assets/debrix.png";
 import { useTheme } from "@/hooks/use-theme";
