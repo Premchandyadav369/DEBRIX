@@ -231,7 +231,7 @@ const DebrisTrackerSection = () => {
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Data</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Real-Time Space Debris Tracker</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Tracking {debrisCount > 0 ? debrisCount.toLocaleString() : "..."} debris objects from Celestrak TLE data with SGP4 orbital propagation, plus Near-Earth Objects from NASA NeoWs.
+            Tracking {debrisCount > 0 ? debrisCount.toLocaleString() : "..."} debris objects visualized{totalDebrisTracked > 0 ? ` out of ${totalDebrisTracked.toLocaleString()} total cataloged debris` : ''} — with SGP4 orbital propagation, plus Near-Earth Objects from NASA NeoWs.
           </p>
         </motion.div>
 
