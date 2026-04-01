@@ -172,7 +172,7 @@ const SatelliteDashboardSection = () => {
                   </table>
                 </div>
                 <div className="p-4 text-[10px] text-muted-foreground border-t border-border/60">
-                  📡 Data sourced from CelesTrak active satellite catalog. Counts updated every 5 minutes.
+                  📡 Data sourced from KeepTrack API (CelesTrak catalog mirror). Counts updated every 5 minutes.
                 </div>
               </motion.div>
             )}
