@@ -54,7 +54,7 @@ const SatelliteDashboardSection = () => {
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Data</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Satellite Dashboard</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Real-time satellite counts from CelesTrak's active satellite catalog — classified by orbit type and constellation.
+            Real-time satellite and debris counts from KeepTrack API — classified by orbit type and constellation.
           </p>
           <p className="text-[10px] text-muted-foreground mt-2 flex items-center justify-center gap-1">
             <RefreshCw className="w-3 h-3" /> {loading ? 'Loading...' : `Updated ${lastUpdated.toLocaleTimeString()}`}
