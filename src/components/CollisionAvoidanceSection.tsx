@@ -52,13 +52,14 @@ const CollisionAvoidanceSection = () => {
       // Parse SOCRATES data - it may be array of conjunction records
       const raw = Array.isArray(data) ? data : [];
       const parsed: ConjunctionEvent[] = raw.slice(0, 20).map((item: any, i: number) => {
-        const minRange = parseFloat(item.MIN_RNG || item.minRange || item.min_range || '999');
-        const relV = parseFloat(item.REL_VEL || item.relVelocity || item.relative_velocity || '0');
+        const minRange = parseFloat(item.MIN_RNG || '999');
+        const relV = parseFloat(item.REL_SPEED || '0');
+        const maxProb = parseFloat(item.MAX_PROB || '0');
         return {
-          id: `socrates-${i}`,
-          time: item.TCA || item.tca || item.time || new Date().toISOString(),
-          object1: item.SAT_1_NAME || item.sat1Name || item.object1 || `SAT-${i}A`,
-          object2: item.SAT_2_NAME || item.sat2Name || item.object2 || `SAT-${i}B`,
+          id: `socrates-${item.ID || i}`,
+          time: item.TOCA || new Date().toISOString(),
+          object1: item.SAT1_NAME || `SAT-${i}A`,
+          object2: item.SAT2_NAME || `SAT-${i}B`,
           minRange: isNaN(minRange) ? 999 : minRange,
           risk: classifyRisk(isNaN(minRange) ? 999 : minRange),
           relVelocity: isNaN(relV) ? 0 : relV,
