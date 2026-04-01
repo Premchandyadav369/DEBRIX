@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface SatStats {
   totalActive: number;
+  totalDebris?: number;
   byOrbit: { leo: number; meo: number; geo: number; heo: number };
   constellations: Record<string, number>;
 }
@@ -53,7 +54,7 @@ const SatelliteDashboardSection = () => {
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Data</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Satellite Dashboard</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Real-time satellite counts from CelesTrak's active satellite catalog — classified by orbit type and constellation.
+            Real-time satellite and debris counts from KeepTrack API — classified by orbit type and constellation.
           </p>
           <p className="text-[10px] text-muted-foreground mt-2 flex items-center justify-center gap-1">
             <RefreshCw className="w-3 h-3" /> {loading ? 'Loading...' : `Updated ${lastUpdated.toLocaleTimeString()}`}
@@ -69,10 +70,10 @@ const SatelliteDashboardSection = () => {
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
-                { icon: Satellite, label: "Active Satellites", value: activeSats.toLocaleString(), color: "text-primary" },
-                { icon: Globe, label: "LEO Satellites", value: (stats?.byOrbit.leo || 0).toLocaleString(), color: "text-accent" },
+              { icon: Satellite, label: "Active Satellites", value: activeSats.toLocaleString(), color: "text-primary" },
+                { icon: Trash2, label: "Tracked Debris", value: (stats?.totalDebris || 0).toLocaleString(), color: "text-destructive" },
                 { icon: Radio, label: "Starlink", value: starlinkCount.toLocaleString(), color: "text-primary" },
-                { icon: Rocket, label: "GEO Satellites", value: (stats?.byOrbit.geo || 0).toLocaleString(), color: "text-accent" },
+                { icon: Globe, label: "LEO Satellites", value: (stats?.byOrbit.leo || 0).toLocaleString(), color: "text-accent" },
               ].map((s) => (
                 <div key={s.label} className="glass-card p-4 text-center">
                   <s.icon className={`w-5 h-5 mx-auto mb-2 ${s.color}`} />
@@ -171,7 +172,7 @@ const SatelliteDashboardSection = () => {
                   </table>
                 </div>
                 <div className="p-4 text-[10px] text-muted-foreground border-t border-border/60">
-                  📡 Data sourced from CelesTrak active satellite catalog. Counts updated every 5 minutes.
+                  📡 Data sourced from KeepTrack API (CelesTrak catalog mirror). Counts updated every 5 minutes.
                 </div>
               </motion.div>
             )}

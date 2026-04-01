@@ -4,6 +4,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import * as satellite from "satellite.js";
+import { supabase } from "@/integrations/supabase/client";
 
 const NASA_API_KEY = "WBkaFckn04xcJlW4NoleN07iZajebOJGZpT4LrZz";
 
@@ -123,6 +124,7 @@ const DebrisTrackerSection = () => {
   const [debrisPoints, setDebrisPoints] = useState<DebrisPoint[]>([]);
   const [neoObjects, setNeoObjects] = useState<NeoObject[]>([]);
   const [debrisCount, setDebrisCount] = useState(0);
+  const [totalDebrisTracked, setTotalDebrisTracked] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"debris" | "neo">("debris");
 
@@ -137,6 +139,19 @@ const DebrisTrackerSection = () => {
   }, [debrisPoints]);
 
   const fetchDebrisData = useCallback(async () => {
+    // First get total debris count from KeepTrack
+    try {
+      const { data: countData } = await supabase.functions.invoke('keeptrack-proxy', {
+        body: { endpoint: '/metrics/debris/count' },
+      });
+      if (countData && typeof countData === 'number') {
+        setTotalDebrisTracked(countData);
+      } else if (countData?.count) {
+        setTotalDebrisTracked(countData.count);
+      }
+    } catch {}
+
+    // Then fetch TLE data for visualization
     try {
       const res = await fetch("https://tle.ivanstanojevic.me/api/tle?search=cosmos+1408+deb&page-size=100&sort=name&sort-dir=asc");
       if (!res.ok) throw new Error("TLE API fetch failed");
@@ -216,7 +231,7 @@ const DebrisTrackerSection = () => {
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Data</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Real-Time Space Debris Tracker</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Tracking {debrisCount > 0 ? debrisCount.toLocaleString() : "..."} debris objects from Celestrak TLE data with SGP4 orbital propagation, plus Near-Earth Objects from NASA NeoWs.
+            Tracking {debrisCount > 0 ? debrisCount.toLocaleString() : "..."} debris objects visualized{totalDebrisTracked > 0 ? ` out of ${totalDebrisTracked.toLocaleString()} total cataloged debris` : ''} — with SGP4 orbital propagation, plus Near-Earth Objects from NASA NeoWs.
           </p>
         </motion.div>
 
