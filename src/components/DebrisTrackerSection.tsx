@@ -124,6 +124,7 @@ const DebrisTrackerSection = () => {
   const [debrisPoints, setDebrisPoints] = useState<DebrisPoint[]>([]);
   const [neoObjects, setNeoObjects] = useState<NeoObject[]>([]);
   const [debrisCount, setDebrisCount] = useState(0);
+  const [totalDebrisTracked, setTotalDebrisTracked] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"debris" | "neo">("debris");
 
