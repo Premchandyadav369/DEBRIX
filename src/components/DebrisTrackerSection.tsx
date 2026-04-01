@@ -139,6 +139,19 @@ const DebrisTrackerSection = () => {
   }, [debrisPoints]);
 
   const fetchDebrisData = useCallback(async () => {
+    // First get total debris count from KeepTrack
+    try {
+      const { data: countData } = await supabase.functions.invoke('keeptrack-proxy', {
+        body: { endpoint: '/metrics/debris/count' },
+      });
+      if (countData && typeof countData === 'number') {
+        setTotalDebrisTracked(countData);
+      } else if (countData?.count) {
+        setTotalDebrisTracked(countData.count);
+      }
+    } catch {}
+
+    // Then fetch TLE data for visualization
     try {
       const res = await fetch("https://tle.ivanstanojevic.me/api/tle?search=cosmos+1408+deb&page-size=100&sort=name&sort-dir=asc");
       if (!res.ok) throw new Error("TLE API fetch failed");
