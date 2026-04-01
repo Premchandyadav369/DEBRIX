@@ -70,10 +70,10 @@ const SatelliteDashboardSection = () => {
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
-                { icon: Satellite, label: "Active Satellites", value: activeSats.toLocaleString(), color: "text-primary" },
-                { icon: Globe, label: "LEO Satellites", value: (stats?.byOrbit.leo || 0).toLocaleString(), color: "text-accent" },
+              { icon: Satellite, label: "Active Satellites", value: activeSats.toLocaleString(), color: "text-primary" },
+                { icon: Trash2, label: "Tracked Debris", value: (stats?.totalDebris || 0).toLocaleString(), color: "text-destructive" },
                 { icon: Radio, label: "Starlink", value: starlinkCount.toLocaleString(), color: "text-primary" },
-                { icon: Rocket, label: "GEO Satellites", value: (stats?.byOrbit.geo || 0).toLocaleString(), color: "text-accent" },
+                { icon: Globe, label: "LEO Satellites", value: (stats?.byOrbit.leo || 0).toLocaleString(), color: "text-accent" },
               ].map((s) => (
                 <div key={s.label} className="glass-card p-4 text-center">
                   <s.icon className={`w-5 h-5 mx-auto mb-2 ${s.color}`} />
