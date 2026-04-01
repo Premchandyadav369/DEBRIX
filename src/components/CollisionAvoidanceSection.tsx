@@ -56,7 +56,7 @@ const CollisionAvoidanceSection = () => {
         const relV = parseFloat(item.REL_SPEED || '0');
         const maxProb = parseFloat(item.MAX_PROB || '0');
         return {
-          id: `socrates-${item.ID || i}`,
+          id: `socrates-${item.ID || ''}-${i}`,
           time: item.TOCA || new Date().toISOString(),
           object1: item.SAT1_NAME || `SAT-${i}A`,
           object2: item.SAT2_NAME || `SAT-${i}B`,
