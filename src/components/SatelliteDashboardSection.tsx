@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface SatStats {
   totalActive: number;
+  totalDebris?: number;
   byOrbit: { leo: number; meo: number; geo: number; heo: number };
   constellations: Record<string, number>;
 }
