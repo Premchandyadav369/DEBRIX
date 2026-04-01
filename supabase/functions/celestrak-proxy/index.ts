@@ -3,72 +3,71 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const BASE = 'https://api.keeptrack.space/v4';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const apiKey = Deno.env.get('KEEPTRACK_API_KEY');
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'KEEPTRACK_API_KEY not configured' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    // Fetch TLE data from CelesTrak for recently launched objects (most likely to have low perigees)
-    const tleUrl = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle';
-    const stationsUrl = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle';
-
-    const [tleRes, stationsRes] = await Promise.allSettled([
-      fetch(tleUrl).then(r => r.text()),
-      fetch(stationsUrl).then(r => r.text()),
-    ]);
-
-    const allTles: { name: string; tle1: string; tle2: string }[] = [];
-
-    for (const result of [tleRes, stationsRes]) {
-      if (result.status === 'fulfilled') {
-        const lines = result.value.trim().split('\n').map((l: string) => l.trim());
-        for (let i = 0; i < lines.length - 2; i += 3) {
-          if (lines[i + 1]?.startsWith('1 ') && lines[i + 2]?.startsWith('2 ')) {
-            allTles.push({
-              name: lines[i],
-              tle1: lines[i + 1],
-              tle2: lines[i + 2],
-            });
-          }
-        }
-      }
+    // Use KeepTrack's stats/recent-launches for recently launched objects
+    const recentRes = await fetch(`${BASE}/stats/recent-launches`, {
+      headers: { 'X-API-Key': apiKey },
+    });
+    
+    let recentSats: any[] = [];
+    if (recentRes.ok) {
+      const data = await recentRes.json();
+      recentSats = Array.isArray(data) ? data : [];
     }
 
-    // Calculate perigee and filter for low-perigee objects
-    const GM = 398600.4418;
-    const reentryObjects = allTles
-      .map(({ name, tle1, tle2 }) => {
-        try {
-          // Parse mean motion and eccentricity from TLE line 2
-          const meanMotion = parseFloat(tle2.substring(52, 63).trim());
-          const eccStr = '0.' + tle2.substring(26, 33).trim();
-          const eccentricity = parseFloat(eccStr);
-          const inclination = parseFloat(tle2.substring(8, 16).trim());
-          const noradId = tle1.substring(2, 7).trim();
+    // Also get LEO objects to find low-perigee objects for reentry prediction
+    const leoRes = await fetch(`${BASE}/sats/leo`, {
+      headers: { 'X-API-Key': apiKey },
+    });
 
-          const nRadPerSec = (meanMotion * 2 * Math.PI) / 86400;
+    let leoSats: any[] = [];
+    if (leoRes.ok) {
+      const data = await leoRes.json();
+      leoSats = Array.isArray(data) ? data : [];
+    }
+
+    const GM = 398600.4418;
+    const reentryObjects = leoSats
+      .map((sat: any) => {
+        try {
+          const mm = sat.MEAN_MOTION || sat.meanMotion;
+          const ecc = sat.ECCENTRICITY || sat.eccentricity || 0;
+          const inc = sat.INCLINATION || sat.inclination || 0;
+          const name = sat.OBJECT_NAME || sat.name || 'UNKNOWN';
+          const noradId = sat.NORAD_CAT_ID || sat.satId || sat.id || '';
+          const tle1 = sat.TLE_LINE1 || sat.tle1 || '';
+          const tle2 = sat.TLE_LINE2 || sat.tle2 || '';
+
+          if (!mm || mm <= 0) return null;
+
+          const nRadPerSec = (mm * 2 * Math.PI) / 86400;
           const a = Math.pow(GM / (nRadPerSec * nRadPerSec), 1 / 3);
-          const perigee = a * (1 - eccentricity) - 6371;
-          const apogee = a * (1 + eccentricity) - 6371;
+          const perigee = a * (1 - ecc) - 6371;
+          const apogee = a * (1 + ecc) - 6371;
 
           if (perigee < 400 && perigee > 50) {
             return {
-              name,
-              noradId,
-              tle1,
-              tle2,
-              meanMotion,
-              eccentricity,
-              inclination,
-              perigee: Math.round(perigee),
-              apogee: Math.round(apogee),
+              name, noradId: String(noradId), tle1, tle2,
+              meanMotion: mm, eccentricity: ecc, inclination: inc,
+              perigee: Math.round(perigee), apogee: Math.round(apogee),
             };
           }
           return null;
-        } catch {
-          return null;
-        }
+        } catch { return null; }
       })
       .filter(Boolean)
       .sort((a: any, b: any) => a.perigee - b.perigee)
@@ -80,8 +79,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('CelesTrak proxy error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
