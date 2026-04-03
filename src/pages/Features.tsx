@@ -47,7 +47,7 @@ const features = [
 
   // Astronomy & Sky
   { icon: Map, title: "Sky Map", desc: "Real-time star chart using Astronomy Engine with constellation overlays.", section: "sky-map", category: "Astronomy" },
-  { icon: Eye, title: "Planet Visibility", desc: "Current planet positions, rise/set times, and visibility predictions.", section: "planet-visibility", category: "Astronomy" },
+  { icon: Eye, title: "Planet Visibility & Orrery", desc: "Interactive solar system orrery with real-time planet positions, distances, and visibility.", section: "planet-visibility", category: "Astronomy" },
   { icon: Sparkles, title: "Aurora Forecast", desc: "NOAA Kp index forecast and OVATION aurora probability maps.", section: "aurora-forecast", category: "Astronomy" },
   { icon: Sun, title: "Live Solar Imagery", desc: "NASA SDO real-time Sun images across 10 EUV and visible wavelengths.", section: "solar-imagery", category: "Astronomy" },
 
