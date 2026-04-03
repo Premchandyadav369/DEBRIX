@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2, Maximize2, Orbit } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
 
 interface PlanetInfo {
@@ -17,21 +17,23 @@ interface PlanetInfo {
   elongation: number;
   illumination: number;
   distanceAU: number;
+  distanceKm: number;
   angularDiameter: number;
   telescopeTip: string;
+  orbitalPeriodYears: number;
+  meanRadiusKm: number;
 }
 
 const PLANET_CONFIG = [
-  { name: "Mercury", symbol: "☿", color: "hsl(35, 70%, 55%)", body: Astronomy.Body.Mercury, diamKm: 4879, tip: "Look low on the horizon near sunrise/sunset. Small telescope shows phases like the Moon." },
-  { name: "Venus", symbol: "♀", color: "hsl(48, 90%, 70%)", body: Astronomy.Body.Venus, diamKm: 12104, tip: "Brilliant! A 6\" telescope reveals crescent or gibbous phases. Best viewed at twilight." },
-  { name: "Mars", symbol: "♂", color: "hsl(10, 80%, 55%)", body: Astronomy.Body.Mars, diamKm: 6779, tip: "8\" telescope may show polar ice cap and dark surface features. Use high magnification." },
-  { name: "Jupiter", symbol: "♃", color: "hsl(30, 60%, 65%)", body: Astronomy.Body.Jupiter, diamKm: 139820, tip: "Even binoculars show 4 Galilean moons. 6\"+ telescope reveals cloud bands and Great Red Spot." },
-  { name: "Saturn", symbol: "♄", color: "hsl(45, 50%, 60%)", body: Astronomy.Body.Saturn, diamKm: 116460, tip: "4\"+ telescope reveals the rings. Look for the Cassini Division in the ring gap." },
-  { name: "Uranus", symbol: "♅", color: "hsl(180, 50%, 60%)", body: Astronomy.Body.Uranus, diamKm: 50724, tip: "Visible as a tiny blue-green disk in a 4\"+ telescope at 100x. Use star chart to locate." },
-  { name: "Neptune", symbol: "♆", color: "hsl(220, 60%, 55%)", body: Astronomy.Body.Neptune, diamKm: 49244, tip: "Requires 8\"+ telescope. Appears as tiny blue dot at 150x+. Very challenging." },
+  { name: "Mercury", symbol: "☿", color: "hsl(35, 70%, 55%)", body: Astronomy.Body.Mercury, diamKm: 4879, orbYrs: 0.24, tip: "Look low on the horizon near sunrise/sunset. Small telescope shows phases like the Moon." },
+  { name: "Venus", symbol: "♀", color: "hsl(48, 90%, 70%)", body: Astronomy.Body.Venus, diamKm: 12104, orbYrs: 0.62, tip: "Brilliant! A 6\" telescope reveals crescent or gibbous phases. Best viewed at twilight." },
+  { name: "Mars", symbol: "♂", color: "hsl(10, 80%, 55%)", body: Astronomy.Body.Mars, diamKm: 6779, orbYrs: 1.88, tip: "8\" telescope may show polar ice cap and dark surface features. Use high magnification." },
+  { name: "Jupiter", symbol: "♃", color: "hsl(30, 60%, 65%)", body: Astronomy.Body.Jupiter, diamKm: 139820, orbYrs: 11.86, tip: "Even binoculars show 4 Galilean moons. 6\"+ telescope reveals cloud bands and Great Red Spot." },
+  { name: "Saturn", symbol: "♄", color: "hsl(45, 50%, 60%)", body: Astronomy.Body.Saturn, diamKm: 116460, orbYrs: 29.46, tip: "4\"+ telescope reveals the rings. Look for the Cassini Division in the ring gap." },
+  { name: "Uranus", symbol: "♅", color: "hsl(180, 50%, 60%)", body: Astronomy.Body.Uranus, diamKm: 50724, orbYrs: 84.01, tip: "Visible as a tiny blue-green disk in a 4\"+ telescope at 100x. Use star chart to locate." },
+  { name: "Neptune", symbol: "♆", color: "hsl(220, 60%, 55%)", body: Astronomy.Body.Neptune, diamKm: 49244, orbYrs: 164.8, tip: "Requires 8\"+ telescope. Appears as tiny blue dot at 150x+. Very challenging." },
 ];
 
-// RA to constellation (simplified ecliptic zodiac mapping)
 const ZODIAC: { name: string; raStart: number; raEnd: number }[] = [
   { name: "Pisces", raStart: 0, raEnd: 1.87 }, { name: "Aries", raStart: 1.87, raEnd: 3.43 },
   { name: "Taurus", raStart: 3.43, raEnd: 5.73 }, { name: "Gemini", raStart: 5.73, raEnd: 8.03 },
@@ -45,102 +47,150 @@ const ZODIAC: { name: string; raStart: number; raEnd: number }[] = [
 function getConstellation(raHours: number): string {
   return ZODIAC.find(z => raHours >= z.raStart && raHours < z.raEnd)?.name || "Unknown";
 }
-
 function azToDir(az: number): string {
   const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
   return dirs[Math.round(az / 22.5) % 16];
 }
-
 function formatTime(date: Date | null): string | null {
   if (!date) return null;
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+function formatDistance(km: number): string {
+  if (km >= 1e9) return `${(km / 1e9).toFixed(2)}B km`;
+  if (km >= 1e6) return `${(km / 1e6).toFixed(1)}M km`;
+  return `${(km / 1e3).toFixed(0)}K km`;
+}
 
 function computePlanets(date: Date, lat: number, lon: number): PlanetInfo[] {
   const observer = new Astronomy.Observer(lat, lon, 0);
-
   return PLANET_CONFIG.map(cfg => {
-    // Get equatorial coordinates
     const equatorial = Astronomy.Equator(cfg.body, date, observer, true, true);
-    // Convert to horizontal (az/alt)
     const horizontal = Astronomy.Horizon(date, observer, equatorial.ra, equatorial.dec, 'normal');
-
-    // Elongation from sun
     const elong = Astronomy.Elongation(cfg.body, date);
-
-    // Visual magnitude
     const illum = Astronomy.Illumination(cfg.body, date);
-
-    // Rise/Set times
     let riseTime: string | null = null;
     let setTime: string | null = null;
-    try {
-      const rise = Astronomy.SearchRiseSet(cfg.body, observer, +1, date, 1);
-      riseTime = formatTime(rise?.date || null);
-    } catch { /* planet may not rise */ }
-    try {
-      const set = Astronomy.SearchRiseSet(cfg.body, observer, -1, date, 1);
-      setTime = formatTime(set?.date || null);
-    } catch { /* planet may not set */ }
-
-    // Constellation from RA
+    try { const rise = Astronomy.SearchRiseSet(cfg.body, observer, +1, date, 1); riseTime = formatTime(rise?.date || null); } catch { /* */ }
+    try { const set = Astronomy.SearchRiseSet(cfg.body, observer, -1, date, 1); setTime = formatTime(set?.date || null); } catch { /* */ }
     const constellation = getConstellation(equatorial.ra);
-
-    // Angular diameter in arcseconds
     const distKm = equatorial.dist * 149597870.7;
     const angularDiameter = (cfg.diamKm / distKm) * 206265;
-
     return {
-      name: cfg.name,
-      symbol: cfg.symbol,
-      color: cfg.color,
-      body: cfg.body,
-      azimuth: horizontal.azimuth,
-      altitude: horizontal.altitude,
-      magnitude: illum.mag,
-      constellation,
-      riseTime,
-      setTime,
-      elongation: elong.elongation,
-      illumination: illum.phase_fraction * 100,
-      distanceAU: equatorial.dist,
-      angularDiameter,
-      telescopeTip: cfg.tip,
+      name: cfg.name, symbol: cfg.symbol, color: cfg.color, body: cfg.body,
+      azimuth: horizontal.azimuth, altitude: horizontal.altitude, magnitude: illum.mag,
+      constellation, riseTime, setTime, elongation: elong.elongation,
+      illumination: illum.phase_fraction * 100, distanceAU: equatorial.dist,
+      distanceKm: distKm, angularDiameter, telescopeTip: cfg.tip,
+      orbitalPeriodYears: cfg.orbYrs, meanRadiusKm: cfg.diamKm / 2,
     };
   });
 }
+
+/* ── Solar System Orrery (top-down view) ──────────────────── */
+const Orrery = ({ planets }: { planets: PlanetInfo[] }) => {
+  const size = 360;
+  const cx = size / 2;
+  const cy = size / 2;
+  // Log scale for orbit radii to fit inner + outer planets
+  const logScale = (au: number) => {
+    const minR = 22;
+    const maxR = cx - 20;
+    const minAU = 0.3;
+    const maxAU = 35;
+    return minR + (maxR - minR) * (Math.log(au / minAU) / Math.log(maxAU / minAU));
+  };
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[360px] mx-auto" aria-label="Solar system orrery">
+      {/* Background grid circles */}
+      {[1, 2, 5, 10, 20, 30].map(au => (
+        <circle key={au} cx={cx} cy={cy} r={logScale(au)} fill="none" stroke="hsl(var(--border))" strokeWidth="0.5" opacity="0.3" strokeDasharray="2 3" />
+      ))}
+      {/* AU labels */}
+      {[1, 5, 20].map(au => (
+        <text key={au} x={cx + logScale(au) + 2} y={cy - 2} fill="hsl(var(--muted-foreground))" fontSize="6" opacity="0.5">{au} AU</text>
+      ))}
+      {/* Sun */}
+      <circle cx={cx} cy={cy} r="8" fill="url(#sunGrad)" />
+      <defs>
+        <radialGradient id="sunGrad">
+          <stop offset="0%" stopColor="hsl(45, 95%, 70%)" />
+          <stop offset="100%" stopColor="hsl(35, 90%, 50%)" />
+        </radialGradient>
+      </defs>
+      {/* Planet orbits + dots */}
+      {planets.map((p) => {
+        const r = logScale(p.distanceAU);
+        // Use elongation angle for rough positioning
+        const angle = (p.elongation * Math.PI) / 180;
+        const px = cx + Math.cos(angle) * r;
+        const py = cy - Math.sin(angle) * r;
+        const dotR = Math.max(3, Math.min(7, 5 * (p.meanRadiusKm / 30000)));
+        const isVisible = p.altitude > 0;
+        return (
+          <g key={p.name}>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={p.color} strokeWidth="0.5" opacity="0.2" />
+            <circle cx={px} cy={py} r={dotR} fill={p.color} opacity={isVisible ? 1 : 0.35} />
+            {isVisible && <circle cx={px} cy={py} r={dotR + 3} fill="none" stroke={p.color} strokeWidth="0.5" opacity="0.4" />}
+            <text x={px} y={py - dotR - 3} textAnchor="middle" fill="hsl(var(--foreground))" fontSize="7" fontWeight="600" opacity={isVisible ? 0.9 : 0.4}>
+              {p.symbol}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+/* ── Distance Scale Bar ───────────────────────────────────── */
+const DistanceScale = ({ planets }: { planets: PlanetInfo[] }) => {
+  const maxAU = Math.max(...planets.map(p => p.distanceAU));
+  return (
+    <div className="space-y-1.5">
+      {planets.map((p) => {
+        const pct = (p.distanceAU / maxAU) * 100;
+        const isVisible = p.altitude > 0;
+        return (
+          <div key={p.name} className="flex items-center gap-2">
+            <span className="w-5 text-center text-sm" style={{ color: p.color, opacity: isVisible ? 1 : 0.4 }}>{p.symbol}</span>
+            <div className="flex-1 h-2.5 rounded-full bg-secondary/40 overflow-hidden relative">
+              <motion.div
+                initial={{ width: 0 }}
+                whileInView={{ width: `${Math.max(2, pct)}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="h-full rounded-full"
+                style={{ backgroundColor: p.color, opacity: isVisible ? 0.8 : 0.3 }}
+              />
+            </div>
+            <span className="text-[9px] font-mono text-muted-foreground w-20 text-right">
+              {formatDistance(p.distanceKm)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const PlanetVisibilitySection = () => {
   const [now, setNow] = useState(new Date());
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationName, setLocationName] = useState("Locating...");
+  const [viewMode, setViewMode] = useState<"orrery" | "distances">("orrery");
 
-  // Get user geolocation
   useEffect(() => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-          setLocationName(`${pos.coords.latitude.toFixed(2)}°, ${pos.coords.longitude.toFixed(2)}°`);
-        },
-        () => {
-          setLocation({ lat: 28.6139, lon: 77.209 });
-          setLocationName("New Delhi (default)");
-        },
+        (pos) => { setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }); setLocationName(`${pos.coords.latitude.toFixed(2)}°, ${pos.coords.longitude.toFixed(2)}°`); },
+        () => { setLocation({ lat: 28.6139, lon: 77.209 }); setLocationName("New Delhi (default)"); },
         { timeout: 5000 }
       );
-    } else {
-      setLocation({ lat: 28.6139, lon: 77.209 });
-      setLocationName("New Delhi (default)");
-    }
+    } else { setLocation({ lat: 28.6139, lon: 77.209 }); setLocationName("New Delhi (default)"); }
   }, []);
 
-  // Update time every minute
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(id); }, []);
 
   const planets = useMemo(() => {
     if (!location) return [];
@@ -155,10 +205,10 @@ const PlanetVisibilitySection = () => {
       <div className="section-container">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Ephemeris</p>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Planet Visibility</h2>
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Solar System & Planet Visibility</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
             {planets.length > 0
-              ? `${visiblePlanets.length} planet${visiblePlanets.length !== 1 ? 's' : ''} currently above your horizon. Tap a planet for details.`
+              ? `${visiblePlanets.length} planet${visiblePlanets.length !== 1 ? 's' : ''} currently above your horizon. Real-time positions computed from VSOP87 theory.`
               : 'Computing planetary positions...'}
           </p>
           <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-muted-foreground">
@@ -174,38 +224,32 @@ const PlanetVisibilitySection = () => {
           </div>
         ) : (
           <>
-            {/* Visual orbit diagram */}
+            {/* View mode toggle */}
+            <div className="flex justify-center gap-2 mb-6">
+              <button onClick={() => setViewMode("orrery")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display tracking-wider border transition-all ${viewMode === "orrery" ? "border-primary bg-primary/15 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/40"}`}>
+                <Orbit className="w-3.5 h-3.5" /> Orrery
+              </button>
+              <button onClick={() => setViewMode("distances")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display tracking-wider border transition-all ${viewMode === "distances" ? "border-primary bg-primary/15 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/40"}`}>
+                <Maximize2 className="w-3.5 h-3.5" /> Distances
+              </button>
+            </div>
+
+            {/* Solar system visualization */}
             <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-6 mb-8">
-              <div className="relative w-full h-[200px] flex items-center justify-center overflow-hidden">
-                <div className="absolute w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-orange-500 shadow-[0_0_30px_hsla(45,90%,55%,0.5)] z-10" />
-                {planets.map((planet, i) => {
-                  const radius = 40 + i * 22;
-                  const angle = (planet.azimuth * Math.PI) / 180;
-                  const px = Math.cos(angle) * radius;
-                  const py = Math.sin(angle) * radius * 0.4;
-                  const isVisible = planet.altitude > 0;
-                  return (
-                    <div key={planet.name} className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="absolute rounded-full border border-border/30" style={{ width: radius * 2, height: radius * 0.8 }} />
-                      <button
-                        onClick={() => setSelectedPlanet(selectedPlanet === planet.name ? null : planet.name)}
-                        className="absolute pointer-events-auto transition-transform hover:scale-150 z-20"
-                        style={{
-                          transform: `translate(${px}px, ${py}px)`,
-                          width: Math.max(8, 16 - i * 1.5),
-                          height: Math.max(8, 16 - i * 1.5),
-                          borderRadius: "50%",
-                          backgroundColor: planet.color,
-                          boxShadow: isVisible ? `0 0 10px ${planet.color}` : "none",
-                          opacity: isVisible ? 1 : 0.3,
-                        }}
-                        title={`${planet.name} — ${isVisible ? `Alt: ${planet.altitude.toFixed(1)}°` : 'Below horizon'}`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex flex-wrap justify-center gap-3 mt-4">
+              <AnimatePresence mode="wait">
+                {viewMode === "orrery" ? (
+                  <motion.div key="orrery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Orrery planets={planets} />
+                  </motion.div>
+                ) : (
+                  <motion.div key="distances" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <DistanceScale planets={planets} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Planet buttons */}
+              <div className="flex flex-wrap justify-center gap-2 mt-5">
                 {planets.map((p) => {
                   const isVisible = p.altitude > 0;
                   return (
@@ -213,19 +257,15 @@ const PlanetVisibilitySection = () => {
                       key={p.name}
                       onClick={() => setSelectedPlanet(selectedPlanet === p.name ? null : p.name)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-display tracking-wider border transition-all ${
-                        selectedPlanet === p.name
-                          ? "border-primary/60 bg-primary/15 text-primary"
-                          : isVisible
-                          ? "border-border/60 text-foreground hover:border-primary/40"
-                          : "border-border/30 text-muted-foreground opacity-50"
+                        selectedPlanet === p.name ? "border-primary/60 bg-primary/15 text-primary"
+                        : isVisible ? "border-border/60 text-foreground hover:border-primary/40"
+                        : "border-border/30 text-muted-foreground opacity-50"
                       }`}
                     >
                       <span style={{ color: p.color }}>{p.symbol}</span>
                       {p.name}
                       {isVisible && <Eye className="w-3 h-3 text-accent" />}
-                      <span className="font-mono text-[9px] text-muted-foreground">
-                        {isVisible ? `${p.altitude.toFixed(0)}°` : 'set'}
-                      </span>
+                      <span className="font-mono text-[9px] text-muted-foreground">{p.distanceAU.toFixed(2)} AU</span>
                     </button>
                   );
                 })}
@@ -237,24 +277,14 @@ const PlanetVisibilitySection = () => {
               {(selected ? [selected] : visiblePlanets.length > 0 ? visiblePlanets : planets.slice(0, 3)).map((planet) => {
                 const isVisible = planet.altitude > 0;
                 return (
-                  <motion.div
-                    key={planet.name}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-5 hover:border-primary/40 transition-all"
-                  >
+                  <motion.div key={planet.name} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 hover:border-primary/40 transition-all">
                     <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
-                        style={{ backgroundColor: `${planet.color}20`, color: planet.color, boxShadow: `0 0 15px ${planet.color}40` }}
-                      >
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold" style={{ backgroundColor: `${planet.color}20`, color: planet.color, boxShadow: `0 0 15px ${planet.color}40` }}>
                         {planet.symbol}
                       </div>
                       <div>
                         <h4 className="font-display font-semibold text-foreground">{planet.name}</h4>
-                        <p className="text-[10px] text-muted-foreground">
-                          in {planet.constellation} · mag {planet.magnitude.toFixed(1)}
-                        </p>
+                        <p className="text-[10px] text-muted-foreground">in {planet.constellation} · mag {planet.magnitude.toFixed(1)}</p>
                       </div>
                       {isVisible ? (
                         <span className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider bg-accent/15 text-accent">Visible</span>
@@ -262,14 +292,11 @@ const PlanetVisibilitySection = () => {
                         <span className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider bg-secondary/50 text-muted-foreground">Below Horizon</span>
                       )}
                     </div>
-
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <div className="flex items-center gap-1.5 text-[10px]">
                         <Globe className="w-3 h-3 text-accent" />
                         <span className="text-muted-foreground">Alt/Az:</span>
-                        <span className={`font-mono ${isVisible ? 'text-accent' : 'text-muted-foreground'}`}>
-                          {planet.altitude.toFixed(1)}° {azToDir(planet.azimuth)}
-                        </span>
+                        <span className={`font-mono ${isVisible ? 'text-accent' : 'text-muted-foreground'}`}>{planet.altitude.toFixed(1)}° {azToDir(planet.azimuth)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px]">
                         <Eye className="w-3 h-3 text-primary" />
@@ -291,9 +318,9 @@ const PlanetVisibilitySection = () => {
                         </div>
                       )}
                       <div className="flex items-center gap-1.5 text-[10px]">
-                        <Clock className="w-3 h-3 text-primary" />
+                        <Maximize2 className="w-3 h-3 text-primary" />
                         <span className="text-muted-foreground">Dist:</span>
-                        <span className="font-mono text-foreground">{planet.distanceAU.toFixed(3)} AU</span>
+                        <span className="font-mono text-foreground">{formatDistance(planet.distanceKm)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px]">
                         <RefreshCw className="w-3 h-3 text-accent" />
@@ -301,7 +328,6 @@ const PlanetVisibilitySection = () => {
                         <span className="font-mono text-foreground">{planet.illumination.toFixed(0)}%</span>
                       </div>
                     </div>
-
                     <div className="p-2.5 rounded-lg bg-secondary/50 border border-border/40">
                       <div className="flex items-center gap-1.5 mb-1">
                         <Telescope className="w-3.5 h-3.5 text-primary" />
@@ -313,9 +339,8 @@ const PlanetVisibilitySection = () => {
                 );
               })}
             </div>
-
             <div className="mt-4 text-center text-[10px] text-muted-foreground">
-              🔭 Positions computed using VSOP87 theory via Astronomy Engine. Updates every minute for your location.
+              🔭 Positions computed using VSOP87 theory via Astronomy Engine · Orbital periods: Mercury 88d → Neptune 165y
             </div>
           </>
         )}
