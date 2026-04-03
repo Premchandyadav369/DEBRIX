@@ -15,6 +15,7 @@ const features = [
   // Mission & Core
   { icon: Rocket, title: "Hero & Landing", desc: "Cinematic 3D satellite scene with animated counters and mission status overview.", section: "home", category: "Mission" },
   { icon: Target, title: "Mission Overview", desc: "Core mission objectives for orbital debris removal with interactive cards.", section: "mission", category: "Mission" },
+  { icon: Rocket, title: "Artemis II Tracker", desc: "Live countdown, crew profiles, trajectory visualization, and mission milestones for NASA's lunar flyby.", section: "artemis-tracker", category: "Mission" },
   { icon: Layers, title: "Workflow Pipeline", desc: "Step-by-step debris removal workflow from detection to deorbit.", section: "workflow", category: "Mission" },
   { icon: Timer, title: "Mission Timeline", desc: "Interactive chronological timeline of key mission milestones.", section: "timeline", category: "Mission" },
 
