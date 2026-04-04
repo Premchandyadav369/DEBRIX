@@ -10,25 +10,29 @@ const HeroSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <p className="font-display text-xs tracking-[0.3em] text-primary mb-4 uppercase">
-            Orbital Debris Removal System
-          </p>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight">
-            <span className="gradient-text">DEBRIX</span>
-            <br />
-            <span className="text-foreground text-2xl md:text-3xl lg:text-4xl font-light">
-              The Orbital Debris Collector
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="font-mono text-[10px] tracking-wider text-primary/80">
+              Tracking 36,000+ orbital objects
             </span>
+          </div>
+
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-5 leading-[1.1]">
+            <span className="gradient-text">DEBRIX</span>
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto mb-8 text-sm md:text-base">
-            A swarm-based satellite system that captures, collects, and safely deorbits space debris — keeping our orbital highways clean.
+          <p className="text-foreground text-lg md:text-xl lg:text-2xl font-display font-light mb-4 tracking-tight">
+            The Orbital Debris Collector
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <a href="#workflow" className="gradient-button">
+          <p className="text-muted-foreground max-w-lg mx-auto mb-8 text-sm leading-relaxed">
+            Autonomous swarm satellites that capture, collect, and safely deorbit space debris — protecting humanity's path to the stars.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <a href="#workflow" className="gradient-button text-xs">
               View Simulation
             </a>
-            <a href="#gallery" className="glass-card px-8 py-3 font-display font-semibold tracking-wider uppercase text-sm text-foreground hover:border-primary/50 transition-all">
-              Explore 3D Model
+            <a href="#artemis-tracker" className="glass-card px-6 py-2.5 font-display font-medium tracking-wider text-xs text-foreground hover:border-primary/50 transition-all inline-flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+              Artemis II Live
             </a>
           </div>
         </motion.div>
