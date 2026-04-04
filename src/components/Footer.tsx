@@ -3,37 +3,38 @@ import redDragonLogo from "@/assets/red-dragon.png";
 
 const Footer = () => {
   return (
-    <footer className="relative z-10 border-t border-border/30">
-      <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col items-center gap-6">
-        {/* Top row */}
-        <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
-          <div className="flex items-center gap-2 font-display font-bold text-sm tracking-widest">
-            <Satellite className="w-5 h-5 text-primary" />
-            <span className="gradient-text">DEBRIX</span>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            © {new Date().getFullYear()} Debrix Project. Cleaning orbits, one debris at a time.
-          </p>
-          <div className="flex gap-4">
-            <a href="https://github.com/Premchandyadav369" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-xs font-display">GitHub</a>
-            <a href="https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-xs font-display">LinkedIn</a>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="w-full border-t border-border/20" />
-
-        {/* Made by section */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3">
-            <img src={redDragonLogo} alt="Red Dragon Logo" className="w-8 h-8 rounded-full object-cover" />
-            <p className="font-display text-sm font-semibold tracking-wide text-foreground">
-              Made by <span className="text-red-500">TEAM RED-DRAGON</span> 🐉🔥
+    <footer className="relative z-10 border-t border-border/20">
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Satellite className="w-4 h-4 text-primary" />
+              <span className="font-display font-bold text-sm tracking-widest gradient-text">DEBRIX</span>
+            </div>
+            <p className="text-muted-foreground text-xs max-w-xs leading-relaxed">
+              Autonomous orbital debris removal. Tracking, analyzing, and cleaning Earth's orbital highways.
             </p>
           </div>
-          <p className="text-muted-foreground text-xs text-center">
-            🌍 Made by humans on Earth • 🚀 For the future of space • ✨ With passion & code • 💙 From India 🇮🇳
-          </p>
+
+          <div className="flex flex-col items-start md:items-end gap-3">
+            <div className="flex gap-4">
+              <a href="https://github.com/Premchandyadav369" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-xs font-mono">
+                GitHub
+              </a>
+              <a href="https://www.linkedin.com/in/v-c-premchand-yadav-a785691a2/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-xs font-mono">
+                LinkedIn
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <img src={redDragonLogo} alt="Red Dragon" className="w-5 h-5 rounded-full object-cover" />
+              <span className="text-[10px] font-mono text-muted-foreground">
+                Built by <span className="text-destructive font-semibold">Team Red-Dragon</span> · India 🇮🇳
+              </span>
+            </div>
+            <p className="text-[10px] font-mono text-muted-foreground/60">
+              © {new Date().getFullYear()} Debrix Project
+            </p>
+          </div>
         </div>
       </div>
     </footer>
