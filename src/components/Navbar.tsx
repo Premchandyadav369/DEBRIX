@@ -44,6 +44,7 @@ const navGroups = [
       { label: "Space Events", href: "#space-events" },
       { label: "Sky Map", href: "#sky-map" },
       { label: "Planets", href: "#planet-visibility" },
+      { label: "Artemis II", href: "#artemis-tracker" },
     ],
   },
   {

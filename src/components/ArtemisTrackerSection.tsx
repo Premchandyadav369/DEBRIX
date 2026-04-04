@@ -246,12 +246,12 @@ const ArtemisTrackerSection = () => {
             <div className="relative h-[200px] md:h-[260px] w-full overflow-hidden">
               {/* Earth */}
               <div className="absolute left-[8%] top-1/2 -translate-y-1/2 flex flex-col items-center">
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-blue-500/70 to-emerald-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)]" />
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-primary/70 to-accent/50 shadow-[0_0_30px_hsl(var(--primary)/0.3)]" />
                 <span className="text-[9px] font-mono text-muted-foreground mt-1">Earth</span>
               </div>
               {/* Moon */}
               <div className="absolute right-[8%] top-1/2 -translate-y-1/2 flex flex-col items-center">
-                <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-gray-300/80 to-gray-500/60 shadow-[0_0_20px_rgba(156,163,175,0.2)]" />
+                <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-muted-foreground/80 to-muted/60 shadow-[0_0_20px_hsl(var(--muted-foreground)/0.2)]" />
                 <span className="text-[9px] font-mono text-muted-foreground mt-1">Moon</span>
               </div>
               {/* SVG trajectory */}
