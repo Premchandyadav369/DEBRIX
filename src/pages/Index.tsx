@@ -8,6 +8,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import SectionSkeleton from "@/components/SectionSkeleton";
 import ParallaxSection from "@/components/ParallaxSection";
 import RevealOnScroll from "@/components/RevealOnScroll";
+import SectionExplainer from "@/components/SectionExplainer";
 
 // Lazy-load heavy sections (3D, maps, charts)
 const LaunchSimSection = lazy(() => import("@/components/LaunchSimSection"));
@@ -45,7 +46,7 @@ const MarsRoverSection = lazy(() => import("@/components/MarsRoverSection"));
 const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
 const AuroraForecastSection = lazy(() => import("@/components/AuroraForecastSection"));
 const ArtemisTrackerSection = lazy(() => import("@/components/ArtemisTrackerSection"));
-
+const SolarImagerySection = lazy(() => import("@/components/SolarImagerySection"));
 
 const Lazy = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<SectionSkeleton />}>{children}</Suspense>
@@ -58,138 +59,175 @@ const Index = () => {
       <Navbar />
       <HeroSection />
 
+      <SectionExplainer sectionId="mission" />
       <RevealOnScroll>
         <MissionSection />
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="launch-sim" />
       <ParallaxSection offset={30}>
         <Lazy><LaunchSimSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="workflow" />
       <RevealOnScroll direction="left">
         <Lazy><WorkflowSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="timeline" />
       <Lazy><MissionTimeline /></Lazy>
 
+      <SectionExplainer sectionId="telemetry" />
       <ParallaxSection offset={25}>
         <RevealOnScroll>
           <Lazy><TelemetrySection /></Lazy>
         </RevealOnScroll>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="dock-dump" />
       <RevealOnScroll direction="right">
         <Lazy><DockDumpSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="swarm" />
       <ParallaxSection offset={35}>
         <Lazy><SwarmSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="collision-avoidance" />
       <RevealOnScroll>
         <Lazy><CollisionAvoidanceSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="debris-tracker" />
       <ParallaxSection offset={20}>
         <Lazy><DebrisTrackerSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="debris-priority" />
       <RevealOnScroll direction="left">
         <Lazy><DebrisPrioritizationSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="debris-growth" />
       <Lazy><DebrisGrowthSection /></Lazy>
 
+      <SectionExplainer sectionId="orbital-decay" />
       <ParallaxSection offset={30}>
         <RevealOnScroll>
           <Lazy><OrbitalDecaySection /></Lazy>
         </RevealOnScroll>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="reentry-prediction" />
       <RevealOnScroll direction="left">
         <Lazy><ReentryPredictionSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="kessler" />
       <Lazy><KesslerSection /></Lazy>
 
+      <SectionExplainer sectionId="sat-dashboard" />
       <RevealOnScroll direction="right">
         <Lazy><SatelliteDashboardSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="space-weather" />
       <ParallaxSection offset={25}>
         <Lazy><SpaceWeatherSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="iss-tracker" />
       <RevealOnScroll>
         <Lazy><ISSTrackerSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="apod" />
       <Lazy><ApodSection /></Lazy>
 
+      <SectionExplainer sectionId="space-events" />
       <RevealOnScroll direction="right">
         <Lazy><SpaceEventsSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="upcoming-launches" />
       <ParallaxSection offset={20}>
         <Lazy><UpcomingLaunchesSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="neo-asteroids" />
       <RevealOnScroll>
         <Lazy><NeoAsteroidsSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="fireball-tracker" />
       <ParallaxSection offset={20}>
         <Lazy><FireballTrackerSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="earth-events" />
       <RevealOnScroll direction="right">
         <Lazy><EarthEventsSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="sky-map" />
       <ParallaxSection offset={25}>
         <Lazy><SkyMapSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="planet-visibility" />
       <RevealOnScroll direction="left">
         <Lazy><PlanetVisibilitySection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="aurora-forecast" />
       <Lazy><AuroraForecastSection /></Lazy>
 
+      <SectionExplainer sectionId="solar-imagery" />
+      <Lazy><SolarImagerySection /></Lazy>
+
+      <SectionExplainer sectionId="artemis-tracker" />
       <ParallaxSection offset={25}>
         <RevealOnScroll>
           <Lazy><ArtemisTrackerSection /></Lazy>
         </RevealOnScroll>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="rocket-engines" />
       <ParallaxSection offset={30}>
         <RevealOnScroll>
           <Lazy><RocketEngineDatabaseSection /></Lazy>
         </RevealOnScroll>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="mars-rover" />
       <RevealOnScroll>
         <Lazy><MarsRoverSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="space-news" />
       <ParallaxSection offset={20}>
         <Lazy><SpaceNewsSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="mission-analyzer" />
       <ParallaxSection offset={25}>
         <Lazy><MissionAnalyzerSection /></Lazy>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="gallery" />
       <ParallaxSection offset={20}>
         <RevealOnScroll direction="left">
           <Lazy><GallerySection /></Lazy>
         </RevealOnScroll>
       </ParallaxSection>
 
+      <SectionExplainer sectionId="team" />
       <RevealOnScroll>
         <Lazy><TeamSection /></Lazy>
       </RevealOnScroll>
 
+      <SectionExplainer sectionId="contact" />
       <Lazy><ContactSection /></Lazy>
       <Lazy><Footer /></Lazy>
       <Lazy><SpaceChatSection /></Lazy>
