@@ -208,21 +208,21 @@ const SectionExplainer = ({ sectionId }: SectionExplainerProps) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4 }}
-      className="max-w-3xl mx-auto mb-6 px-4 sm:px-6"
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative z-20 max-w-2xl mx-auto mt-8 mb-2 px-4 sm:px-6"
     >
-      <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-primary/15 bg-primary/[0.03]">
-        <div className="mt-0.5 shrink-0 p-1.5 rounded-md bg-primary/10">
+      <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm shadow-sm">
+        <div className="mt-0.5 shrink-0 w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
           <Icon className="w-4 h-4 text-primary" />
         </div>
-        <div className="min-w-0">
-          <p className="font-display text-xs font-semibold text-primary/80 mb-0.5 tracking-wide">
-            {data.title}
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-[11px] font-semibold text-primary/90 mb-1 uppercase tracking-widest">
+            What is this?
           </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-[13px] text-foreground/75 leading-[1.6] font-body">
             {data.explain}
           </p>
         </div>
