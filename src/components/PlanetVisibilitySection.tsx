@@ -282,6 +282,76 @@ const DistanceScale = ({ planets }: { planets: PlanetInfo[] }) => {
   );
 };
 
+/* ── Launch Windows View ──────────────────────────────────── */
+const LaunchWindows = ({ planets }: { planets: PlanetInfo[] }) => {
+  const sorted = [...planets].sort((a, b) => a.launchWindow.nextWindowDate.getTime() - b.launchWindow.nextWindowDate.getTime());
+  const now = Date.now();
+  
+  return (
+    <div className="space-y-3">
+      <div className="text-center mb-4">
+        <p className="text-[11px] text-muted-foreground">Hohmann transfer windows calculated from current planetary positions</p>
+      </div>
+      {sorted.map((p) => {
+        const lw = p.launchWindow;
+        const daysUntil = Math.max(0, Math.round((lw.nextWindowDate.getTime() - now) / 86400000));
+        const isImminent = daysUntil < 60;
+        const isSoon = daysUntil < 180;
+        
+        return (
+          <motion.div
+            key={p.name}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border/40 hover:border-primary/40 transition-all"
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: `${p.color}20`, color: p.color }}>
+              {p.symbol}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-display font-semibold text-sm text-foreground">{p.name}</span>
+                {isImminent && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-accent/20 text-accent animate-pulse">WINDOW OPEN</span>
+                )}
+                {!isImminent && isSoon && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-primary/20 text-primary">UPCOMING</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1">
+                <div className="flex items-center gap-1 text-[10px]">
+                  <CalendarClock className="w-3 h-3 text-primary shrink-0" />
+                  <span className="text-muted-foreground">Launch:</span>
+                  <span className="font-mono text-foreground">{lw.nextWindowDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <Timer className="w-3 h-3 text-accent shrink-0" />
+                  <span className="text-muted-foreground">Travel:</span>
+                  <span className="font-mono text-foreground">{lw.transferTimeDays}d</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <Fuel className="w-3 h-3 text-primary shrink-0" />
+                  <span className="text-muted-foreground">Δv:</span>
+                  <span className="font-mono text-foreground">{lw.deltaV} km/s</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <Rocket className="w-3 h-3 text-accent shrink-0" />
+                  <span className="text-muted-foreground">In:</span>
+                  <span className={`font-mono ${isImminent ? 'text-accent font-bold' : 'text-foreground'}`}>{daysUntil}d</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+      <p className="text-[9px] text-muted-foreground text-center mt-2">
+        🚀 Based on Hohmann minimum-energy transfers · Synodic period alignment via VSOP87 ephemeris
+      </p>
+    </div>
+  );
+};
+
 const PlanetVisibilitySection = () => {
   const [now, setNow] = useState(new Date());
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
