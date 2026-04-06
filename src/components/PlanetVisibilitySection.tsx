@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2, Maximize2, Orbit } from "lucide-react";
+import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2, Maximize2, Orbit, Rocket, Timer, Fuel, CalendarClock } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
+
+interface LaunchWindowInfo {
+  nextWindowDate: Date;
+  transferTimeDays: number;
+  deltaV: number; // km/s total
+  arrivalDate: Date;
+  synodicPeriodDays: number;
+  phaseAngleDeg: number;
+}
 
 interface PlanetInfo {
   name: string;
@@ -22,6 +31,7 @@ interface PlanetInfo {
   telescopeTip: string;
   orbitalPeriodYears: number;
   meanRadiusKm: number;
+  launchWindow: LaunchWindowInfo;
 }
 
 const PLANET_CONFIG = [
@@ -61,6 +71,103 @@ function formatDistance(km: number): string {
   return `${(km / 1e3).toFixed(0)}K km`;
 }
 
+// Hohmann transfer orbit calculations
+const EARTH_ORBIT_AU = 1.0;
+const MU_SUN = 1.327124e20; // m³/s² gravitational parameter of the Sun
+const AU_M = 1.496e11; // meters per AU
+
+// Semi-major axes in AU (mean orbital radii)
+const PLANET_SMA: Record<string, number> = {
+  Mercury: 0.387, Venus: 0.723, Mars: 1.524, Jupiter: 5.203,
+  Saturn: 9.537, Uranus: 19.19, Neptune: 30.07,
+};
+
+// Approximate delta-v for Hohmann transfer from Earth (km/s, departure + arrival burns)
+const PLANET_DV: Record<string, number> = {
+  Mercury: 13.4, Venus: 7.5, Mars: 5.7, Jupiter: 14.0,
+  Saturn: 15.7, Uranus: 15.9, Neptune: 16.0,
+};
+
+function computeHohmannTransfer(planetName: string): { transferTimeDays: number; deltaV: number } {
+  const r2 = PLANET_SMA[planetName] || 1;
+  const r1 = EARTH_ORBIT_AU;
+  const a = (r1 + r2) / 2; // semi-major axis of transfer orbit in AU
+  const a_m = a * AU_M;
+  const transferTimeSec = Math.PI * Math.sqrt((a_m ** 3) / MU_SUN); // half orbital period
+  const transferTimeDays = transferTimeSec / 86400;
+  const deltaV = PLANET_DV[planetName] || 10;
+  return { transferTimeDays, deltaV };
+}
+
+function computeLaunchWindow(body: Astronomy.Body, planetName: string, now: Date, orbYrs: number): LaunchWindowInfo {
+  const hohmann = computeHohmannTransfer(planetName);
+  
+  // Synodic period: 1/|1/T_earth - 1/T_planet|
+  const T_earth = 1.0; // years
+  const T_planet = orbYrs;
+  const synodicPeriodYears = 1 / Math.abs(1 / T_earth - 1 / T_planet);
+  const synodicPeriodDays = synodicPeriodYears * 365.25;
+  
+  // Phase angle for Hohmann transfer
+  const r2 = PLANET_SMA[planetName] || 1;
+  const r1 = EARTH_ORBIT_AU;
+  const a = (r1 + r2) / 2;
+  const transferAngle = Math.PI * Math.sqrt((a ** 3) / (r2 ** 3)); // angle planet travels during transfer
+  const phaseAngleDeg = (180 - (transferAngle * 180 / Math.PI)) % 360;
+  
+  // Search for next launch window by finding when Earth-planet ecliptic longitude difference
+  // matches the required phase angle. We scan day-by-day over the next synodic period.
+  const searchDays = Math.ceil(synodicPeriodDays) + 30;
+  let bestDate = new Date(now.getTime() + synodicPeriodDays * 86400000 / 2);
+  let bestError = 999;
+  
+  const targetPhase = ((phaseAngleDeg % 360) + 360) % 360;
+  
+  for (let d = 1; d <= searchDays; d += 1) {
+    const testDate = new Date(now.getTime() + d * 86400000);
+    try {
+      const earthPos = Astronomy.EclipticGeoMoon(testDate); // we need heliocentric, use HelioVector
+      const earthVec = Astronomy.HelioVector(Astronomy.Body.Earth, testDate);
+      const planetVec = Astronomy.HelioVector(body, testDate);
+      
+      // Ecliptic longitudes
+      const earthLon = (Math.atan2(earthVec.y, earthVec.x) * 180 / Math.PI + 360) % 360;
+      const planetLon = (Math.atan2(planetVec.y, planetVec.x) * 180 / Math.PI + 360) % 360;
+      
+      // Current phase angle (planet ahead of Earth in orbit)
+      let currentPhase: number;
+      if (r2 > r1) {
+        // Outer planet: planet needs to be BEHIND Earth by phase angle
+        currentPhase = ((planetLon - earthLon) + 360) % 360;
+      } else {
+        // Inner planet: planet needs to be AHEAD
+        currentPhase = ((earthLon - planetLon) + 360) % 360;
+      }
+      
+      const error = Math.abs(currentPhase - targetPhase);
+      const wrappedError = Math.min(error, 360 - error);
+      
+      if (wrappedError < bestError) {
+        bestError = wrappedError;
+        bestDate = testDate;
+      }
+    } catch {
+      continue;
+    }
+  }
+  
+  const arrivalDate = new Date(bestDate.getTime() + hohmann.transferTimeDays * 86400000);
+  
+  return {
+    nextWindowDate: bestDate,
+    transferTimeDays: Math.round(hohmann.transferTimeDays),
+    deltaV: hohmann.deltaV,
+    arrivalDate,
+    synodicPeriodDays: Math.round(synodicPeriodDays),
+    phaseAngleDeg: Math.round(Math.abs(phaseAngleDeg)),
+  };
+}
+
 function computePlanets(date: Date, lat: number, lon: number): PlanetInfo[] {
   const observer = new Astronomy.Observer(lat, lon, 0);
   return PLANET_CONFIG.map(cfg => {
@@ -75,6 +182,7 @@ function computePlanets(date: Date, lat: number, lon: number): PlanetInfo[] {
     const constellation = getConstellation(equatorial.ra);
     const distKm = equatorial.dist * 149597870.7;
     const angularDiameter = (cfg.diamKm / distKm) * 206265;
+    const launchWindow = computeLaunchWindow(cfg.body, cfg.name, date, cfg.orbYrs);
     return {
       name: cfg.name, symbol: cfg.symbol, color: cfg.color, body: cfg.body,
       azimuth: horizontal.azimuth, altitude: horizontal.altitude, magnitude: illum.mag,
@@ -82,6 +190,7 @@ function computePlanets(date: Date, lat: number, lon: number): PlanetInfo[] {
       illumination: illum.phase_fraction * 100, distanceAU: equatorial.dist,
       distanceKm: distKm, angularDiameter, telescopeTip: cfg.tip,
       orbitalPeriodYears: cfg.orbYrs, meanRadiusKm: cfg.diamKm / 2,
+      launchWindow,
     };
   });
 }
@@ -173,12 +282,82 @@ const DistanceScale = ({ planets }: { planets: PlanetInfo[] }) => {
   );
 };
 
+/* ── Launch Windows View ──────────────────────────────────── */
+const LaunchWindows = ({ planets }: { planets: PlanetInfo[] }) => {
+  const sorted = [...planets].sort((a, b) => a.launchWindow.nextWindowDate.getTime() - b.launchWindow.nextWindowDate.getTime());
+  const now = Date.now();
+  
+  return (
+    <div className="space-y-3">
+      <div className="text-center mb-4">
+        <p className="text-[11px] text-muted-foreground">Hohmann transfer windows calculated from current planetary positions</p>
+      </div>
+      {sorted.map((p) => {
+        const lw = p.launchWindow;
+        const daysUntil = Math.max(0, Math.round((lw.nextWindowDate.getTime() - now) / 86400000));
+        const isImminent = daysUntil < 60;
+        const isSoon = daysUntil < 180;
+        
+        return (
+          <motion.div
+            key={p.name}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border/40 hover:border-primary/40 transition-all"
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: `${p.color}20`, color: p.color }}>
+              {p.symbol}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-display font-semibold text-sm text-foreground">{p.name}</span>
+                {isImminent && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-accent/20 text-accent animate-pulse">WINDOW OPEN</span>
+                )}
+                {!isImminent && isSoon && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-primary/20 text-primary">UPCOMING</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1">
+                <div className="flex items-center gap-1 text-[10px]">
+                  <CalendarClock className="w-3 h-3 text-primary shrink-0" />
+                  <span className="text-muted-foreground">Launch:</span>
+                  <span className="font-mono text-foreground">{lw.nextWindowDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <Timer className="w-3 h-3 text-accent shrink-0" />
+                  <span className="text-muted-foreground">Travel:</span>
+                  <span className="font-mono text-foreground">{lw.transferTimeDays}d</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <Fuel className="w-3 h-3 text-primary shrink-0" />
+                  <span className="text-muted-foreground">Δv:</span>
+                  <span className="font-mono text-foreground">{lw.deltaV} km/s</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <Rocket className="w-3 h-3 text-accent shrink-0" />
+                  <span className="text-muted-foreground">In:</span>
+                  <span className={`font-mono ${isImminent ? 'text-accent font-bold' : 'text-foreground'}`}>{daysUntil}d</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+      <p className="text-[9px] text-muted-foreground text-center mt-2">
+        🚀 Based on Hohmann minimum-energy transfers · Synodic period alignment via VSOP87 ephemeris
+      </p>
+    </div>
+  );
+};
+
 const PlanetVisibilitySection = () => {
   const [now, setNow] = useState(new Date());
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationName, setLocationName] = useState("Locating...");
-  const [viewMode, setViewMode] = useState<"orrery" | "distances">("orrery");
+  const [viewMode, setViewMode] = useState<"orrery" | "distances" | "launches">("orrery");
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -232,18 +411,27 @@ const PlanetVisibilitySection = () => {
               <button onClick={() => setViewMode("distances")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display tracking-wider border transition-all ${viewMode === "distances" ? "border-primary bg-primary/15 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/40"}`}>
                 <Maximize2 className="w-3.5 h-3.5" /> Distances
               </button>
+              <button onClick={() => setViewMode("launches")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display tracking-wider border transition-all ${viewMode === "launches" ? "border-primary bg-primary/15 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/40"}`}>
+                <Rocket className="w-3.5 h-3.5" /> Launch Windows
+              </button>
             </div>
 
             {/* Solar system visualization */}
             <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-6 mb-8">
               <AnimatePresence mode="wait">
-                {viewMode === "orrery" ? (
+                {viewMode === "orrery" && (
                   <motion.div key="orrery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <Orrery planets={planets} />
                   </motion.div>
-                ) : (
+                )}
+                {viewMode === "distances" && (
                   <motion.div key="distances" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <DistanceScale planets={planets} />
+                  </motion.div>
+                )}
+                {viewMode === "launches" && (
+                  <motion.div key="launches" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <LaunchWindows planets={planets} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -326,6 +514,31 @@ const PlanetVisibilitySection = () => {
                         <RefreshCw className="w-3 h-3 text-accent" />
                         <span className="text-muted-foreground">Phase:</span>
                         <span className="font-mono text-foreground">{planet.illumination.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    {/* Launch Window mini-card */}
+                    <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 mb-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Rocket className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[10px] font-display tracking-wider text-primary uppercase">Next Launch Window</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Date: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.nextWindowDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</span>
+                        </div>
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Travel: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.transferTimeDays}d</span>
+                        </div>
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Δv: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.deltaV} km/s</span>
+                        </div>
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Cycle: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.synodicPeriodDays}d</span>
+                        </div>
                       </div>
                     </div>
                     <div className="p-2.5 rounded-lg bg-secondary/50 border border-border/40">
