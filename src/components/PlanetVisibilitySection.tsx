@@ -419,13 +419,19 @@ const PlanetVisibilitySection = () => {
             {/* Solar system visualization */}
             <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-6 mb-8">
               <AnimatePresence mode="wait">
-                {viewMode === "orrery" ? (
+                {viewMode === "orrery" && (
                   <motion.div key="orrery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <Orrery planets={planets} />
                   </motion.div>
-                ) : (
+                )}
+                {viewMode === "distances" && (
                   <motion.div key="distances" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <DistanceScale planets={planets} />
+                  </motion.div>
+                )}
+                {viewMode === "launches" && (
+                  <motion.div key="launches" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <LaunchWindows planets={planets} />
                   </motion.div>
                 )}
               </AnimatePresence>
