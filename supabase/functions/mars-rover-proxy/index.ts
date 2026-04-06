@@ -12,36 +12,44 @@ Deno.serve(async (req) => {
     const apiKey = 'WBkaFckn04xcJlW4NoleN07iZajebOJGZpT4LrZz';
     const photos: any[] = [];
 
-    // Try latest photos from multiple rovers
-    for (const rover of ['curiosity', 'perseverance', 'opportunity', 'spirit']) {
+    // Try Curiosity latest photos first (most reliable)
+    for (const rover of ['curiosity', 'perseverance']) {
       if (photos.length >= 12) break;
       try {
-        const res = await fetch(
-          `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=${apiKey}`
-        );
+        const url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=${apiKey}`;
+        console.log(`Fetching: ${rover} latest_photos`);
+        const res = await fetch(url);
+        console.log(`${rover} status: ${res.status}`);
         if (res.ok) {
           const data = await res.json();
+          console.log(`${rover} latest_photos count: ${data.latest_photos?.length || 0}`);
           if (data.latest_photos?.length) {
             photos.push(...data.latest_photos.slice(0, 6));
           }
         } else {
-          await res.text(); // consume body
+          const errText = await res.text();
+          console.log(`${rover} error: ${errText.substring(0, 200)}`);
         }
-      } catch {
-        // Try next rover
+      } catch (e) {
+        console.log(`${rover} fetch error: ${e.message}`);
       }
     }
 
-    // Fallback: try Curiosity by recent sols
+    // Fallback: try by earth_date (today and recent days)
     if (photos.length === 0) {
-      for (let sol = 4200; sol >= 3900; sol -= 100) {
+      const today = new Date();
+      for (let daysBack = 1; daysBack <= 10; daysBack++) {
+        if (photos.length >= 12) break;
+        const d = new Date(today.getTime() - daysBack * 86400000);
+        const dateStr = d.toISOString().split('T')[0];
         try {
-          const res = await fetch(
-            `https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos?sol=${sol}&camera=NAVCAM&api_key=${apiKey}`
-          );
+          const url = `https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos?earth_date=${dateStr}&api_key=${apiKey}`;
+          console.log(`Trying earth_date: ${dateStr}`);
+          const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
             if (data.photos?.length) {
+              console.log(`Found ${data.photos.length} photos for ${dateStr}`);
               photos.push(...data.photos.slice(0, 12));
               break;
             }
@@ -52,27 +60,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Second fallback: try FHAZ camera
-    if (photos.length === 0) {
-      try {
-        const res = await fetch(
-          `https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos?sol=4000&camera=FHAZ&api_key=${apiKey}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (data.photos?.length) {
-            photos.push(...data.photos.slice(0, 12));
-          }
-        } else {
-          await res.text();
-        }
-      } catch {}
-    }
+    console.log(`Total photos found: ${photos.length}`);
 
     return new Response(JSON.stringify({ photos: photos.slice(0, 12) }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error('Mars rover error:', error);
     return new Response(JSON.stringify({ error: error.message, photos: [] }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
