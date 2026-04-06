@@ -3,6 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2, Maximize2, Orbit, Rocket, Timer, Fuel, CalendarClock } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
 
+interface LaunchWindowInfo {
+  nextWindowDate: Date;
+  transferTimeDays: number;
+  deltaV: number; // km/s total
+  arrivalDate: Date;
+  synodicPeriodDays: number;
+  phaseAngleDeg: number;
+}
+
 interface PlanetInfo {
   name: string;
   symbol: string;
@@ -22,6 +31,7 @@ interface PlanetInfo {
   telescopeTip: string;
   orbitalPeriodYears: number;
   meanRadiusKm: number;
+  launchWindow: LaunchWindowInfo;
 }
 
 const PLANET_CONFIG = [
