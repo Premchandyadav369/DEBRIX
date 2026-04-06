@@ -516,6 +516,31 @@ const PlanetVisibilitySection = () => {
                         <span className="font-mono text-foreground">{planet.illumination.toFixed(0)}%</span>
                       </div>
                     </div>
+                    {/* Launch Window mini-card */}
+                    <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 mb-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Rocket className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[10px] font-display tracking-wider text-primary uppercase">Next Launch Window</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Date: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.nextWindowDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</span>
+                        </div>
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Travel: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.transferTimeDays}d</span>
+                        </div>
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Δv: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.deltaV} km/s</span>
+                        </div>
+                        <div className="text-[10px]">
+                          <span className="text-muted-foreground">Cycle: </span>
+                          <span className="font-mono text-foreground">{planet.launchWindow.synodicPeriodDays}d</span>
+                        </div>
+                      </div>
+                    </div>
                     <div className="p-2.5 rounded-lg bg-secondary/50 border border-border/40">
                       <div className="flex items-center gap-1.5 mb-1">
                         <Telescope className="w-3.5 h-3.5 text-primary" />
