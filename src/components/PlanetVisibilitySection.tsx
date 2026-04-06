@@ -411,6 +411,9 @@ const PlanetVisibilitySection = () => {
               <button onClick={() => setViewMode("distances")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display tracking-wider border transition-all ${viewMode === "distances" ? "border-primary bg-primary/15 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/40"}`}>
                 <Maximize2 className="w-3.5 h-3.5" /> Distances
               </button>
+              <button onClick={() => setViewMode("launches")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display tracking-wider border transition-all ${viewMode === "launches" ? "border-primary bg-primary/15 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/40"}`}>
+                <Rocket className="w-3.5 h-3.5" /> Launch Windows
+              </button>
             </div>
 
             {/* Solar system visualization */}
