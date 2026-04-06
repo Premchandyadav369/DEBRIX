@@ -357,7 +357,7 @@ const PlanetVisibilitySection = () => {
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationName, setLocationName] = useState("Locating...");
-  const [viewMode, setViewMode] = useState<"orrery" | "distances">("orrery");
+  const [viewMode, setViewMode] = useState<"orrery" | "distances" | "launches">("orrery");
 
   useEffect(() => {
     if ('geolocation' in navigator) {
