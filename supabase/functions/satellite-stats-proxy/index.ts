@@ -11,39 +11,50 @@ async function fetchKT(path: string, apiKey: string) {
   return res.json();
 }
 
+async function fetchCelesTrakGP(): Promise<any[]> {
+  // CelesTrak GP data as JSON - active satellites
+  const res = await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json');
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const apiKey = Deno.env.get('KEEPTRACK_API_KEY');
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'KEEPTRACK_API_KEY not configured' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
 
   try {
-    // Fetch metrics from KeepTrack in parallel
-    const [activeCount, debrisCount, satsData] = await Promise.all([
-      fetchKT('/metrics/active/count', apiKey),
-      fetchKT('/metrics/debris/count', apiKey),
-      fetchKT('/sats/brief', apiKey),
-    ]);
+    // Try KeepTrack metrics first
+    let totalActive = 0;
+    let totalDebris = 0;
+    
+    if (apiKey) {
+      try {
+        const [activeCount, debrisCount] = await Promise.all([
+          fetchKT('/metrics/active/count', apiKey),
+          fetchKT('/metrics/debris/count', apiKey),
+        ]);
+        totalActive = typeof activeCount === 'number' ? activeCount : activeCount?.count || 0;
+        totalDebris = typeof debrisCount === 'number' ? debrisCount : debrisCount?.count || 0;
+      } catch (e) {
+        console.log('KeepTrack metrics failed:', e.message);
+      }
+    }
 
-    const totalActive = typeof activeCount === 'number' ? activeCount : activeCount?.count || 0;
-    const totalDebris = typeof debrisCount === 'number' ? debrisCount : debrisCount?.count || 0;
-
-    // Process brief satellite data for orbit classification and constellations
-    const satellites = Array.isArray(satsData) ? satsData : [];
+    // Use CelesTrak GP data for orbit classification (more reliable than KeepTrack /sats/brief)
+    const satellites = await fetchCelesTrakGP();
+    
     const GM = 398600.4418;
     let leo = 0, meo = 0, geo = 0, heo = 0;
     const constellations: Record<string, number> = {};
 
     for (const sat of satellites) {
-      const mm = sat.MEAN_MOTION || sat.meanMotion;
-      const ecc = sat.ECCENTRICITY || sat.eccentricity || 0;
-      const name = sat.OBJECT_NAME || sat.name || '';
+      const mm = sat.MEAN_MOTION;
+      const ecc = sat.ECCENTRICITY || 0;
+      const name = sat.OBJECT_NAME || '';
       if (!mm || mm <= 0) continue;
 
       const nRadPerSec = (mm * 2 * Math.PI) / 86400;
@@ -66,8 +77,11 @@ Deno.serve(async (req) => {
       else if (name.includes('SPIRE')) constellations['Spire'] = (constellations['Spire'] || 0) + 1;
     }
 
+    // If KeepTrack metrics were empty, use CelesTrak count
+    if (!totalActive) totalActive = satellites.length;
+
     return new Response(JSON.stringify({
-      totalActive: totalActive || satellites.length,
+      totalActive,
       totalDebris,
       byOrbit: { leo, meo, geo, heo },
       constellations,
