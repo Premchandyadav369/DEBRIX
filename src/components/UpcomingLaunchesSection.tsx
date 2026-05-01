@@ -140,8 +140,42 @@ const UpcomingLaunchesSection = () => {
             <button onClick={fetchData} className="mt-4 gradient-button text-xs">Retry</button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {launches.map((launch, i) => (
+          <>
+            {launches[0] && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="glass-card p-6 mb-6 border-primary/40 bg-gradient-to-br from-primary/5 via-card to-card relative overflow-hidden"
+              >
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] font-display tracking-[0.2em] text-primary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  NEXT LAUNCH
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 items-center">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${getStatusColor(launches[0].statusAbbrev)}`}>
+                        {launches[0].statusAbbrev}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{launches[0].provider}</span>
+                      {launches[0].webcastLive && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 animate-pulse">🔴 LIVE WEBCAST</span>
+                      )}
+                    </div>
+                    <h3 className="font-display font-bold text-lg sm:text-xl text-foreground mb-2">{launches[0].name}</h3>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5"><Rocket className="w-3 h-3" />{launches[0].rocket}</div>
+                      {launches[0].padLocation && <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{launches[0].padLocation}</div>}
+                      <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" />{new Date(launches[0].net).toUTCString()}</div>
+                    </div>
+                  </div>
+                  <HeroCountdown targetDate={launches[0].net} />
+                </div>
+              </motion.div>
+            )}
+            <div className="space-y-4">
+              {launches.map((launch, i) => (
               <motion.div
                 key={launch.id}
                 initial={{ opacity: 0, y: 20 }}
