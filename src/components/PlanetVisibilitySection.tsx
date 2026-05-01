@@ -88,6 +88,24 @@ const PLANET_DV: Record<string, number> = {
   Saturn: 15.7, Uranus: 15.9, Neptune: 16.0,
 };
 
+// Gravity assist trajectories: real historical/proposed routes with savings
+interface GravityAssist {
+  route: string[];           // sequence of bodies for flyby
+  totalDays: number;         // total transit time in days
+  deltaVSavings: number;     // km/s saved vs direct Hohmann
+  description: string;
+  examples: string;          // real missions that used this
+}
+const GRAVITY_ASSISTS: Record<string, GravityAssist | null> = {
+  Mercury: { route: ["Earth", "Venus", "Venus", "Mercury"], totalDays: 2400, deltaVSavings: 5.8, description: "Multiple Venus flybys bleed off excess velocity for Mercury orbit insertion.", examples: "MESSENGER, BepiColombo" },
+  Venus: null,
+  Mars: { route: ["Earth", "Venus", "Mars"], totalDays: 540, deltaVSavings: 1.2, description: "Venus swing-by adds energy for a faster Mars transfer.", examples: "Mariner 10 heritage trajectory" },
+  Jupiter: { route: ["Earth", "Venus", "Earth", "Earth", "Jupiter"], totalDays: 2200, deltaVSavings: 6.1, description: "VEEGA (Venus-Earth-Earth Gravity Assist) builds up enough Δv for Jupiter capture.", examples: "Galileo, Juno, Europa Clipper" },
+  Saturn: { route: ["Earth", "Venus", "Venus", "Earth", "Jupiter", "Saturn"], totalDays: 2570, deltaVSavings: 7.4, description: "Six-year route via inner planets and Jupiter — the famous Cassini trajectory.", examples: "Cassini-Huygens (1997)" },
+  Uranus: { route: ["Earth", "Jupiter", "Uranus"], totalDays: 3290, deltaVSavings: 4.2, description: "Direct Jupiter flyby slingshots the spacecraft outward to Uranus.", examples: "Voyager 2 (1986)" },
+  Neptune: { route: ["Earth", "Jupiter", "Neptune"], totalDays: 4380, deltaVSavings: 5.5, description: "Jupiter slingshot remains the only practical route to Neptune.", examples: "Voyager 2 (1989)" },
+};
+
 function computeHohmannTransfer(planetName: string): { transferTimeDays: number; deltaV: number } {
   const r2 = PLANET_SMA[planetName] || 1;
   const r1 = EARTH_ORBIT_AU;
