@@ -39,7 +39,48 @@ function Countdown({ targetDate }: { targetDate: string }) {
     return () => clearInterval(interval);
   }, [targetDate]);
 
-  return <span className="font-mono text-primary font-bold">{timeLeft}</span>;
+  return <span className="font-mono text-primary font-bold tabular-nums">{timeLeft}</span>;
+}
+
+function HeroCountdown({ targetDate }: { targetDate: string }) {
+  const [parts, setParts] = useState({ d: 0, h: 0, m: 0, s: 0, live: false });
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(targetDate).getTime() - Date.now();
+      if (diff <= 0) { setParts({ d: 0, h: 0, m: 0, s: 0, live: true }); return; }
+      setParts({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff % 86400000) / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+        live: false,
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  if (parts.live) {
+    return <div className="text-center text-3xl font-display font-bold text-accent animate-pulse">🔴 LIFTOFF</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      {[
+        { v: parts.d, l: 'DAYS' },
+        { v: parts.h, l: 'HOURS' },
+        { v: parts.m, l: 'MINUTES' },
+        { v: parts.s, l: 'SECONDS' },
+      ].map((p) => (
+        <div key={p.l} className="text-center px-2 py-3 rounded-lg bg-background/60 border border-primary/30 backdrop-blur-sm">
+          <div className="font-mono font-bold text-2xl sm:text-3xl text-primary tabular-nums">{String(p.v).padStart(2, '0')}</div>
+          <div className="text-[9px] tracking-[0.2em] text-muted-foreground mt-1">{p.l}</div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const UpcomingLaunchesSection = () => {
