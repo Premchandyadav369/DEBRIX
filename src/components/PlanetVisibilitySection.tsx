@@ -300,71 +300,135 @@ const DistanceScale = ({ planets }: { planets: PlanetInfo[] }) => {
   );
 };
 
+/* ── Live Countdown to Launch Window ──────────────────────── */
+const WindowCountdown = ({ target }: { target: Date }) => {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = Math.max(0, target.getTime() - now);
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const isOpen = diff < 60 * 86400000;
+  return (
+    <div className={`grid grid-cols-4 gap-1 ${isOpen ? 'text-accent' : 'text-foreground'}`}>
+      {[
+        { v: d, l: 'DAYS' },
+        { v: h, l: 'HRS' },
+        { v: m, l: 'MIN' },
+        { v: s, l: 'SEC' },
+      ].map((x) => (
+        <div key={x.l} className="text-center px-1.5 py-1 rounded bg-background/40 border border-border/30">
+          <div className="font-mono font-bold text-sm tabular-nums">{String(x.v).padStart(2, '0')}</div>
+          <div className="text-[8px] tracking-widest text-muted-foreground">{x.l}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 /* ── Launch Windows View ──────────────────────────────────── */
 const LaunchWindows = ({ planets }: { planets: PlanetInfo[] }) => {
   const sorted = [...planets].sort((a, b) => a.launchWindow.nextWindowDate.getTime() - b.launchWindow.nextWindowDate.getTime());
   const now = Date.now();
-  
+
   return (
     <div className="space-y-3">
       <div className="text-center mb-4">
-        <p className="text-[11px] text-muted-foreground">Hohmann transfer windows calculated from current planetary positions</p>
+        <p className="text-[11px] text-muted-foreground">Hohmann transfer windows · live countdown · gravity-assist alternatives</p>
       </div>
       {sorted.map((p) => {
         const lw = p.launchWindow;
         const daysUntil = Math.max(0, Math.round((lw.nextWindowDate.getTime() - now) / 86400000));
         const isImminent = daysUntil < 60;
         const isSoon = daysUntil < 180;
-        
+        const ga = GRAVITY_ASSISTS[p.name];
+
         return (
           <motion.div
             key={p.name}
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border/40 hover:border-primary/40 transition-all"
+            className="p-4 rounded-xl bg-secondary/30 border border-border/40 hover:border-primary/40 transition-all"
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: `${p.color}20`, color: p.color }}>
-              {p.symbol}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-display font-semibold text-sm text-foreground">{p.name}</span>
-                {isImminent && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-accent/20 text-accent animate-pulse">WINDOW OPEN</span>
-                )}
-                {!isImminent && isSoon && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-primary/20 text-primary">UPCOMING</span>
-                )}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: `${p.color}20`, color: p.color }}>
+                {p.symbol}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1">
-                <div className="flex items-center gap-1 text-[10px]">
-                  <CalendarClock className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-muted-foreground">Launch:</span>
-                  <span className="font-mono text-foreground">{lw.nextWindowDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-display font-semibold text-sm text-foreground">{p.name}</span>
+                  {isImminent && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-accent/20 text-accent animate-pulse">WINDOW OPEN</span>
+                  )}
+                  {!isImminent && isSoon && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-display tracking-wider bg-primary/20 text-primary">UPCOMING</span>
+                  )}
                 </div>
-                <div className="flex items-center gap-1 text-[10px]">
-                  <Timer className="w-3 h-3 text-accent shrink-0" />
-                  <span className="text-muted-foreground">Travel:</span>
-                  <span className="font-mono text-foreground">{lw.transferTimeDays}d</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px]">
-                  <Fuel className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-muted-foreground">Δv:</span>
-                  <span className="font-mono text-foreground">{lw.deltaV} km/s</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px]">
-                  <Rocket className="w-3 h-3 text-accent shrink-0" />
-                  <span className="text-muted-foreground">In:</span>
-                  <span className={`font-mono ${isImminent ? 'text-accent font-bold' : 'text-foreground'}`}>{daysUntil}d</span>
-                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Launches <span className="font-mono text-foreground">{lw.nextWindowDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span> · arrives <span className="font-mono text-foreground">{lw.arrivalDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                </p>
               </div>
             </div>
+
+            {/* Live countdown */}
+            <WindowCountdown target={lw.nextWindowDate} />
+
+            {/* Hohmann + Gravity Assist comparison */}
+            <div className="grid sm:grid-cols-2 gap-2 mt-3">
+              <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Rocket className="w-3 h-3 text-primary" />
+                  <span className="text-[9px] font-display tracking-wider text-primary uppercase">Direct Hohmann</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                  <div><span className="text-muted-foreground">Travel:</span> <span className="font-mono text-foreground">{lw.transferTimeDays}d</span></div>
+                  <div><span className="text-muted-foreground">Δv:</span> <span className="font-mono text-foreground">{lw.deltaV} km/s</span></div>
+                </div>
+              </div>
+              {ga ? (
+                <div className="p-2.5 rounded-lg bg-accent/5 border border-accent/20">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Zap className="w-3 h-3 text-accent" />
+                    <span className="text-[9px] font-display tracking-wider text-accent uppercase">Gravity Assist</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    <div><span className="text-muted-foreground">Travel:</span> <span className="font-mono text-foreground">{ga.totalDays}d</span></div>
+                    <div><span className="text-muted-foreground">Saves:</span> <span className="font-mono text-accent">−{ga.deltaVSavings} km/s</span></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-lg bg-secondary/40 border border-border/30 flex items-center justify-center">
+                  <span className="text-[10px] text-muted-foreground italic">No practical assist route</span>
+                </div>
+              )}
+            </div>
+
+            {/* Gravity assist route detail */}
+            {ga && (
+              <div className="mt-2 p-2.5 rounded-lg bg-background/40 border border-border/30">
+                <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                  <Route className="w-3 h-3 text-accent shrink-0" />
+                  {ga.route.map((body, i) => (
+                    <span key={i} className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary/60 text-foreground">{body}</span>
+                      {i < ga.route.length - 1 && <span className="text-muted-foreground text-[10px]">→</span>}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">{ga.description}</p>
+                <p className="text-[9px] text-primary/80 mt-1">Real missions: {ga.examples}</p>
+              </div>
+            )}
           </motion.div>
         );
       })}
       <p className="text-[9px] text-muted-foreground text-center mt-2">
-        🚀 Based on Hohmann minimum-energy transfers · Synodic period alignment via VSOP87 ephemeris
+        🚀 Hohmann via VSOP87 ephemeris · Gravity-assist data sourced from JPL Horizons mission archives
       </p>
     </div>
   );
