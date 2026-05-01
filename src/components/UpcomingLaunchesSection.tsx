@@ -246,7 +246,8 @@ const UpcomingLaunchesSection = () => {
                 )}
               </motion.div>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </section>
