@@ -6,7 +6,7 @@ import {
   Waypoints, Crosshair, BarChart3, TrendingDown, ArrowDownCircle,
   AlertTriangle, Radar, Zap, Globe, Star, Calendar, Flame, Activity,
   CloudLightning, Newspaper, Map, Eye, Sparkles, Sun, Database,
-  Binary, Bot, Image, Users, Mail, Target
+  Binary, Bot, Image, Users, Mail, Target, Search
 } from "lucide-react";
 
 interface ExplainerData {
@@ -31,6 +31,7 @@ const explainers: Record<string, ExplainerData> = {
   "reentry-prediction": { icon: ArrowDownCircle, emoji: "🔥", explain: "When something falls from space, we need to know WHERE and WHEN it'll land. This predictor figures that out so people stay safe." },
   kessler: { icon: AlertTriangle, emoji: "💥", explain: "One crash creates hundreds of pieces, each piece crashes into more — a chain reaction! This scary scenario is called Kessler Syndrome. Watch it happen here." },
   "sat-dashboard": { icon: Radar, emoji: "📡", explain: "How many satellites are up there? Working vs. broken? This dashboard is like a scoreboard for everything orbiting Earth." },
+  "satellite-explorer": { icon: Search, emoji: "🔍", explain: "Type any satellite name (like 'Hubble' or 'ISS') and instantly get its mission story, who built it, and when it launched. Plus see what's trending and which satellites are about to come dangerously close to each other!" },
   "space-weather": { icon: Zap, emoji: "☀️", explain: "The Sun sometimes shoots giant bursts of energy called solar flares. These can mess up satellites and power grids. This section tracks them!" },
   "iss-tracker": { icon: Globe, emoji: "🏠", explain: "The International Space Station flies around Earth every 90 minutes with astronauts inside! This live map shows exactly where it is RIGHT NOW." },
   apod: { icon: Star, emoji: "✨", explain: "Every day, NASA picks one amazing space photo. It could be a galaxy, a nebula, or Earth from space — always something beautiful!" },
