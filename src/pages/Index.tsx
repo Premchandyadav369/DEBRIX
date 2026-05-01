@@ -24,6 +24,7 @@ const DebrisGrowthSection = lazy(() => import("@/components/DebrisGrowthSection"
 const OrbitalDecaySection = lazy(() => import("@/components/OrbitalDecaySection"));
 const KesslerSection = lazy(() => import("@/components/KesslerSection"));
 const SatelliteDashboardSection = lazy(() => import("@/components/SatelliteDashboardSection"));
+const SatelliteExplorerSection = lazy(() => import("@/components/SatelliteExplorerSection"));
 const SpaceWeatherSection = lazy(() => import("@/components/SpaceWeatherSection"));
 const ISSTrackerSection = lazy(() => import("@/components/ISSTrackerSection"));
 const ApodSection = lazy(() => import("@/components/ApodSection"));
@@ -131,6 +132,11 @@ const Index = () => {
       <RevealOnScroll direction="right">
         <Lazy><SatelliteDashboardSection /></Lazy>
       </RevealOnScroll>
+
+      <SectionExplainer sectionId="satellite-explorer" />
+      <ParallaxSection offset={20}>
+        <Lazy><SatelliteExplorerSection /></Lazy>
+      </ParallaxSection>
 
       <SectionExplainer sectionId="space-weather" />
       <ParallaxSection offset={25}>

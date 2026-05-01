@@ -34,11 +34,16 @@ Deno.serve(async (req) => {
       '/launches',
     ];
     
-    // Allow /sat/{id} patterns too
-    const isAllowed = allowed.includes(endpoint) || 
-      /^\/sat\/\d+/.test(endpoint) ||
+    // Allow parameterized endpoints
+    const isAllowed = allowed.includes(endpoint) ||
+      /^\/sat\/[\w-]+(\/(summary|trivia|tle|tles|omm|eci|ecf|lla|rae|radec))?/.test(endpoint) ||
       /^\/sats\/celestrak/.test(endpoint) ||
-      /^\/positions\//.test(endpoint);
+      /^\/sats\/latest/.test(endpoint) ||
+      /^\/sats\/[A-Za-z0-9%\-_\s]+$/.test(endpoint) ||
+      /^\/positions\/[\d\.\-\/]+/.test(endpoint) ||
+      /^\/radiopasses\/[\d\.\-\/]+/.test(endpoint) ||
+      /^\/launch-vehicle\//.test(endpoint) ||
+      /^\/tle\/\d+/.test(endpoint);
 
     if (!isAllowed) {
       return new Response(JSON.stringify({ error: 'Endpoint not allowed' }), {
