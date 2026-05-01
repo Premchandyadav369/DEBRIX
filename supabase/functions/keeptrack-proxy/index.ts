@@ -39,9 +39,9 @@ Deno.serve(async (req) => {
       /^\/sat\/[\w-]+(\/(summary|trivia|tle|tles|omm|eci|ecf|lla|rae|radec))?/.test(endpoint) ||
       /^\/sats\/celestrak/.test(endpoint) ||
       /^\/sats\/latest/.test(endpoint) ||
-      /^\/sats\/[A-Za-z0-9%\-\s]+$/.test(endpoint) ||
-      /^\/positions\//.test(endpoint) ||
-      /^\/radiopasses\//.test(endpoint) ||
+      /^\/sats\/[A-Za-z0-9%\-_\s]+$/.test(endpoint) ||
+      /^\/positions\/[\d\.\-\/]+/.test(endpoint) ||
+      /^\/radiopasses\/[\d\.\-\/]+/.test(endpoint) ||
       /^\/launch-vehicle\//.test(endpoint) ||
       /^\/tle\/\d+/.test(endpoint);
 
