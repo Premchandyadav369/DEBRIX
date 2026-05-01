@@ -46,7 +46,7 @@ const explainers: Record<string, ExplainerData> = {
   "solar-imagery": { icon: Sun, emoji: "🔭", explain: "NASA's SDO telescope photographs the Sun 24/7 in different light wavelengths. Each color reveals something different — sunspots, flares, and more!" },
   "artemis-tracker": { icon: Rocket, emoji: "🌙", explain: "Artemis II sends astronauts around the Moon for the first time in 50+ years! Live countdown, crew info, and the spaceship's path." },
   "rocket-engines": { icon: Database, emoji: "⚙️", explain: "Rocket engines push spacecraft into orbit. This database has real engine specs — how powerful they are, what fuel they use, and more." },
-  "mars-rover": { icon: Binary, emoji: "🤖", explain: "NASA has robots on Mars right now! Curiosity and Perseverance send back photos of the Martian surface. Browse pictures from another planet!" },
+  
   "mission-analyzer": { icon: Cpu, emoji: "🧮", explain: "How much fuel to get from one orbit to another? This calculator does the same math real rocket scientists use — called delta-v." },
   "space-chat": { icon: Bot, emoji: "💬", explain: "Got a space question? Ask our AI! It knows about orbits, planets, missions, and debris. Your personal space tutor." },
   gallery: { icon: Image, emoji: "🖼️", explain: "Beautiful pictures of space missions, concept art, and stunning views of Earth from orbit. Scroll and enjoy!" },

@@ -54,7 +54,7 @@ const features = [
 
   // Reference & Tools
   { icon: Database, title: "Rocket Engine Database", desc: "Comprehensive database of rocket engines with thrust, Isp, and propellant data.", section: "rocket-engines", category: "Tools" },
-  { icon: Binary, title: "Mars Rover Gallery", desc: "Latest photos from Curiosity and Perseverance rovers on Mars.", section: "mars-rover", category: "Tools" },
+  
   { icon: Cpu, title: "Mission Analyzer", desc: "Delta-v calculator and mission planning tool for orbital transfers.", section: "mission-analyzer", category: "Tools" },
   { icon: Bot, title: "K2 Space Chat", desc: "AI-powered space assistant for questions about orbits, missions, and debris.", section: "space-chat", category: "Tools" },
 

@@ -39,7 +39,48 @@ function Countdown({ targetDate }: { targetDate: string }) {
     return () => clearInterval(interval);
   }, [targetDate]);
 
-  return <span className="font-mono text-primary font-bold">{timeLeft}</span>;
+  return <span className="font-mono text-primary font-bold tabular-nums">{timeLeft}</span>;
+}
+
+function HeroCountdown({ targetDate }: { targetDate: string }) {
+  const [parts, setParts] = useState({ d: 0, h: 0, m: 0, s: 0, live: false });
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(targetDate).getTime() - Date.now();
+      if (diff <= 0) { setParts({ d: 0, h: 0, m: 0, s: 0, live: true }); return; }
+      setParts({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff % 86400000) / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+        live: false,
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  if (parts.live) {
+    return <div className="text-center text-3xl font-display font-bold text-accent animate-pulse">🔴 LIFTOFF</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      {[
+        { v: parts.d, l: 'DAYS' },
+        { v: parts.h, l: 'HOURS' },
+        { v: parts.m, l: 'MINUTES' },
+        { v: parts.s, l: 'SECONDS' },
+      ].map((p) => (
+        <div key={p.l} className="text-center px-2 py-3 rounded-lg bg-background/60 border border-primary/30 backdrop-blur-sm">
+          <div className="font-mono font-bold text-2xl sm:text-3xl text-primary tabular-nums">{String(p.v).padStart(2, '0')}</div>
+          <div className="text-[9px] tracking-[0.2em] text-muted-foreground mt-1">{p.l}</div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const UpcomingLaunchesSection = () => {
@@ -99,8 +140,42 @@ const UpcomingLaunchesSection = () => {
             <button onClick={fetchData} className="mt-4 gradient-button text-xs">Retry</button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {launches.map((launch, i) => (
+          <>
+            {launches[0] && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="glass-card p-6 mb-6 border-primary/40 bg-gradient-to-br from-primary/5 via-card to-card relative overflow-hidden"
+              >
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] font-display tracking-[0.2em] text-primary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  NEXT LAUNCH
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 items-center">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${getStatusColor(launches[0].statusAbbrev)}`}>
+                        {launches[0].statusAbbrev}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{launches[0].provider}</span>
+                      {launches[0].webcastLive && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 animate-pulse">🔴 LIVE WEBCAST</span>
+                      )}
+                    </div>
+                    <h3 className="font-display font-bold text-lg sm:text-xl text-foreground mb-2">{launches[0].name}</h3>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5"><Rocket className="w-3 h-3" />{launches[0].rocket}</div>
+                      {launches[0].padLocation && <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{launches[0].padLocation}</div>}
+                      <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" />{new Date(launches[0].net).toUTCString()}</div>
+                    </div>
+                  </div>
+                  <HeroCountdown targetDate={launches[0].net} />
+                </div>
+              </motion.div>
+            )}
+            <div className="space-y-4">
+              {launches.map((launch, i) => (
               <motion.div
                 key={launch.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -171,7 +246,8 @@ const UpcomingLaunchesSection = () => {
                 )}
               </motion.div>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </section>
