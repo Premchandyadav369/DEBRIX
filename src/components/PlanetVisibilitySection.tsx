@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2, Maximize2, Orbit, Rocket, Timer, Fuel, CalendarClock } from "lucide-react";
+import { Eye, Sunrise, Sunset, Telescope, Globe, Clock, MapPin, RefreshCw, Loader2, Maximize2, Orbit, Rocket, Timer, Fuel, CalendarClock, Zap, Route } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
 
 interface LaunchWindowInfo {
