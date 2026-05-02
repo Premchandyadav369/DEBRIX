@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Satellite, Globe, Fuel, Clock, Target, Gauge, BarChart3, ArrowUpDown } from "lucide-react";
+import { Satellite, Fuel, Clock, Target, Gauge, BarChart3, ArrowUpDown, Radio, Loader2, MapPin } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MissionConfig {
   altitude: number;
