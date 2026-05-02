@@ -222,6 +222,8 @@ const OrbitalDecaySection = () => {
               )}
             </div>
 
+            <div className="glass-card p-5 space-y-4">
+              <p className="font-display text-xs tracking-wider text-muted-foreground">PARAMETERS</p>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Initial Altitude: {initialAlt} km</label>
                 <input type="range" min={150} max={1200} value={initialAlt} onChange={(e) => { setInitialAlt(+e.target.value); setPreset(null); }} className="w-full accent-[hsl(199,100%,55%)]" />
