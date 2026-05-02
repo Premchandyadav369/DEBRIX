@@ -79,9 +79,47 @@ const PRESETS: { label: string; config: MissionConfig }[] = [
   { label: "Polar Weather Sat", config: { altitude: 850, inclination: 99, mass: 4000, fuelMass: 250, solarPanelArea: 20, dragArea: 8 } },
 ];
 
+interface LiveSat { name: string; alt: number; inc: number; period: number; }
+
 const MissionAnalyzerSection = () => {
   const [config, setConfig] = useState<MissionConfig>(PRESETS[0].config);
   const [preset, setPreset] = useState<number>(0);
+  const [liveSat, setLiveSat] = useState<LiveSat | null>(null);
+  const [loadingLive, setLoadingLive] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  // Live ground-track tick (animates the moving satellite marker)
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Fetch a real satellite to benchmark against current config
+  const fetchLiveSat = async () => {
+    setLoadingLive(true);
+    try {
+      const { data } = await supabase.functions.invoke("keeptrack-proxy", {
+        body: { endpoint: "/sat/25544/summary" },
+      });
+      const s: any = Array.isArray(data) ? data[0] : data;
+      if (s) {
+        const alt = Number(s.altitude || s.alt || s.apogee || 408);
+        const inc = Number(s.inclination || s.inc || 51.6);
+        setLiveSat({
+          name: s.name || s.OBJECT_NAME || "ISS (ZARYA)",
+          alt, inc,
+          period: 2 * Math.PI * Math.sqrt(((6371 + alt) ** 3) / 398600.4418) / 60,
+        });
+      }
+    } catch (e) {
+      console.warn("Live sat fetch failed", e);
+      setLiveSat({ name: "ISS (ZARYA)", alt: 408, inc: 51.6, period: 92.7 });
+    } finally {
+      setLoadingLive(false);
+    }
+  };
+
+  useEffect(() => { fetchLiveSat(); }, []);
 
   const orbit = useMemo(() => detectOrbitType(config.altitude, config.inclination), [config.altitude, config.inclination]);
   const lifetime = useMemo(() => estimateLifetime(config.altitude, config.mass, config.dragArea), [config.altitude, config.mass, config.dragArea]);
@@ -100,6 +138,12 @@ const MissionAnalyzerSection = () => {
     setPreset(i);
     setConfig(PRESETS[i].config);
   };
+
+  // Live position for ground-track marker
+  const satPhase = (tick * 0.02) % 1;
+  const satLon = (satPhase * 360 + 180) % 360 - 180;
+  const satLat = config.inclination * Math.sin(satPhase * Math.PI * 2 * (1440 / period));
+
 
   return (
     <section id="mission-analyzer" className="relative z-10">
