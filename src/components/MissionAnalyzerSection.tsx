@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Satellite, Globe, Fuel, Clock, Target, Gauge, BarChart3, ArrowUpDown } from "lucide-react";
+import { Satellite, Fuel, Clock, Target, Gauge, BarChart3, ArrowUpDown, Radio, Loader2, MapPin } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MissionConfig {
   altitude: number;
@@ -78,9 +79,47 @@ const PRESETS: { label: string; config: MissionConfig }[] = [
   { label: "Polar Weather Sat", config: { altitude: 850, inclination: 99, mass: 4000, fuelMass: 250, solarPanelArea: 20, dragArea: 8 } },
 ];
 
+interface LiveSat { name: string; alt: number; inc: number; period: number; }
+
 const MissionAnalyzerSection = () => {
   const [config, setConfig] = useState<MissionConfig>(PRESETS[0].config);
   const [preset, setPreset] = useState<number>(0);
+  const [liveSat, setLiveSat] = useState<LiveSat | null>(null);
+  const [loadingLive, setLoadingLive] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  // Live ground-track tick (animates the moving satellite marker)
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Fetch a real satellite to benchmark against current config
+  const fetchLiveSat = async () => {
+    setLoadingLive(true);
+    try {
+      const { data } = await supabase.functions.invoke("keeptrack-proxy", {
+        body: { endpoint: "/sat/25544/summary" },
+      });
+      const s: any = Array.isArray(data) ? data[0] : data;
+      if (s) {
+        const alt = Number(s.altitude || s.alt || s.apogee || 408);
+        const inc = Number(s.inclination || s.inc || 51.6);
+        setLiveSat({
+          name: s.name || s.OBJECT_NAME || "ISS (ZARYA)",
+          alt, inc,
+          period: 2 * Math.PI * Math.sqrt(((6371 + alt) ** 3) / 398600.4418) / 60,
+        });
+      }
+    } catch (e) {
+      console.warn("Live sat fetch failed", e);
+      setLiveSat({ name: "ISS (ZARYA)", alt: 408, inc: 51.6, period: 92.7 });
+    } finally {
+      setLoadingLive(false);
+    }
+  };
+
+  useEffect(() => { fetchLiveSat(); }, []);
 
   const orbit = useMemo(() => detectOrbitType(config.altitude, config.inclination), [config.altitude, config.inclination]);
   const lifetime = useMemo(() => estimateLifetime(config.altitude, config.mass, config.dragArea), [config.altitude, config.mass, config.dragArea]);
@@ -99,6 +138,12 @@ const MissionAnalyzerSection = () => {
     setPreset(i);
     setConfig(PRESETS[i].config);
   };
+
+  // Live position for ground-track marker
+  const satPhase = (tick * 0.02) % 1;
+  const satLon = (satPhase * 360 + 180) % 360 - 180;
+  const satLat = config.inclination * Math.sin(satPhase * Math.PI * 2 * (1440 / period));
+
 
   return (
     <section id="mission-analyzer" className="relative z-10">
@@ -226,39 +271,116 @@ const MissionAnalyzerSection = () => {
               </div>
             </div>
 
-            {/* Coverage visualization */}
+            {/* Live benchmark vs your mission */}
             <div className="glass-card p-5">
-              <p className="font-display text-xs tracking-wider text-muted-foreground mb-3">GROUND TRACK COVERAGE</p>
-              <div className="relative w-full h-[160px] bg-[hsl(220,25%,8%)] rounded-lg overflow-hidden border border-border/30">
-                <svg viewBox="0 0 360 180" className="w-full h-full" preserveAspectRatio="none">
-                  {Array.from({ length: 7 }, (_, i) => (
-                    <line key={`h${i}`} x1="0" y1={i * 30} x2="360" y2={i * 30} stroke="hsl(220, 18%, 18%)" strokeWidth="0.5" />
-                  ))}
-                  <line x1="0" y1="90" x2="360" y2="90" stroke="hsl(190, 85%, 52%)" strokeWidth="0.3" opacity="0.3" />
-                  {/* Coverage band */}
-                  <rect
-                    x="0" y={Math.max(0, 90 - config.inclination)}
-                    width="360" height={Math.min(180, config.inclination * 2)}
-                    fill="hsl(160, 70%, 48%)" opacity="0.1"
-                  />
-                  {/* Ground track sinusoid */}
-                  <path
-                    d={Array.from({ length: 361 }, (_, i) => {
-                      const lon = i;
-                      const lat = 90 - config.inclination * Math.sin((i / 360) * Math.PI * 2 * (1440 / period));
-                      return `${i === 0 ? "M" : "L"}${lon},${lat}`;
-                    }).join(" ")}
-                    fill="none" stroke="hsl(190, 85%, 52%)" strokeWidth="0.8" opacity="0.6"
-                  />
-                  {/* Continents hint */}
-                  <path d="M80,35 L95,32 L100,40 L110,42 L115,50 L105,55 L95,52 L85,45 Z" fill="hsl(160, 70%, 30%)" opacity="0.2" />
-                  <path d="M160,30 L200,25 L220,35 L230,50 L225,65 L210,75 L195,70 L180,55 Z" fill="hsl(160, 70%, 30%)" opacity="0.2" />
-                  <path d="M270,55 L310,50 L320,70 L315,90 L290,85 L275,70 Z" fill="hsl(160, 70%, 30%)" opacity="0.2" />
-                </svg>
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-display text-xs tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Radio className="w-3.5 h-3.5 text-accent" />
+                  LIVE BENCHMARK · vs {liveSat?.name || "—"}
+                </p>
+                <button onClick={fetchLiveSat} disabled={loadingLive}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded border border-border/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1.5">
+                  {loadingLive ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
+                  REFRESH
+                </button>
               </div>
-              <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" /> Ground Track</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-accent opacity-40" /> Coverage Band (±{config.inclination}°)</span>
+              {liveSat && (
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  {[
+                    { label: "Δ Altitude", val: `${(config.altitude - liveSat.alt).toFixed(0)} km`, ref: `${liveSat.alt.toFixed(0)} km` },
+                    { label: "Δ Inclination", val: `${(config.inclination - liveSat.inc).toFixed(1)}°`, ref: `${liveSat.inc.toFixed(1)}°` },
+                    { label: "Δ Period", val: `${(period - liveSat.period).toFixed(1)} min`, ref: `${liveSat.period.toFixed(1)} min` },
+                  ].map((m) => (
+                    <div key={m.label} className="p-2 rounded bg-card/40 border border-border/30">
+                      <p className="text-sm font-display font-bold text-primary">{m.val}</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">{m.label}</p>
+                      <p className="text-[9px] text-muted-foreground/60 font-mono">ref: {m.ref}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Ground track map - enhanced */}
+            <div className="glass-card p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-display text-xs tracking-wider text-muted-foreground flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  GROUND TRACK MAP · LIVE
+                </p>
+                <span className="text-[10px] font-mono text-accent flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                  T+{tick}s
+                </span>
+              </div>
+              <div className="relative w-full h-[260px] bg-gradient-to-b from-[hsl(220,40%,8%)] to-[hsl(220,30%,5%)] rounded-lg overflow-hidden border border-border/30">
+                <svg viewBox="-180 -90 360 180" className="w-full h-full" preserveAspectRatio="none">
+                  <defs>
+                    <radialGradient id="oceanGrad">
+                      <stop offset="0%" stopColor="hsl(210, 60%, 12%)" />
+                      <stop offset="100%" stopColor="hsl(220, 50%, 6%)" />
+                    </radialGradient>
+                  </defs>
+                  <rect x="-180" y="-90" width="360" height="180" fill="url(#oceanGrad)" />
+                  {/* Lat/Lon grid */}
+                  {[-60, -30, 0, 30, 60].map((lat) => (
+                    <line key={`lat${lat}`} x1="-180" y1={-lat} x2="180" y2={-lat}
+                      stroke={lat === 0 ? "hsl(190, 85%, 52%)" : "hsl(220, 18%, 22%)"}
+                      strokeWidth={lat === 0 ? "0.3" : "0.2"} opacity={lat === 0 ? "0.5" : "0.6"} strokeDasharray={lat === 0 ? "" : "2 3"} />
+                  ))}
+                  {[-120, -60, 0, 60, 120].map((lon) => (
+                    <line key={`lon${lon}`} x1={lon} y1="-90" x2={lon} y2="90"
+                      stroke="hsl(220, 18%, 22%)" strokeWidth="0.2" opacity="0.6" strokeDasharray="2 3" />
+                  ))}
+                  {/* Continents (simplified silhouettes) */}
+                  <g fill="hsl(160, 50%, 22%)" opacity="0.7" stroke="hsl(160, 70%, 35%)" strokeWidth="0.2">
+                    {/* North America */}
+                    <path d="M-165,55 L-130,68 L-100,60 L-80,45 L-70,28 L-85,15 L-100,18 L-115,28 L-130,30 L-150,42 Z" />
+                    {/* South America */}
+                    <path d="M-75,5 L-60,-5 L-55,-25 L-65,-45 L-72,-55 L-80,-30 L-82,-10 Z" />
+                    {/* Europe */}
+                    <path d="M-10,55 L20,60 L40,55 L45,42 L25,38 L5,40 L-8,48 Z" />
+                    {/* Africa */}
+                    <path d="M-15,30 L20,35 L40,20 L45,0 L40,-25 L25,-35 L10,-30 L-5,-10 L-15,10 Z" />
+                    {/* Asia */}
+                    <path d="M40,65 L100,70 L140,55 L145,35 L120,25 L90,30 L60,35 L45,45 Z" />
+                    {/* India */}
+                    <path d="M70,28 L82,28 L85,15 L78,5 L72,12 Z" />
+                    {/* Australia */}
+                    <path d="M115,-15 L150,-12 L155,-30 L140,-38 L120,-35 L110,-25 Z" />
+                    {/* Antarctica strip */}
+                    <path d="M-180,-78 L180,-78 L180,-88 L-180,-88 Z" />
+                  </g>
+                  {/* Coverage band */}
+                  <rect x="-180" y={-config.inclination} width="360" height={config.inclination * 2}
+                    fill="hsl(160, 70%, 48%)" opacity="0.08" />
+                  <line x1="-180" y1={-config.inclination} x2="180" y2={-config.inclination} stroke="hsl(160, 70%, 48%)" strokeWidth="0.2" strokeDasharray="2 2" opacity="0.5" />
+                  <line x1="-180" y1={config.inclination} x2="180" y2={config.inclination} stroke="hsl(160, 70%, 48%)" strokeWidth="0.2" strokeDasharray="2 2" opacity="0.5" />
+                  {/* Ground track - 3 successive orbits */}
+                  {[0, 1, 2].map((orbitIdx) => (
+                    <path key={orbitIdx}
+                      d={Array.from({ length: 181 }, (_, i) => {
+                        const t = i / 180;
+                        const lon = ((t * 360 - 180 - orbitIdx * (360 / (1440 / period))) % 360 + 540) % 360 - 180;
+                        const lat = config.inclination * Math.sin(t * Math.PI * 2);
+                        return `${i === 0 ? "M" : "L"}${lon},${-lat}`;
+                      }).join(" ")}
+                      fill="none" stroke="hsl(190, 85%, 52%)" strokeWidth="0.5" opacity={0.7 - orbitIdx * 0.2} />
+                  ))}
+                  {/* Live satellite marker */}
+                  <circle cx={satLon} cy={-satLat} r="2.5" fill="hsl(0, 80%, 60%)" stroke="hsl(0, 100%, 80%)" strokeWidth="0.4">
+                    <animate attributeName="r" values="2.5;3.5;2.5" dur="1.5s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx={satLon} cy={-satLat} r="6" fill="none" stroke="hsl(0, 80%, 60%)" strokeWidth="0.3" opacity="0.4" />
+                </svg>
+                <div className="absolute bottom-2 left-2 text-[9px] font-mono text-muted-foreground bg-background/70 px-1.5 py-0.5 rounded">
+                  LAT {satLat.toFixed(1)}° · LON {satLon.toFixed(1)}°
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" /> Ground Track (3 orbits)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-accent opacity-40" /> Coverage ±{config.inclination}°</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-destructive" /> Live Satellite</span>
               </div>
             </div>
           </div>
