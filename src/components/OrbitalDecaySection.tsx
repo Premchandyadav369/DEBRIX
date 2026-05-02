@@ -170,8 +170,58 @@ const OrbitalDecaySection = () => {
               </div>
             </div>
 
-            <div className="glass-card p-5 space-y-4">
-              <p className="font-display text-xs tracking-wider text-muted-foreground">PARAMETERS</p>
+            {/* LIVE DATA ANALYSIS */}
+            <div className="glass-card p-5 space-y-3 border border-primary/20">
+              <div className="flex items-center justify-between">
+                <p className="font-display text-xs tracking-wider text-primary flex items-center gap-2">
+                  <Radio className="w-3.5 h-3.5" />
+                  LIVE DATA ANALYSIS
+                </p>
+                {liveStats && (
+                  <span className="text-[9px] font-mono text-accent flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                    LIVE
+                  </span>
+                )}
+              </div>
+
+              {liveStats && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="text-center p-2 rounded bg-card/40 border border-border/30">
+                    <p className="text-sm font-display font-bold text-primary">{liveStats.active.toLocaleString()}</p>
+                    <p className="text-[9px] text-muted-foreground">Active Sats</p>
+                  </div>
+                  <div className="text-center p-2 rounded bg-card/40 border border-border/30">
+                    <p className="text-sm font-display font-bold text-destructive">{liveStats.debris.toLocaleString()}</p>
+                    <p className="text-[9px] text-muted-foreground">Debris Tracked</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[10px] text-muted-foreground">Load real satellite by name/NORAD:</label>
+                <div className="flex gap-1.5">
+                  <input value={liveQuery} onChange={(e) => setLiveQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && loadLiveSat()}
+                    placeholder="e.g. ISS, HUBBLE, 25544"
+                    className="flex-1 text-xs px-2 py-1.5 rounded bg-background/60 border border-border/40 text-foreground focus:border-primary/40 outline-none font-mono" />
+                  <button onClick={loadLiveSat} disabled={liveLoading}
+                    className="px-2.5 py-1.5 rounded bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all disabled:opacity-50">
+                    {liveLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <SatIcon className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+
+              {liveResult && (
+                <div className="p-2 rounded bg-primary/5 border border-primary/20 text-[10px] font-mono space-y-0.5">
+                  <p className="text-primary font-bold truncate">{liveResult.name}</p>
+                  <p className="text-muted-foreground">ALT: <span className="text-foreground">{liveResult.alt.toFixed(0)} km</span></p>
+                  <p className="text-muted-foreground">INC: <span className="text-foreground">{liveResult.inc.toFixed(1)}°</span></p>
+                  <p className="text-muted-foreground">PERIOD: <span className="text-foreground">{liveResult.period.toFixed(1)} min</span></p>
+                </div>
+              )}
+            </div>
+
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Initial Altitude: {initialAlt} km</label>
                 <input type="range" min={150} max={1200} value={initialAlt} onChange={(e) => { setInitialAlt(+e.target.value); setPreset(null); }} className="w-full accent-[hsl(199,100%,55%)]" />
