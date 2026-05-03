@@ -210,12 +210,17 @@ const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
 
       raf = requestAnimationFrame(draw);
     };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, [onAlert]);
+    let raf2: number;
+    const tick = () => {
+      if (visible) draw();
+      raf2 = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2); };
+  }, [onAlert, visible]);
 
   return (
-    <div className="relative">
+    <div ref={wrapRef} className="relative">
       <canvas ref={canvasRef} className="w-full h-[420px] rounded-xl bg-background/40" />
       <div className="absolute top-3 left-3 space-y-1.5 font-mono text-[10px] pointer-events-none">
         <div className="px-2 py-1 rounded bg-background/70 border border-border/40 backdrop-blur-sm">
