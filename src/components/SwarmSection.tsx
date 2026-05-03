@@ -207,16 +207,16 @@ const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
       debris.forEach((d) => (d.targeted = false));
 
       if (frame % 30 === 0) setStats({ captured, tracking: debris.length, scanning });
-
-      raf = requestAnimationFrame(draw);
     };
     let raf2: number;
-    const tick = () => {
-      if (visible) draw();
+    let last = 0;
+    const tick = (ts: number) => {
+      // Throttled to ~30fps; paused when offscreen
+      if (visible && ts - last > 33) { draw(); last = ts; }
       raf2 = requestAnimationFrame(tick);
     };
-    tick();
-    return () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2); };
+    raf2 = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf2); };
   }, [onAlert, visible]);
 
   return (
