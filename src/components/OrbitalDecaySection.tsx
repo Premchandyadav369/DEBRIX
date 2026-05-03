@@ -330,6 +330,34 @@ const OrbitalDecaySection = () => {
             <p className="text-[10px] text-muted-foreground mt-3 text-center">
               CD = 2.2 · Solar F10.7 = {solarActivity} SFU · Circular orbit · NRLMSISE-00 density model
             </p>
+
+            {/* Decay milestone timeline */}
+            <div className="mt-6 pt-5 border-t border-border/30">
+              <p className="font-display text-xs tracking-wider text-muted-foreground mb-4">DECAY TIMELINE · MILESTONES</p>
+              <div className="relative pl-3">
+                <div className="absolute left-[7px] top-1 bottom-1 w-px bg-gradient-to-b from-primary/60 via-amber-400/40 to-destructive/60" />
+                <div className="space-y-3">
+                  {timeline.map((m, i) => {
+                    const reached = m.day !== undefined;
+                    const color = m.target <= 120 ? "bg-destructive border-destructive" : m.target <= 200 ? "bg-amber-400 border-amber-400" : "bg-primary border-primary";
+                    return (
+                      <div key={i} className="relative flex items-start gap-3">
+                        <div className={`absolute -left-[10px] top-1 w-3 h-3 rounded-full border-2 ${reached ? color : "bg-muted border-border"}`} />
+                        <div className="flex-1 flex justify-between items-baseline gap-3 pl-3">
+                          <div>
+                            <p className="text-xs font-mono text-foreground">{m.label}</p>
+                            <p className="text-[9px] text-muted-foreground">@ {m.target.toFixed(0)} km</p>
+                          </div>
+                          <p className={`text-xs font-display font-bold ${reached ? "text-foreground" : "text-muted-foreground/40"}`}>
+                            {formatTime(m.day)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
