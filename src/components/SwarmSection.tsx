@@ -442,7 +442,10 @@ const SwarmSection = () => {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Live TLE Viewer */}
+        <TleViewer />
+
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {SWARM_STATS.map((stat) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass-card p-5 text-center">
