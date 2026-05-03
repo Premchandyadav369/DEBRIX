@@ -94,7 +94,7 @@ const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
 
     let captured = 0;
     let frame = 0;
-    let raf: number;
+    
 
     const draw = () => {
       frame++;
