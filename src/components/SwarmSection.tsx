@@ -37,15 +37,28 @@ const HUNTER_TLES = [
 
 const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState({ captured: 0, tracking: 218, scanning: 0 });
+  const [visible, setVisible] = useState(true);
   const lastAlertRef = useRef(0);
+
+  // Pause when offscreen / tab hidden
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.1 });
+    io.observe(el);
+    const onVis = () => setVisible(!document.hidden && io.takeRecords().length >= 0);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { io.disconnect(); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const W = canvas.clientWidth;
     const H = canvas.clientHeight;
     canvas.width = W * dpr;
