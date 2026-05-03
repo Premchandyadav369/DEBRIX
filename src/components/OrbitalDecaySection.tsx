@@ -121,6 +121,23 @@ const OrbitalDecaySection = () => {
   const halfLifeDay = decayData.find((d) => d.altitude <= initialAlt / 2)?.day;
   const ballisticCoeff = (mass / (CD_DISPLAY * area)).toFixed(1);
 
+  // Decay milestone timeline
+  const timeline = useMemo(() => {
+    const milestones = [
+      { label: "Drop 50 km", target: initialAlt - 50 },
+      { label: "Half altitude", target: initialAlt / 2 },
+      { label: "Enter rapid decay (200 km)", target: 200 },
+      { label: "Re-entry interface (120 km)", target: 120 },
+      { label: "Burn-up (80 km)", target: 80 },
+    ];
+    return milestones
+      .filter((m) => m.target > 0 && m.target < initialAlt)
+      .map((m) => {
+        const pt = decayData.find((d) => d.altitude <= m.target);
+        return { ...m, day: pt?.day };
+      });
+  }, [decayData, initialAlt]);
+
   const applyPreset = (i: number) => {
     setPreset(i);
     setInitialAlt(presets[i].alt);
