@@ -21,6 +21,19 @@ const CAPABILITIES = [
 interface Hunter { angle: number; radius: number; speed: number; }
 interface Debris { x: number; y: number; vx: number; vy: number; size: number; targeted: boolean; noradId?: string; name?: string; }
 interface Conjunction { sat1Name: string; sat2Name: string; tcaUtc: string; missKm: number; pcMax: number; }
+interface PassEvent { hunter: string; noradId: string; aosUtc: string; losUtc: string; maxElevation: number; durationSec: number; azStart?: number; azEnd?: number; }
+interface GroundStation { name: string; lat: number; lng: number; alt: number; }
+
+const STATION_PRESETS: GroundStation[] = [
+  { name: "Bengaluru, IN", lat: 12.9716, lng: 77.5946, alt: 0.92 },
+  { name: "Houston, US", lat: 29.7604, lng: -95.3698, alt: 0.01 },
+  { name: "Tokyo, JP", lat: 35.6762, lng: 139.6503, alt: 0.04 },
+  { name: "Berlin, DE", lat: 52.52, lng: 13.405, alt: 0.034 },
+  { name: "Sydney, AU", lat: -33.8688, lng: 151.2093, alt: 0.05 },
+  { name: "Cape Town, ZA", lat: -33.9249, lng: 18.4241, alt: 0.025 },
+  { name: "Reykjavik, IS", lat: 64.1466, lng: -21.9426, alt: 0.06 },
+  { name: "Quito, EC", lat: -0.1807, lng: -78.4678, alt: 2.85 },
+];
 
 const HUNTER_TLES = [
   { name: "DEBRIX-H1 (ISS)", id: "25544" },
