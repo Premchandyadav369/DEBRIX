@@ -37,15 +37,28 @@ const HUNTER_TLES = [
 
 const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState({ captured: 0, tracking: 218, scanning: 0 });
+  const [visible, setVisible] = useState(true);
   const lastAlertRef = useRef(0);
+
+  // Pause when offscreen / tab hidden
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.1 });
+    io.observe(el);
+    const onVis = () => setVisible(!document.hidden && io.takeRecords().length >= 0);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { io.disconnect(); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const W = canvas.clientWidth;
     const H = canvas.clientHeight;
     canvas.width = W * dpr;
@@ -81,7 +94,7 @@ const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
 
     let captured = 0;
     let frame = 0;
-    let raf: number;
+    
 
     const draw = () => {
       frame++;
@@ -194,15 +207,20 @@ const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
       debris.forEach((d) => (d.targeted = false));
 
       if (frame % 30 === 0) setStats({ captured, tracking: debris.length, scanning });
-
-      raf = requestAnimationFrame(draw);
     };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, [onAlert]);
+    let raf2: number;
+    let last = 0;
+    const tick = (ts: number) => {
+      // Throttled to ~30fps; paused when offscreen
+      if (visible && ts - last > 33) { draw(); last = ts; }
+      raf2 = requestAnimationFrame(tick);
+    };
+    raf2 = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf2); };
+  }, [onAlert, visible]);
 
   return (
-    <div className="relative">
+    <div ref={wrapRef} className="relative">
       <canvas ref={canvasRef} className="w-full h-[420px] rounded-xl bg-background/40" />
       <div className="absolute top-3 left-3 space-y-1.5 font-mono text-[10px] pointer-events-none">
         <div className="px-2 py-1 rounded bg-background/70 border border-border/40 backdrop-blur-sm">
@@ -222,6 +240,150 @@ const SwarmCanvas = ({ onAlert }: { onAlert: (msg: string) => void }) => {
         <Activity className="w-2.5 h-2.5 text-accent animate-pulse" />
         LIVE SIM · LEO 550km · WALKER-δ 10/2/1
       </div>
+    </div>
+  );
+};
+
+const TleViewer = () => {
+  const [query, setQuery] = useState("25544");
+  const [loading, setLoading] = useState(false);
+  const [tle, setTle] = useState<{ name: string; line1: string; line2: string } | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [auto, setAuto] = useState(true);
+
+  useEffect(() => {
+    if (!auto) return;
+    const t = setInterval(() => setRefresh((r) => r + 1), 30000);
+    return () => clearInterval(t);
+  }, [auto]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchTle = async () => {
+      if (!query.trim()) return;
+      setLoading(true);
+      try {
+        const { data } = await supabase.functions.invoke("keeptrack-proxy", {
+          body: { endpoint: `/sat/${encodeURIComponent(query.trim())}/tle` },
+        });
+        if (cancelled) return;
+        const raw: any = data;
+        let line1 = "", line2 = "", name = `NORAD ${query}`;
+        if (typeof raw === "string") {
+          const lines = raw.trim().split(/\r?\n/);
+          if (lines.length >= 3) { name = lines[0].trim(); line1 = lines[1]; line2 = lines[2]; }
+          else if (lines.length === 2) { line1 = lines[0]; line2 = lines[1]; }
+        } else if (raw) {
+          name = raw.name || raw.OBJECT_NAME || name;
+          line1 = raw.line1 || raw.TLE_LINE1 || raw.tleLine1 || "";
+          line2 = raw.line2 || raw.TLE_LINE2 || raw.tleLine2 || "";
+          if (!line1 && raw.tle) {
+            const lines = String(raw.tle).trim().split(/\r?\n/);
+            line1 = lines[lines.length - 2] || "";
+            line2 = lines[lines.length - 1] || "";
+          }
+        }
+        if (line1 && line2) setTle({ name, line1, line2 });
+        else setTle(null);
+      } catch (e) {
+        console.warn("TLE fetch failed", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchTle();
+    return () => { cancelled = true; };
+  }, [query, refresh]);
+
+  // Parse epoch & mean motion from line 1/2
+  const parsed = tle ? (() => {
+    try {
+      const epochYear = parseInt(tle.line1.substring(18, 20));
+      const epochDay = parseFloat(tle.line1.substring(20, 32));
+      const inc = parseFloat(tle.line2.substring(8, 16));
+      const raan = parseFloat(tle.line2.substring(17, 25));
+      const ecc = parseFloat("0." + tle.line2.substring(26, 33).trim());
+      const meanMotion = parseFloat(tle.line2.substring(52, 63));
+      const period = 1440 / meanMotion;
+      const fullYear = epochYear < 57 ? 2000 + epochYear : 1900 + epochYear;
+      const epochDate = new Date(Date.UTC(fullYear, 0, 1) + (epochDay - 1) * 86400000);
+      const ageHours = (Date.now() - epochDate.getTime()) / 3600000;
+      // Semi-major axis a = (μ/n²)^(1/3); μ in km³/s²
+      const n_rad_s = meanMotion * 2 * Math.PI / 86400;
+      const a = Math.pow(398600.4418 / (n_rad_s * n_rad_s), 1 / 3);
+      const altAvg = a - 6378.137;
+      return { inc, raan, ecc, meanMotion, period, epochDate, ageHours, altAvg };
+    } catch { return null; }
+  })() : null;
+
+  const copyTle = () => {
+    if (!tle) return;
+    navigator.clipboard.writeText(`${tle.name}\n${tle.line1}\n${tle.line2}`);
+    toast.success("TLE copied to clipboard");
+  };
+
+  return (
+    <div className="glass-card p-5 mb-10">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <p className="font-display text-xs tracking-wider text-muted-foreground flex items-center gap-2">
+          <Radio className="w-3.5 h-3.5 text-primary" />
+          LIVE TLE VIEWER · auto-refresh every 30s
+        </p>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setAuto((a) => !a)}
+            className={`text-[10px] font-mono px-2 py-1 rounded border ${auto ? "bg-accent/10 text-accent border-accent/40" : "bg-card/40 text-muted-foreground border-border/40"}`}>
+            {auto ? "● AUTO" : "○ PAUSED"}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        <input value={query} onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && setRefresh((r) => r + 1)}
+          placeholder="NORAD ID or name (e.g. 25544, HUBBLE)"
+          className="flex-1 text-xs px-3 py-2 rounded bg-background/60 border border-border/40 text-foreground focus:border-primary/40 outline-none font-mono" />
+        <button onClick={() => setRefresh((r) => r + 1)} disabled={loading}
+          className="px-3 py-2 rounded text-xs font-display bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all disabled:opacity-50">
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "FETCH"}
+        </button>
+        <button onClick={copyTle} disabled={!tle}
+          className="px-3 py-2 rounded text-xs font-display bg-accent/10 border border-accent/40 text-accent hover:bg-accent/20 transition-all disabled:opacity-30">
+          COPY
+        </button>
+      </div>
+
+      {tle ? (
+        <div className="space-y-3">
+          <div className="p-3 rounded bg-background/60 border border-border/40 font-mono text-[11px] leading-relaxed overflow-x-auto">
+            <p className="text-primary font-bold">{tle.name}</p>
+            <p className="text-foreground whitespace-pre">{tle.line1}</p>
+            <p className="text-foreground whitespace-pre">{tle.line2}</p>
+          </div>
+          {parsed && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[
+                { l: "INC", v: `${parsed.inc.toFixed(2)}°` },
+                { l: "RAAN", v: `${parsed.raan.toFixed(2)}°` },
+                { l: "ECC", v: parsed.ecc.toFixed(5) },
+                { l: "PERIOD", v: `${parsed.period.toFixed(1)} min` },
+                { l: "MEAN MOTION", v: `${parsed.meanMotion.toFixed(4)} rev/d` },
+                { l: "ALT (avg)", v: `${parsed.altAvg.toFixed(0)} km` },
+                { l: "EPOCH", v: parsed.epochDate.toISOString().slice(0, 16).replace("T", " ") },
+                { l: "AGE", v: `${parsed.ageHours.toFixed(1)} h` },
+              ].map((s) => (
+                <div key={s.l} className="p-2 rounded bg-card/40 border border-border/30 text-center">
+                  <p className="text-[9px] text-muted-foreground">{s.l}</p>
+                  <p className="text-xs font-mono text-foreground font-bold mt-0.5">{s.v}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground/60 italic font-mono py-3">
+          {loading ? "Fetching latest TLE…" : "No TLE available for this object."}
+        </p>
+      )}
     </div>
   );
 };
@@ -424,7 +586,10 @@ const SwarmSection = () => {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Live TLE Viewer */}
+        <TleViewer />
+
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {SWARM_STATS.map((stat) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass-card p-5 text-center">
