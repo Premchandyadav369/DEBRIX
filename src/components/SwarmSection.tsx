@@ -443,26 +443,32 @@ const SwarmSection = () => {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // === Ground-station pass predictions ===
-  const [stationIdx, setStationIdx] = useState(0);
+  // === Ground-station pass predictions (multi-station) ===
+  const [stations, setStations] = useState<GroundStation[]>([STATION_PRESETS[0]]);
+  const [presetPick, setPresetPick] = useState(1);
   const [customStation, setCustomStation] = useState({ name: "", lat: "", lng: "" });
-  const [useCustom, setUseCustom] = useState(false);
   const [minElevation, setMinElevation] = useState(10);
-  const [passes, setPasses] = useState<PassEvent[]>([]);
+  const [forecastDays, setForecastDays] = useState(3);
+  const [passes, setPasses] = useState<(PassEvent & { stationName: string })[]>([]);
   const [loadingPasses, setLoadingPasses] = useState(false);
   const [browserNotify, setBrowserNotify] = useState(false);
   const [now, setNow] = useState(Date.now());
   const notifiedRef = useRef<Set<string>>(new Set());
 
-  const activeStation: GroundStation | null = useMemo(() => {
-    if (useCustom) {
-      const lat = parseFloat(customStation.lat);
-      const lng = parseFloat(customStation.lng);
-      if (!isFinite(lat) || !isFinite(lng)) return null;
-      return { name: customStation.name || "Custom", lat, lng, alt: 0 };
-    }
-    return STATION_PRESETS[stationIdx];
-  }, [useCustom, customStation, stationIdx]);
+  const addPresetStation = () => {
+    const s = STATION_PRESETS[presetPick];
+    if (!s) return;
+    if (stations.some((x) => x.name === s.name)) { toast.info("Station already added"); return; }
+    setStations((arr) => [...arr, s]);
+  };
+  const addCustomStation = () => {
+    const lat = parseFloat(customStation.lat);
+    const lng = parseFloat(customStation.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return toast.error("Enter valid lat/lng");
+    setStations((arr) => [...arr, { name: customStation.name || `${lat.toFixed(2)},${lng.toFixed(2)}`, lat, lng, alt: 0 }]);
+    setCustomStation({ name: "", lat: "", lng: "" });
+  };
+  const removeStation = (i: number) => setStations((arr) => arr.filter((_, idx) => idx !== i));
 
   // Tick every second for live countdowns
   useEffect(() => {
