@@ -453,6 +453,9 @@ const SwarmSection = () => {
   const [loadingPasses, setLoadingPasses] = useState(false);
   const [browserNotify, setBrowserNotify] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [excludedSats, setExcludedSats] = useState<Set<string>>(new Set());
+  const failureCountsRef = useRef<Map<string, number>>(new Map());
+  const prevExcludedRef = useRef<Set<string>>(new Set());
   const notifiedRef = useRef<Set<string>>(new Set());
 
   const addPresetStation = () => {
@@ -497,20 +500,32 @@ const SwarmSection = () => {
   };
 
   // Fetch passes for each hunter × each station (KeepTrack max days = 10)
+  // Auto-excludes satellites with ≥2 consecutive propagation failures from the next 24h cycle.
   useEffect(() => {
     if (stations.length === 0) return;
     let cancelled = false;
+    const FAIL_THRESHOLD = 2;
+
     const fetchPasses = async () => {
       setLoadingPasses(true);
       try {
         const days = Math.max(1, Math.min(10, forecastDays));
+        const activeHunters = HUNTER_TLES.filter((h) => !excludedSats.has(h.id));
+        const cycleFailures = new Set<string>();
+
         const tasks: Promise<(PassEvent & { stationName: string })[]>[] = [];
         for (const st of stations) {
-          for (const h of HUNTER_TLES) {
+          for (const h of activeHunters) {
             tasks.push((async () => {
               try {
                 const ep = `/radiopasses/${h.id}/${st.lat}/${st.lng}/${st.alt}/${days}/${minElevation}`;
-                const { data } = await supabase.functions.invoke("keeptrack-proxy", { body: { endpoint: ep } });
+                const { data, error } = await supabase.functions.invoke("keeptrack-proxy", { body: { endpoint: ep } });
+                if (error) throw error;
+                // Proxy degrades upstream 422 (stale TLE) to 200 with a `warning` field
+                if ((data as any)?.warning) {
+                  cycleFailures.add(h.id);
+                  return [];
+                }
                 const arr = Array.isArray(data) ? data : (data as any)?.data || (data as any)?.passes || [];
                 return arr.slice(0, 3).map((p: any) => ({
                   hunter: h.name, noradId: h.id, stationName: st.name,
@@ -521,12 +536,47 @@ const SwarmSection = () => {
                   azStart: p.azStart != null ? Number(p.azStart) : undefined,
                   azEnd: p.azEnd != null ? Number(p.azEnd) : undefined,
                 })).filter((p: any) => p.aosUtc);
-              } catch { return []; }
+              } catch {
+                cycleFailures.add(h.id);
+                return [];
+              }
             })());
           }
         }
         const results = await Promise.all(tasks);
         if (cancelled) return;
+
+        // Update rolling failure counters and recompute exclusion set
+        const counts = failureCountsRef.current;
+        for (const h of activeHunters) {
+          if (cycleFailures.has(h.id)) counts.set(h.id, (counts.get(h.id) || 0) + 1);
+          else counts.set(h.id, 0);
+        }
+        const newExcluded = new Set(excludedSats);
+        for (const [id, c] of counts) {
+          if (c >= FAIL_THRESHOLD) newExcluded.add(id);
+        }
+        const prev = prevExcludedRef.current;
+        const added = [...newExcluded].filter((x) => !prev.has(x));
+        const removed = [...prev].filter((x) => !newExcluded.has(x));
+        if (added.length || removed.length) {
+          if (added.length) {
+            const names = added.map((id) => HUNTER_TLES.find((h) => h.id === id)?.name || id).join(", ");
+            pushAlert(`⚠ Excluded from 24h pass calc (stale TLE): ${names}`);
+            toast.warning("Satellites excluded", { description: `${names} — repeated propagation failures` });
+            if (browserNotify && Notification.permission === "granted") {
+              new Notification("Debrix watchlist updated", { body: `Excluded: ${names}`, icon: "/favicon.ico" });
+            }
+          }
+          if (removed.length) {
+            const names = removed.map((id) => HUNTER_TLES.find((h) => h.id === id)?.name || id).join(", ");
+            pushAlert(`✅ Restored to pass calc: ${names}`);
+            toast.success("Satellites restored", { description: names });
+          }
+          prevExcludedRef.current = newExcluded;
+          setExcludedSats(newExcluded);
+        }
+
         let flat = results.flat()
           .filter((p) => new Date(p.aosUtc).getTime() > Date.now() - 60000)
           .sort((a, b) => new Date(a.aosUtc).getTime() - new Date(b.aosUtc).getTime())
@@ -534,12 +584,13 @@ const SwarmSection = () => {
 
         if (flat.length === 0) {
           const seedBase = Date.now();
+          const seed = activeHunters.length ? activeHunters : HUNTER_TLES;
           for (let i = 0; i < 8; i++) {
             const aos = new Date(seedBase + (3 + i * 7) * 60000);
             const los = new Date(aos.getTime() + (4 + (i % 3)) * 60000);
             flat.push({
-              hunter: HUNTER_TLES[i % HUNTER_TLES.length].name,
-              noradId: HUNTER_TLES[i % HUNTER_TLES.length].id,
+              hunter: seed[i % seed.length].name,
+              noradId: seed[i % seed.length].id,
               stationName: stations[i % stations.length].name,
               aosUtc: aos.toISOString(), losUtc: los.toISOString(),
               maxElevation: 25 + ((i * 13) % 55),
@@ -556,7 +607,7 @@ const SwarmSection = () => {
     fetchPasses();
     const t = setInterval(fetchPasses, 5 * 60000);
     return () => { cancelled = true; clearInterval(t); };
-  }, [stations, minElevation, forecastDays]);
+  }, [stations, minElevation, forecastDays, excludedSats, browserNotify, pushAlert]);
 
   useEffect(() => {
     if (stations.length === 0) return;
@@ -707,6 +758,48 @@ const SwarmSection = () => {
               ))}
             </div>
           </div>
+
+          {/* Auto-excluded satellites (stale TLE) */}
+          {excludedSats.size > 0 && (
+            <div className="mb-3 p-2.5 rounded-lg border border-amber-400/30 bg-amber-400/5">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] text-amber-400 font-mono flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3" /> AUTO-EXCLUDED ({excludedSats.size}) · STALE TLE
+                </label>
+                <button
+                  onClick={() => {
+                    failureCountsRef.current.clear();
+                    prevExcludedRef.current = new Set();
+                    setExcludedSats(new Set());
+                    toast.success("Watchlist reset", { description: "All hunters re-enabled for next cycle" });
+                  }}
+                  className="text-[10px] font-mono text-muted-foreground hover:text-primary"
+                >
+                  RESET
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[...excludedSats].map((id) => {
+                  const h = HUNTER_TLES.find((x) => x.id === id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400">
+                      ⚠ {h?.name || id}
+                      <button
+                        onClick={() => {
+                          failureCountsRef.current.set(id, 0);
+                          const next = new Set(excludedSats); next.delete(id);
+                          prevExcludedRef.current = next;
+                          setExcludedSats(next);
+                          pushAlert(`✅ Restored ${h?.name || id}`);
+                        }}
+                        className="text-muted-foreground hover:text-accent ml-1"
+                      >✕</button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Add station controls */}
           <div className="grid md:grid-cols-2 gap-3 mb-3">
