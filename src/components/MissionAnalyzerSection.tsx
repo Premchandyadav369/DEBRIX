@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Satellite, Fuel, Clock, Target, Gauge, BarChart3, ArrowUpDown, Radio, Loader2, MapPin } from "lucide-react";
+import { Satellite, Fuel, Clock, Target, Gauge, BarChart3, ArrowUpDown, Radio, Loader2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 
