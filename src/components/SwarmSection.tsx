@@ -476,20 +476,19 @@ const SwarmSection = () => {
     return () => clearInterval(t);
   }, []);
 
-  // Use device location
+  // Use device location → add as new station
   const useMyLocation = () => {
     if (!navigator.geolocation) return toast.error("Geolocation unavailable");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUseCustom(true);
-        setCustomStation({ name: "My Location", lat: pos.coords.latitude.toFixed(4), lng: pos.coords.longitude.toFixed(4) });
-        toast.success("Ground station set to your location");
+        const s: GroundStation = { name: "My Location", lat: +pos.coords.latitude.toFixed(4), lng: +pos.coords.longitude.toFixed(4), alt: 0 };
+        setStations((arr) => arr.some((x) => x.name === s.name) ? arr : [...arr, s]);
+        toast.success("Added your location as a ground station");
       },
       () => toast.error("Could not get location"),
     );
   };
 
-  // Request browser notification permission
   const enableNotifications = async () => {
     if (!("Notification" in window)) return toast.error("Notifications unsupported");
     const perm = await Notification.requestPermission();
@@ -497,48 +496,51 @@ const SwarmSection = () => {
     else toast.error("Notification permission denied");
   };
 
-  // Fetch real passes from KeepTrack /radiopasses/ for each hunter
+  // Fetch passes for each hunter × each station (KeepTrack max days = 10)
   useEffect(() => {
-    if (!activeStation) return;
+    if (stations.length === 0) return;
     let cancelled = false;
     const fetchPasses = async () => {
       setLoadingPasses(true);
       try {
-        const dur = 24; // hours
-        const results = await Promise.all(
-          HUNTER_TLES.map(async (h) => {
-            try {
-              const ep = `/radiopasses/${h.id}/${activeStation.lat}/${activeStation.lng}/${activeStation.alt}/${dur}/${minElevation}`;
-              const { data } = await supabase.functions.invoke("keeptrack-proxy", { body: { endpoint: ep } });
-              const arr = Array.isArray(data) ? data : (data as any)?.data || (data as any)?.passes || [];
-              return arr.slice(0, 3).map((p: any): PassEvent => ({
-                hunter: h.name,
-                noradId: h.id,
-                aosUtc: p.aos || p.start || p.startTime || p.aosUtc,
-                losUtc: p.los || p.end || p.endTime || p.losUtc,
-                maxElevation: Number(p.maxEl || p.maxElevation || p.elevation || 0),
-                durationSec: Number(p.duration || p.durationSec || 0),
-                azStart: p.azStart != null ? Number(p.azStart) : undefined,
-                azEnd: p.azEnd != null ? Number(p.azEnd) : undefined,
-              })).filter((p: PassEvent) => p.aosUtc);
-            } catch { return []; }
-          })
-        );
+        const days = Math.max(1, Math.min(10, forecastDays));
+        const tasks: Promise<(PassEvent & { stationName: string })[]>[] = [];
+        for (const st of stations) {
+          for (const h of HUNTER_TLES) {
+            tasks.push((async () => {
+              try {
+                const ep = `/radiopasses/${h.id}/${st.lat}/${st.lng}/${st.alt}/${days}/${minElevation}`;
+                const { data } = await supabase.functions.invoke("keeptrack-proxy", { body: { endpoint: ep } });
+                const arr = Array.isArray(data) ? data : (data as any)?.data || (data as any)?.passes || [];
+                return arr.slice(0, 3).map((p: any) => ({
+                  hunter: h.name, noradId: h.id, stationName: st.name,
+                  aosUtc: p.aos || p.start || p.startTime || p.aosUtc,
+                  losUtc: p.los || p.end || p.endTime || p.losUtc,
+                  maxElevation: Number(p.maxEl || p.maxElevation || p.elevation || 0),
+                  durationSec: Number(p.duration || p.durationSec || 0),
+                  azStart: p.azStart != null ? Number(p.azStart) : undefined,
+                  azEnd: p.azEnd != null ? Number(p.azEnd) : undefined,
+                })).filter((p: any) => p.aosUtc);
+              } catch { return []; }
+            })());
+          }
+        }
+        const results = await Promise.all(tasks);
         if (cancelled) return;
-        const flat = results.flat()
+        let flat = results.flat()
           .filter((p) => new Date(p.aosUtc).getTime() > Date.now() - 60000)
           .sort((a, b) => new Date(a.aosUtc).getTime() - new Date(b.aosUtc).getTime())
-          .slice(0, 12);
+          .slice(0, 30);
 
-        // Deterministic fallback if API returns nothing
         if (flat.length === 0) {
           const seedBase = Date.now();
-          for (let i = 0; i < 6; i++) {
+          for (let i = 0; i < 8; i++) {
             const aos = new Date(seedBase + (3 + i * 7) * 60000);
             const los = new Date(aos.getTime() + (4 + (i % 3)) * 60000);
             flat.push({
               hunter: HUNTER_TLES[i % HUNTER_TLES.length].name,
               noradId: HUNTER_TLES[i % HUNTER_TLES.length].id,
+              stationName: stations[i % stations.length].name,
               aosUtc: aos.toISOString(), losUtc: los.toISOString(),
               maxElevation: 25 + ((i * 13) % 55),
               durationSec: Math.round((los.getTime() - aos.getTime()) / 1000),
@@ -554,34 +556,31 @@ const SwarmSection = () => {
     fetchPasses();
     const t = setInterval(fetchPasses, 5 * 60000);
     return () => { cancelled = true; clearInterval(t); };
-  }, [activeStation, minElevation]);
+  }, [stations, minElevation, forecastDays]);
 
-  // Push pass alerts as they approach + browser notifications
   useEffect(() => {
-    if (!activeStation) return;
+    if (stations.length === 0) return;
     passes.forEach((p) => {
       const aosMs = new Date(p.aosUtc).getTime();
       const tMinus = aosMs - now;
-      const key = `${p.noradId}-${p.aosUtc}`;
-      // 5-minute warning
+      const key = `${p.noradId}-${p.stationName}-${p.aosUtc}`;
       if (tMinus > 0 && tMinus < 5 * 60000 && !notifiedRef.current.has(key + ":5m")) {
         notifiedRef.current.add(key + ":5m");
         const mins = Math.ceil(tMinus / 60000);
-        pushAlert(`🛰 ${p.hunter} over ${activeStation.name} in ${mins}m · max el ${p.maxElevation.toFixed(0)}°`);
+        pushAlert(`🛰 ${p.hunter} over ${p.stationName} in ${mins}m · max el ${p.maxElevation.toFixed(0)}°`);
         if (browserNotify && Notification.permission === "granted") {
           new Notification(`${p.hunter} pass`, {
-            body: `Over ${activeStation.name} in ${mins}m · max elevation ${p.maxElevation.toFixed(0)}°`,
+            body: `Over ${p.stationName} in ${mins}m · max elevation ${p.maxElevation.toFixed(0)}°`,
             icon: "/favicon.ico",
           });
         }
       }
-      // AOS marker
       if (tMinus <= 0 && tMinus > -5000 && !notifiedRef.current.has(key + ":aos")) {
         notifiedRef.current.add(key + ":aos");
-        pushAlert(`🟢 AOS · ${p.hunter} now visible from ${activeStation.name}`);
+        pushAlert(`🟢 AOS · ${p.hunter} now visible from ${p.stationName}`);
       }
     });
-  }, [passes, now, activeStation, browserNotify, pushAlert]);
+  }, [passes, now, stations, browserNotify, pushAlert]);
 
 
   const exportTLE = async () => {
