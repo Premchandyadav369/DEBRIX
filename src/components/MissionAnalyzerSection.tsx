@@ -130,13 +130,6 @@ const MissionAnalyzerSection = () => {
     setPreset(i);
     setConfig(PRESETS[i].config);
   };
-
-  // Live position for ground-track marker
-  const satPhase = (tick * 0.02) % 1;
-  const satLon = (satPhase * 360 + 180) % 360 - 180;
-  const satLat = config.inclination * Math.sin(satPhase * Math.PI * 2 * (1440 / period));
-
-
   return (
     <section id="mission-analyzer" className="relative z-10">
       <div className="section-container">
