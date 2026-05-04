@@ -759,6 +759,48 @@ const SwarmSection = () => {
             </div>
           </div>
 
+          {/* Auto-excluded satellites (stale TLE) */}
+          {excludedSats.size > 0 && (
+            <div className="mb-3 p-2.5 rounded-lg border border-amber-400/30 bg-amber-400/5">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] text-amber-400 font-mono flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3" /> AUTO-EXCLUDED ({excludedSats.size}) · STALE TLE
+                </label>
+                <button
+                  onClick={() => {
+                    failureCountsRef.current.clear();
+                    prevExcludedRef.current = new Set();
+                    setExcludedSats(new Set());
+                    toast.success("Watchlist reset", { description: "All hunters re-enabled for next cycle" });
+                  }}
+                  className="text-[10px] font-mono text-muted-foreground hover:text-primary"
+                >
+                  RESET
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[...excludedSats].map((id) => {
+                  const h = HUNTER_TLES.find((x) => x.id === id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400">
+                      ⚠ {h?.name || id}
+                      <button
+                        onClick={() => {
+                          failureCountsRef.current.set(id, 0);
+                          const next = new Set(excludedSats); next.delete(id);
+                          prevExcludedRef.current = next;
+                          setExcludedSats(next);
+                          pushAlert(`✅ Restored ${h?.name || id}`);
+                        }}
+                        className="text-muted-foreground hover:text-accent ml-1"
+                      >✕</button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Add station controls */}
           <div className="grid md:grid-cols-2 gap-3 mb-3">
             <div className="p-3 rounded-lg border border-border/30 bg-card/30">
