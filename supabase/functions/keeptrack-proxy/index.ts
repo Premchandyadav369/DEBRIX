@@ -63,6 +63,21 @@ Deno.serve(async (req) => {
       body = await response.text();
     }
 
+    // Graceful degradation: KeepTrack returns 422 ("Propagation failed — TLE may be stale or invalid")
+    // for decayed/invalid satellites on /radiopasses, /positions, /sat/*/eci etc.
+    // Convert these (and other upstream errors on read-only orbital endpoints) into a 200 empty
+    // payload so the client UI can skip them silently instead of blowing up.
+    if (!response.ok) {
+      const softEndpoints = /^\/(radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      if (response.status === 422 || softEndpoints.test(endpoint)) {
+        console.warn(`KeepTrack ${response.status} on ${endpoint} — returning empty set`);
+        return new Response(JSON.stringify({ data: [], passes: [], warning: (body as any)?.error || `Upstream ${response.status}` }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     return new Response(JSON.stringify(body), {
       status: response.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
