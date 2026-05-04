@@ -453,6 +453,9 @@ const SwarmSection = () => {
   const [loadingPasses, setLoadingPasses] = useState(false);
   const [browserNotify, setBrowserNotify] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [excludedSats, setExcludedSats] = useState<Set<string>>(new Set());
+  const failureCountsRef = useRef<Map<string, number>>(new Map());
+  const prevExcludedRef = useRef<Set<string>>(new Set());
   const notifiedRef = useRef<Set<string>>(new Set());
 
   const addPresetStation = () => {
