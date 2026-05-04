@@ -86,14 +86,6 @@ const MissionAnalyzerSection = () => {
   const [preset, setPreset] = useState<number>(0);
   const [liveSat, setLiveSat] = useState<LiveSat | null>(null);
   const [loadingLive, setLoadingLive] = useState(false);
-  const [tick, setTick] = useState(0);
-
-  // Live ground-track tick (animates the moving satellite marker)
-  useEffect(() => {
-    const t = setInterval(() => setTick((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-
   // Fetch a real satellite to benchmark against current config
   const fetchLiveSat = async () => {
     setLoadingLive(true);
