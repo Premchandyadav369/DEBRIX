@@ -443,26 +443,32 @@ const SwarmSection = () => {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // === Ground-station pass predictions ===
-  const [stationIdx, setStationIdx] = useState(0);
+  // === Ground-station pass predictions (multi-station) ===
+  const [stations, setStations] = useState<GroundStation[]>([STATION_PRESETS[0]]);
+  const [presetPick, setPresetPick] = useState(1);
   const [customStation, setCustomStation] = useState({ name: "", lat: "", lng: "" });
-  const [useCustom, setUseCustom] = useState(false);
   const [minElevation, setMinElevation] = useState(10);
-  const [passes, setPasses] = useState<PassEvent[]>([]);
+  const [forecastDays, setForecastDays] = useState(3);
+  const [passes, setPasses] = useState<(PassEvent & { stationName: string })[]>([]);
   const [loadingPasses, setLoadingPasses] = useState(false);
   const [browserNotify, setBrowserNotify] = useState(false);
   const [now, setNow] = useState(Date.now());
   const notifiedRef = useRef<Set<string>>(new Set());
 
-  const activeStation: GroundStation | null = useMemo(() => {
-    if (useCustom) {
-      const lat = parseFloat(customStation.lat);
-      const lng = parseFloat(customStation.lng);
-      if (!isFinite(lat) || !isFinite(lng)) return null;
-      return { name: customStation.name || "Custom", lat, lng, alt: 0 };
-    }
-    return STATION_PRESETS[stationIdx];
-  }, [useCustom, customStation, stationIdx]);
+  const addPresetStation = () => {
+    const s = STATION_PRESETS[presetPick];
+    if (!s) return;
+    if (stations.some((x) => x.name === s.name)) { toast.info("Station already added"); return; }
+    setStations((arr) => [...arr, s]);
+  };
+  const addCustomStation = () => {
+    const lat = parseFloat(customStation.lat);
+    const lng = parseFloat(customStation.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return toast.error("Enter valid lat/lng");
+    setStations((arr) => [...arr, { name: customStation.name || `${lat.toFixed(2)},${lng.toFixed(2)}`, lat, lng, alt: 0 }]);
+    setCustomStation({ name: "", lat: "", lng: "" });
+  };
+  const removeStation = (i: number) => setStations((arr) => arr.filter((_, idx) => idx !== i));
 
   // Tick every second for live countdowns
   useEffect(() => {
@@ -470,20 +476,19 @@ const SwarmSection = () => {
     return () => clearInterval(t);
   }, []);
 
-  // Use device location
+  // Use device location → add as new station
   const useMyLocation = () => {
     if (!navigator.geolocation) return toast.error("Geolocation unavailable");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUseCustom(true);
-        setCustomStation({ name: "My Location", lat: pos.coords.latitude.toFixed(4), lng: pos.coords.longitude.toFixed(4) });
-        toast.success("Ground station set to your location");
+        const s: GroundStation = { name: "My Location", lat: +pos.coords.latitude.toFixed(4), lng: +pos.coords.longitude.toFixed(4), alt: 0 };
+        setStations((arr) => arr.some((x) => x.name === s.name) ? arr : [...arr, s]);
+        toast.success("Added your location as a ground station");
       },
       () => toast.error("Could not get location"),
     );
   };
 
-  // Request browser notification permission
   const enableNotifications = async () => {
     if (!("Notification" in window)) return toast.error("Notifications unsupported");
     const perm = await Notification.requestPermission();
@@ -491,48 +496,51 @@ const SwarmSection = () => {
     else toast.error("Notification permission denied");
   };
 
-  // Fetch real passes from KeepTrack /radiopasses/ for each hunter
+  // Fetch passes for each hunter × each station (KeepTrack max days = 10)
   useEffect(() => {
-    if (!activeStation) return;
+    if (stations.length === 0) return;
     let cancelled = false;
     const fetchPasses = async () => {
       setLoadingPasses(true);
       try {
-        const dur = 24; // hours
-        const results = await Promise.all(
-          HUNTER_TLES.map(async (h) => {
-            try {
-              const ep = `/radiopasses/${h.id}/${activeStation.lat}/${activeStation.lng}/${activeStation.alt}/${dur}/${minElevation}`;
-              const { data } = await supabase.functions.invoke("keeptrack-proxy", { body: { endpoint: ep } });
-              const arr = Array.isArray(data) ? data : (data as any)?.data || (data as any)?.passes || [];
-              return arr.slice(0, 3).map((p: any): PassEvent => ({
-                hunter: h.name,
-                noradId: h.id,
-                aosUtc: p.aos || p.start || p.startTime || p.aosUtc,
-                losUtc: p.los || p.end || p.endTime || p.losUtc,
-                maxElevation: Number(p.maxEl || p.maxElevation || p.elevation || 0),
-                durationSec: Number(p.duration || p.durationSec || 0),
-                azStart: p.azStart != null ? Number(p.azStart) : undefined,
-                azEnd: p.azEnd != null ? Number(p.azEnd) : undefined,
-              })).filter((p: PassEvent) => p.aosUtc);
-            } catch { return []; }
-          })
-        );
+        const days = Math.max(1, Math.min(10, forecastDays));
+        const tasks: Promise<(PassEvent & { stationName: string })[]>[] = [];
+        for (const st of stations) {
+          for (const h of HUNTER_TLES) {
+            tasks.push((async () => {
+              try {
+                const ep = `/radiopasses/${h.id}/${st.lat}/${st.lng}/${st.alt}/${days}/${minElevation}`;
+                const { data } = await supabase.functions.invoke("keeptrack-proxy", { body: { endpoint: ep } });
+                const arr = Array.isArray(data) ? data : (data as any)?.data || (data as any)?.passes || [];
+                return arr.slice(0, 3).map((p: any) => ({
+                  hunter: h.name, noradId: h.id, stationName: st.name,
+                  aosUtc: p.aos || p.start || p.startTime || p.aosUtc,
+                  losUtc: p.los || p.end || p.endTime || p.losUtc,
+                  maxElevation: Number(p.maxEl || p.maxElevation || p.elevation || 0),
+                  durationSec: Number(p.duration || p.durationSec || 0),
+                  azStart: p.azStart != null ? Number(p.azStart) : undefined,
+                  azEnd: p.azEnd != null ? Number(p.azEnd) : undefined,
+                })).filter((p: any) => p.aosUtc);
+              } catch { return []; }
+            })());
+          }
+        }
+        const results = await Promise.all(tasks);
         if (cancelled) return;
-        const flat = results.flat()
+        let flat = results.flat()
           .filter((p) => new Date(p.aosUtc).getTime() > Date.now() - 60000)
           .sort((a, b) => new Date(a.aosUtc).getTime() - new Date(b.aosUtc).getTime())
-          .slice(0, 12);
+          .slice(0, 30);
 
-        // Deterministic fallback if API returns nothing
         if (flat.length === 0) {
           const seedBase = Date.now();
-          for (let i = 0; i < 6; i++) {
+          for (let i = 0; i < 8; i++) {
             const aos = new Date(seedBase + (3 + i * 7) * 60000);
             const los = new Date(aos.getTime() + (4 + (i % 3)) * 60000);
             flat.push({
               hunter: HUNTER_TLES[i % HUNTER_TLES.length].name,
               noradId: HUNTER_TLES[i % HUNTER_TLES.length].id,
+              stationName: stations[i % stations.length].name,
               aosUtc: aos.toISOString(), losUtc: los.toISOString(),
               maxElevation: 25 + ((i * 13) % 55),
               durationSec: Math.round((los.getTime() - aos.getTime()) / 1000),
@@ -548,34 +556,31 @@ const SwarmSection = () => {
     fetchPasses();
     const t = setInterval(fetchPasses, 5 * 60000);
     return () => { cancelled = true; clearInterval(t); };
-  }, [activeStation, minElevation]);
+  }, [stations, minElevation, forecastDays]);
 
-  // Push pass alerts as they approach + browser notifications
   useEffect(() => {
-    if (!activeStation) return;
+    if (stations.length === 0) return;
     passes.forEach((p) => {
       const aosMs = new Date(p.aosUtc).getTime();
       const tMinus = aosMs - now;
-      const key = `${p.noradId}-${p.aosUtc}`;
-      // 5-minute warning
+      const key = `${p.noradId}-${p.stationName}-${p.aosUtc}`;
       if (tMinus > 0 && tMinus < 5 * 60000 && !notifiedRef.current.has(key + ":5m")) {
         notifiedRef.current.add(key + ":5m");
         const mins = Math.ceil(tMinus / 60000);
-        pushAlert(`🛰 ${p.hunter} over ${activeStation.name} in ${mins}m · max el ${p.maxElevation.toFixed(0)}°`);
+        pushAlert(`🛰 ${p.hunter} over ${p.stationName} in ${mins}m · max el ${p.maxElevation.toFixed(0)}°`);
         if (browserNotify && Notification.permission === "granted") {
           new Notification(`${p.hunter} pass`, {
-            body: `Over ${activeStation.name} in ${mins}m · max elevation ${p.maxElevation.toFixed(0)}°`,
+            body: `Over ${p.stationName} in ${mins}m · max elevation ${p.maxElevation.toFixed(0)}°`,
             icon: "/favicon.ico",
           });
         }
       }
-      // AOS marker
       if (tMinus <= 0 && tMinus > -5000 && !notifiedRef.current.has(key + ":aos")) {
         notifiedRef.current.add(key + ":aos");
-        pushAlert(`🟢 AOS · ${p.hunter} now visible from ${activeStation.name}`);
+        pushAlert(`🟢 AOS · ${p.hunter} now visible from ${p.stationName}`);
       }
     });
-  }, [passes, now, activeStation, browserNotify, pushAlert]);
+  }, [passes, now, stations, browserNotify, pushAlert]);
 
 
   const exportTLE = async () => {
@@ -689,31 +694,52 @@ const SwarmSection = () => {
             </div>
           </div>
 
-          {/* Station selector */}
-          <div className="grid md:grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className="text-[10px] text-muted-foreground font-mono block mb-1.5">STATION</label>
+          {/* Active stations chips */}
+          <div className="mb-3">
+            <label className="text-[10px] text-muted-foreground font-mono block mb-1.5">ACTIVE STATIONS ({stations.length})</label>
+            <div className="flex flex-wrap gap-1.5">
+              {stations.length === 0 && <p className="text-[10px] text-muted-foreground/60 italic">No stations — add one below.</p>}
+              {stations.map((s, i) => (
+                <span key={`${s.name}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary">
+                  📡 {s.name} <span className="text-muted-foreground">({s.lat.toFixed(2)},{s.lng.toFixed(2)})</span>
+                  <button onClick={() => removeStation(i)} className="text-muted-foreground hover:text-destructive ml-1">✕</button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Add station controls */}
+          <div className="grid md:grid-cols-2 gap-3 mb-3">
+            <div className="p-3 rounded-lg border border-border/30 bg-card/30">
+              <label className="text-[10px] text-muted-foreground font-mono block mb-1.5">ADD PRESET</label>
               <div className="flex gap-2">
-                <select value={useCustom ? "custom" : stationIdx}
-                  onChange={(e) => { if (e.target.value === "custom") setUseCustom(true); else { setUseCustom(false); setStationIdx(parseInt(e.target.value)); } }}
+                <select value={presetPick} onChange={(e) => setPresetPick(parseInt(e.target.value))}
                   className="flex-1 text-xs px-2 py-1.5 rounded bg-background/60 border border-border/40 text-foreground focus:border-primary/40 outline-none font-mono">
                   {STATION_PRESETS.map((s, i) => (
                     <option key={i} value={i}>{s.name} ({s.lat.toFixed(2)}, {s.lng.toFixed(2)})</option>
                   ))}
-                  <option value="custom">— Custom coordinates —</option>
                 </select>
+                <button onClick={addPresetStation}
+                  className="px-3 py-1.5 text-[10px] font-display rounded border bg-primary/15 border-primary/40 text-primary hover:bg-primary/25">+ ADD</button>
               </div>
-              {useCustom && (
-                <div className="grid grid-cols-3 gap-1.5 mt-2">
-                  <input value={customStation.name} onChange={(e) => setCustomStation((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="Name" className="text-[10px] px-2 py-1.5 rounded bg-background/60 border border-border/40 font-mono outline-none focus:border-primary/40" />
-                  <input value={customStation.lat} onChange={(e) => setCustomStation((s) => ({ ...s, lat: e.target.value }))}
-                    placeholder="Lat" className="text-[10px] px-2 py-1.5 rounded bg-background/60 border border-border/40 font-mono outline-none focus:border-primary/40" />
-                  <input value={customStation.lng} onChange={(e) => setCustomStation((s) => ({ ...s, lng: e.target.value }))}
-                    placeholder="Lng" className="text-[10px] px-2 py-1.5 rounded bg-background/60 border border-border/40 font-mono outline-none focus:border-primary/40" />
-                </div>
-              )}
             </div>
+            <div className="p-3 rounded-lg border border-border/30 bg-card/30">
+              <label className="text-[10px] text-muted-foreground font-mono block mb-1.5">ADD CUSTOM (lat / lng)</label>
+              <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5">
+                <input value={customStation.name} onChange={(e) => setCustomStation((s) => ({ ...s, name: e.target.value }))}
+                  placeholder="Name" className="text-[10px] px-2 py-1.5 rounded bg-background/60 border border-border/40 font-mono outline-none focus:border-primary/40" />
+                <input value={customStation.lat} onChange={(e) => setCustomStation((s) => ({ ...s, lat: e.target.value }))}
+                  placeholder="Lat" className="text-[10px] px-2 py-1.5 rounded bg-background/60 border border-border/40 font-mono outline-none focus:border-primary/40" />
+                <input value={customStation.lng} onChange={(e) => setCustomStation((s) => ({ ...s, lng: e.target.value }))}
+                  placeholder="Lng" className="text-[10px] px-2 py-1.5 rounded bg-background/60 border border-border/40 font-mono outline-none focus:border-primary/40" />
+                <button onClick={addCustomStation}
+                  className="px-2 py-1.5 text-[10px] font-display rounded border bg-accent/15 border-accent/40 text-accent hover:bg-accent/25">+</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="grid md:grid-cols-2 gap-3 mb-4">
             <div>
               <label className="text-[10px] text-muted-foreground font-mono block mb-1.5">
                 MIN ELEVATION: <span className="text-primary">{minElevation}°</span>
@@ -723,26 +749,36 @@ const SwarmSection = () => {
                 className="w-full accent-[hsl(199,100%,55%)]" />
               <p className="text-[9px] text-muted-foreground/70 mt-1">Higher = fewer but better-quality passes</p>
             </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground font-mono block mb-1.5">
+                FORECAST WINDOW: <span className="text-primary">{forecastDays} day{forecastDays > 1 ? "s" : ""}</span>
+              </label>
+              <input type="range" min={1} max={10} value={forecastDays}
+                onChange={(e) => setForecastDays(parseInt(e.target.value))}
+                className="w-full accent-[hsl(199,100%,55%)]" />
+              <p className="text-[9px] text-muted-foreground/70 mt-1">KeepTrack supports up to 10 days ahead</p>
+            </div>
           </div>
 
           {/* Upcoming passes table */}
           <div className="rounded-lg border border-border/30 bg-background/40 overflow-hidden">
-            <div className="grid grid-cols-[1.4fr_0.9fr_0.7fr_0.7fr_0.6fr] gap-2 px-3 py-2 text-[9px] font-mono text-muted-foreground tracking-wider border-b border-border/30 bg-card/40">
+            <div className="grid grid-cols-[1.3fr_0.9fr_0.9fr_0.7fr_0.6fr_0.5fr] gap-2 px-3 py-2 text-[9px] font-mono text-muted-foreground tracking-wider border-b border-border/30 bg-card/40">
               <span>HUNTER</span>
+              <span>STATION</span>
               <span>AOS (UTC)</span>
               <span>T-MINUS</span>
               <span>MAX EL</span>
               <span>DUR</span>
             </div>
-            <div className="max-h-[320px] overflow-y-auto">
+            <div className="max-h-[380px] overflow-y-auto">
               {loadingPasses && passes.length === 0 && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground/60 flex items-center justify-center gap-2">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Computing passes…
+                  <Loader2 className="w-3 h-3 animate-spin" /> Computing passes for {stations.length} station{stations.length !== 1 ? "s" : ""}…
                 </div>
               )}
               {!loadingPasses && passes.length === 0 && (
                 <p className="px-3 py-4 text-xs text-muted-foreground/60 italic">
-                  No predicted passes above {minElevation}° in the next 24h.
+                  No predicted passes above {minElevation}° within the next {forecastDays} day{forecastDays > 1 ? "s" : ""}.
                 </p>
               )}
               {passes.map((p, i) => {
@@ -760,11 +796,12 @@ const SwarmSection = () => {
                 };
                 return (
                   <div key={i}
-                    className={`grid grid-cols-[1.4fr_0.9fr_0.7fr_0.7fr_0.6fr] gap-2 px-3 py-2 text-[10px] font-mono items-center border-b border-border/20 last:border-b-0 ${
+                    className={`grid grid-cols-[1.3fr_0.9fr_0.9fr_0.7fr_0.6fr_0.5fr] gap-2 px-3 py-2 text-[10px] font-mono items-center border-b border-border/20 last:border-b-0 ${
                       inWindow ? "bg-accent/10 text-accent" : imminent ? "bg-amber-400/10 text-amber-300" : "text-foreground"
                     }`}>
                     <span className="truncate font-bold">{p.hunter}</span>
-                    <span className="text-muted-foreground">{new Date(p.aosUtc).toUTCString().slice(17, 25)}</span>
+                    <span className="truncate text-primary/80">{p.stationName}</span>
+                    <span className="text-muted-foreground">{new Date(p.aosUtc).toUTCString().slice(5, 22)}</span>
                     <span className={imminent ? "font-bold" : ""}>{fmt(tMinus)}</span>
                     <span>{p.maxElevation.toFixed(0)}°</span>
                     <span className="text-muted-foreground">{Math.round(p.durationSec / 60) || "<1"}m</span>
@@ -775,7 +812,7 @@ const SwarmSection = () => {
           </div>
 
           <p className="text-[9px] text-muted-foreground/60 mt-2 font-mono text-center">
-            Source: KeepTrack /radiopasses · refreshed every 5min · alerts at T-5m and AOS
+            Source: KeepTrack /radiopasses · {stations.length} station{stations.length !== 1 ? "s" : ""} × 10 hunters · refreshed every 5min · alerts at T-5m and AOS
           </p>
         </div>
 
