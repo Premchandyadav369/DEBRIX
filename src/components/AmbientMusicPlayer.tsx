@@ -326,11 +326,11 @@ export default function AmbientMusicPlayer() {
 
             {/* Track name + nav */}
             <div className="flex items-center justify-between">
-              <button onClick={() => switchTrack(-1)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
+              <button aria-label="Previous track" onClick={() => switchTrack(-1)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
                 <ChevronUp className="w-3.5 h-3.5" />
               </button>
               <span className="text-xs font-display text-foreground text-center flex-1 truncate">{track.name}</span>
-              <button onClick={() => switchTrack(1)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
+              <button aria-label="Next track" onClick={() => switchTrack(1)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -340,6 +340,7 @@ export default function AmbientMusicPlayer() {
               {TRACKS.map((_, i) => (
                 <button
                   key={i}
+                  aria-label={`Select track ${i + 1}`}
                   onClick={() => { setTrackIndex(i); if (playing) startTrack(i); }}
                   className={`w-1.5 h-1.5 rounded-full transition-all ${
                     i === trackIndex ? "bg-primary scale-125" : "bg-border hover:bg-muted-foreground"
