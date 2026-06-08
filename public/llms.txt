@@ -1,0 +1,10 @@
+# DEBRIX
+
+> DEBRIX is an active space debris removal mission building autonomous satellite swarms that capture, collect, and safely deorbit space debris — protecting humanity's path to the stars.
+
+The site provides live orbital debris tracking, physics-based orbital simulations (launch, docking, swarm coordination, Kessler cascade, orbital decay, re-entry), real-time space data (ISS, Artemis II, space weather, NEOs, fireballs, launches), and astronomy tools (sky map, planet visibility, aurora forecast, solar imagery).
+
+## Pages
+
+- [Home](/): Mission overview, live trackers, simulators, and the full DEBRIX platform.
+- [Platform Features](/features): Catalog of every DEBRIX tool — simulations, debris analysis, live data feeds, astronomy tools, and reference databases.

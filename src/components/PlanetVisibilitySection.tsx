@@ -553,7 +553,7 @@ const PlanetVisibilitySection = () => {
                         {planet.symbol}
                       </div>
                       <div>
-                        <h4 className="font-display font-semibold text-foreground">{planet.name}</h4>
+                        <h3 className="font-display font-semibold text-foreground">{planet.name}</h3>
                         <p className="text-[10px] text-muted-foreground">in {planet.constellation} · mag {planet.magnitude.toFixed(1)}</p>
                       </div>
                       {isVisible ? (

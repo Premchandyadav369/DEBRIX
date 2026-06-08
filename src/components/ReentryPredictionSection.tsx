@@ -206,7 +206,7 @@ const ReentryPredictionSection = () => {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-display font-semibold text-foreground text-sm">{obj.name}</h4>
+                      <h3 className="font-display font-semibold text-foreground text-sm">{obj.name}</h3>
                       <p className="text-[10px] text-muted-foreground">NORAD {obj.noradId}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider ${

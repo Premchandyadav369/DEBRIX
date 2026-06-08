@@ -345,12 +345,14 @@ const DockDumpSection = () => {
             <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
+                aria-label={isPlaying ? "Pause docking simulation" : "Play docking simulation"}
                 className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors"
               >
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               </button>
               <button
                 onClick={reset}
+                aria-label="Reset docking simulation"
                 className="w-8 h-8 rounded-lg bg-secondary/50 text-muted-foreground flex items-center justify-center hover:text-foreground transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />

@@ -32,6 +32,7 @@ const MissionTimeline = () => {
             <div key={p.title} className="flex items-center flex-1">
               <button
                 onClick={() => setActivePhase(i)}
+                aria-label={`Show phase ${i + 1}: ${p.title}`}
                 className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
                   i < activePhase ? "bg-primary/20 text-primary" :
                   i === activePhase ? "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(199_100%_55%/0.5)]" :
