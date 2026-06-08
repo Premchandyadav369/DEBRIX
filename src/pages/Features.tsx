@@ -92,6 +92,54 @@ const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 const Features = () => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const url = "https://orbital-playmates.lovable.app/features";
+    const title = "Platform Features — DEBRIX Space Debris Removal";
+    const description = "Explore every DEBRIX tool: orbital simulations, debris tracking, live space data feeds, astronomy tools, and reference databases.";
+    const prevTitle = document.title;
+    document.title = title;
+
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let el = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        const [k, v] = selector.replace(/[\[\]"]/g, "").split("=");
+        el.setAttribute(k, v);
+        document.head.appendChild(el);
+      }
+      const prev = el.getAttribute(attr);
+      el.setAttribute(attr, value);
+      return () => { if (prev !== null) el!.setAttribute(attr, prev); };
+    };
+
+    const setLink = (rel: string, href: string) => {
+      let el = document.head.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+      if (!el) {
+        el = document.createElement("link");
+        el.setAttribute("rel", rel);
+        document.head.appendChild(el);
+      }
+      const prev = el.getAttribute("href");
+      el.setAttribute("href", href);
+      return () => { if (prev !== null) el!.setAttribute("href", prev); };
+    };
+
+    const restorers = [
+      setMeta('meta[name="description"]', "content", description),
+      setMeta('meta[property="og:title"]', "content", title),
+      setMeta('meta[property="og:description"]', "content", description),
+      setMeta('meta[property="og:url"]', "content", url),
+      setMeta('meta[name="twitter:title"]', "content", title),
+      setMeta('meta[name="twitter:description"]', "content", description),
+      setLink("canonical", url),
+    ];
+
+    return () => {
+      document.title = prevTitle;
+      restorers.forEach((r) => r());
+    };
+  }, []);
+
   const goToSection = useCallback((section: string) => {
     navigate("/");
     setTimeout(() => {
