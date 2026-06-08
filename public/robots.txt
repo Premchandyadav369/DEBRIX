@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://orbital-playmates.lovable.app/sitemap.xml
