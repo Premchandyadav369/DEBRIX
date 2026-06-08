@@ -19,8 +19,9 @@ const HeroSection = () => {
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-5 leading-[1.1]">
             <span className="gradient-text">DEBRIX</span>
+            <span className="sr-only"> — The Orbital Debris Collector</span>
           </h1>
-          <p className="text-foreground text-lg md:text-xl lg:text-2xl font-display font-light mb-4 tracking-tight">
+          <p aria-hidden="true" className="text-foreground text-lg md:text-xl lg:text-2xl font-display font-light mb-4 tracking-tight">
             The Orbital Debris Collector
           </p>
           <p className="text-muted-foreground max-w-lg mx-auto mb-8 text-sm leading-relaxed">
