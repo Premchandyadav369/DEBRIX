@@ -50,6 +50,7 @@ const navGroups = [
   {
     label: "Reference",
     items: [
+      { label: "Dictionary", href: "#dictionary" },
       { label: "Rocket Engines", href: "#rocket-engines" },
       { label: "Mission Analyzer", href: "#mission-analyzer" },
       { label: "Gallery", href: "#gallery" },
