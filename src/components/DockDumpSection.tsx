@@ -362,6 +362,28 @@ const DockDumpSection = () => {
               <DockingScene phase={phase} autoProgress={autoProgress} />
             </div>
 
+            {/* Live HUD overlay */}
+            <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 pointer-events-none">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-background/70 backdrop-blur-sm border border-border/40">
+                <span className={`relative flex h-2 w-2`}>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPlaying ? "bg-primary" : "bg-muted-foreground"}`} />
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isPlaying ? "bg-primary" : "bg-muted-foreground"}`} />
+                </span>
+                <span className="text-[10px] font-display tracking-widest text-foreground/80 uppercase">
+                  {isPlaying ? "Live · Auto" : "Standby"}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1.5 items-end">
+                <div className="px-2.5 py-1 rounded-md bg-background/70 backdrop-blur-sm border border-border/40 text-[10px] font-display tracking-widest text-muted-foreground uppercase">
+                  {phases[phase].metric}
+                </div>
+                <div className={`px-2.5 py-1 rounded-md bg-background/80 backdrop-blur-sm border ${phases[phase].accent === "accent" ? "border-accent/40 text-accent" : "border-primary/40 text-primary"} text-sm font-mono tabular-nums`}>
+                  {Math.round(phases[phase].startVal + (phases[phase].endVal - phases[phase].startVal) * autoProgress)}
+                  <span className="text-[10px] text-muted-foreground ml-1">{phases[phase].unit}</span>
+                </div>
+              </div>
+            </div>
+
             <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
