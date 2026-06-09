@@ -7,7 +7,7 @@ import {
   Users, Mail, Image, Newspaper, Bot, Calendar, Crosshair,
   Gauge, Radar, Zap, TrendingDown, AlertTriangle, Database,
   Eye, Map, ArrowLeft, ChevronRight, Layers, Target, Cpu,
-  Timer, CloudLightning, Waypoints, ArrowDownCircle, Binary
+  Timer, CloudLightning, Waypoints, ArrowDownCircle, Binary, BookOpen
 } from "lucide-react";
 import Starfield from "@/components/Starfield";
 
