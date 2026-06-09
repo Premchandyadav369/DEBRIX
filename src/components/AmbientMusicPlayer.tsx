@@ -248,6 +248,75 @@ const TRACKS: Track[] = [
       return () => { s1(); s2(); s3(); s4(); };
     },
   },
+  // Additional procedural
+  {
+    name: "Magnetosphere",
+    category: "Procedural",
+    create: (ctx, master) => {
+      const s1 = createDrone(ctx, master, 65.41, 0.6, 0.13);
+      const s2 = createPad(ctx, master, [130.81, 196, 261.63, 392], 0.09);
+      const s3 = createPulse(ctx, master, 523.25, 5, 0.035);
+      const s4 = createNoise(ctx, master, 0.035);
+      return () => { s1(); s2(); s3(); s4(); };
+    },
+  },
+  {
+    name: "Pulsar Beacon",
+    category: "Procedural",
+    create: (ctx, master) => {
+      const s1 = createDrone(ctx, master, 49, 0.3, 0.14);
+      const s2 = createPulse(ctx, master, 880, 2, 0.04);
+      const s3 = createPulse(ctx, master, 1320, 3.5, 0.025);
+      const s4 = createPad(ctx, master, [98, 146.83, 196, 246.94], 0.07);
+      return () => { s1(); s2(); s3(); s4(); };
+    },
+  },
+  // Additional cinematic
+  {
+    name: "Black Hole Resonance",
+    category: "Cinematic",
+    create: (ctx, master) => {
+      const s1 = createSubBass(ctx, master, 24.5, 0.16);
+      const s2 = createCinematicPad(ctx, master, [49, 73.42, 98, 146.83, 220], 0.09, 380);
+      const s3 = createWindNoise(ctx, master, 0.04);
+      const s4 = createShimmer(ctx, master, 440, 0.025);
+      return () => { s1(); s2(); s3(); s4(); };
+    },
+  },
+  {
+    name: "Aurora Drift",
+    category: "Cinematic",
+    create: (ctx, master) => {
+      const s1 = createSubBass(ctx, master, 38, 0.1);
+      const s2 = createCinematicPad(ctx, master, [110, 164.81, 220, 277.18, 415.3, 554.37], 0.08, 800);
+      const s3 = createShimmer(ctx, master, 1108.73, 0.045);
+      const s4 = createWindNoise(ctx, master, 0.025);
+      return () => { s1(); s2(); s3(); s4(); };
+    },
+  },
+  {
+    name: "Cosmic Cathedral",
+    category: "Cinematic",
+    create: (ctx, master) => {
+      const s1 = createSubBass(ctx, master, 32.7, 0.14);
+      const s2 = createCinematicPad(ctx, master, [98, 130.81, 196, 261.63, 392, 523.25], 0.085, 600);
+      const s3 = createShimmer(ctx, master, 783.99, 0.04);
+      const s4 = createDrone(ctx, master, 65.41, 0.5, 0.05);
+      const s5 = createWindNoise(ctx, master, 0.022);
+      return () => { s1(); s2(); s3(); s4(); s5(); };
+    },
+  },
+  {
+    name: "Mars Twilight",
+    category: "Cinematic",
+    create: (ctx, master) => {
+      const s1 = createSubBass(ctx, master, 30, 0.12);
+      const s2 = createCinematicPad(ctx, master, [60, 90, 120, 180, 240], 0.09, 450);
+      const s3 = createWindNoise(ctx, master, 0.055);
+      const s4 = createShimmer(ctx, master, 720, 0.03);
+      return () => { s1(); s2(); s3(); s4(); };
+    },
+  },
 ];
 
 /* ── Component ────────────────────────────────────────────── */

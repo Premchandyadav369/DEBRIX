@@ -270,21 +270,41 @@ const phases = [
     title: "Approach & Lock-On",
     desc: "Debrix identifies the target debris cluster via LiDAR and initiates closing maneuver at 0.5 m/s relative velocity.",
     icon: "🎯",
+    metric: "Range",
+    unit: "m",
+    startVal: 2500,
+    endVal: 12,
+    accent: "primary" as const,
   },
   {
     title: "Magnetic Docking",
     desc: "Electromagnetic docking clamps engage. Both satellites establish a rigid connection with sub-millimeter alignment.",
     icon: "🔗",
+    metric: "Lock Force",
+    unit: "N",
+    startVal: 0,
+    endVal: 480,
+    accent: "primary" as const,
   },
   {
     title: "Debris Transfer",
     desc: "Robotic arm transfers captured fragments into the dump satellite's cargo bay. Each piece is cataloged in real-time.",
     icon: "📦",
+    metric: "Captured",
+    unit: "/ 12",
+    startVal: 0,
+    endVal: 12,
+    accent: "accent" as const,
   },
   {
     title: "Controlled Deorbit",
     desc: "Dump satellite fires retro-thrusters for targeted atmospheric re-entry over the South Pacific Ocean Uninhabited Area.",
     icon: "🔥",
+    metric: "Altitude",
+    unit: "km",
+    startVal: 420,
+    endVal: 78,
+    accent: "accent" as const,
   },
 ];
 
@@ -340,6 +360,28 @@ const DockDumpSection = () => {
           <div className="lg:col-span-3 glass-card p-1 overflow-hidden relative">
             <div className="w-full h-[420px] md:h-[480px] rounded-xl overflow-hidden">
               <DockingScene phase={phase} autoProgress={autoProgress} />
+            </div>
+
+            {/* Live HUD overlay */}
+            <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 pointer-events-none">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-background/70 backdrop-blur-sm border border-border/40">
+                <span className={`relative flex h-2 w-2`}>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPlaying ? "bg-primary" : "bg-muted-foreground"}`} />
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isPlaying ? "bg-primary" : "bg-muted-foreground"}`} />
+                </span>
+                <span className="text-[10px] font-display tracking-widest text-foreground/80 uppercase">
+                  {isPlaying ? "Live · Auto" : "Standby"}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1.5 items-end">
+                <div className="px-2.5 py-1 rounded-md bg-background/70 backdrop-blur-sm border border-border/40 text-[10px] font-display tracking-widest text-muted-foreground uppercase">
+                  {phases[phase].metric}
+                </div>
+                <div className={`px-2.5 py-1 rounded-md bg-background/80 backdrop-blur-sm border ${phases[phase].accent === "accent" ? "border-accent/40 text-accent" : "border-primary/40 text-primary"} text-sm font-mono tabular-nums`}>
+                  {Math.round(phases[phase].startVal + (phases[phase].endVal - phases[phase].startVal) * autoProgress)}
+                  <span className="text-[10px] text-muted-foreground ml-1">{phases[phase].unit}</span>
+                </div>
+              </div>
             </div>
 
             <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">

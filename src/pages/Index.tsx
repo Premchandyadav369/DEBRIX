@@ -32,7 +32,7 @@ const SpaceEventsSection = lazy(() => import("@/components/SpaceEventsSection"))
 const SkyMapSection = lazy(() => import("@/components/SkyMapSection"));
 const PlanetVisibilitySection = lazy(() => import("@/components/PlanetVisibilitySection"));
 const RocketEngineDatabaseSection = lazy(() => import("@/components/RocketEngineDatabaseSection"));
-const ReentryPredictionSection = lazy(() => import("@/components/ReentryPredictionSection"));
+const DictionarySection = lazy(() => import("@/components/DictionarySection"));
 const MissionAnalyzerSection = lazy(() => import("@/components/MissionAnalyzerSection"));
 const GallerySection = lazy(() => import("@/components/GallerySection"));
 const TeamSection = lazy(() => import("@/components/TeamSection"));
@@ -42,7 +42,7 @@ const SpaceChatSection = lazy(() => import("@/components/SpaceChatSection"));
 const UpcomingLaunchesSection = lazy(() => import("@/components/UpcomingLaunchesSection"));
 const NeoAsteroidsSection = lazy(() => import("@/components/NeoAsteroidsSection"));
 const FireballTrackerSection = lazy(() => import("@/components/FireballTrackerSection"));
-const EarthEventsSection = lazy(() => import("@/components/EarthEventsSection"));
+
 
 const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
 const AuroraForecastSection = lazy(() => import("@/components/AuroraForecastSection"));
@@ -120,10 +120,6 @@ const Index = () => {
         </RevealOnScroll>
       </ParallaxSection>
 
-      <SectionExplainer sectionId="reentry-prediction" />
-      <RevealOnScroll direction="left">
-        <Lazy><ReentryPredictionSection /></Lazy>
-      </RevealOnScroll>
 
       <SectionExplainer sectionId="kessler" />
       <Lazy><KesslerSection /></Lazy>
@@ -171,9 +167,9 @@ const Index = () => {
         <Lazy><FireballTrackerSection /></Lazy>
       </ParallaxSection>
 
-      <SectionExplainer sectionId="earth-events" />
+      <SectionExplainer sectionId="dictionary" />
       <RevealOnScroll direction="right">
-        <Lazy><EarthEventsSection /></Lazy>
+        <Lazy><DictionarySection /></Lazy>
       </RevealOnScroll>
 
       <SectionExplainer sectionId="sky-map" />

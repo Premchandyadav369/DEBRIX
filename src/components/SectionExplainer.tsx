@@ -28,7 +28,7 @@ const explainers: Record<string, ExplainerData> = {
   "debris-priority": { icon: Crosshair, emoji: "🎯", explain: "Not all space junk is equally dangerous. This ranks each piece by how likely it is to crash into something — the most dangerous gets cleaned up first." },
   "debris-growth": { icon: BarChart3, emoji: "📈", explain: "This chart shows how space junk has been growing over the years — and what happens if we don't clean it up. Spoiler: it's a LOT more junk!" },
   "orbital-decay": { icon: TrendingDown, emoji: "⬇️", explain: "Everything in low orbit slowly falls back to Earth because of tiny bits of air way up high. This predicts when an object will come back down." },
-  "reentry-prediction": { icon: ArrowDownCircle, emoji: "🔥", explain: "When something falls from space, we need to know WHERE and WHEN it'll land. This predictor figures that out so people stay safe." },
+  
   kessler: { icon: AlertTriangle, emoji: "💥", explain: "One crash creates hundreds of pieces, each piece crashes into more — a chain reaction! This scary scenario is called Kessler Syndrome. Watch it happen here." },
   "sat-dashboard": { icon: Radar, emoji: "📡", explain: "How many satellites are up there? Working vs. broken? This dashboard is like a scoreboard for everything orbiting Earth." },
   "satellite-explorer": { icon: Search, emoji: "🔍", explain: "Type any satellite name (like 'Hubble' or 'ISS') and instantly get its mission story, who built it, and when it launched. Plus see what's trending and which satellites are about to come dangerously close to each other!" },
@@ -39,7 +39,7 @@ const explainers: Record<string, ExplainerData> = {
   "upcoming-launches": { icon: Rocket, emoji: "⏱️", explain: "Rockets launch from all over the world every week! See the next launches with countdown timers so you know when to watch." },
   "neo-asteroids": { icon: Flame, emoji: "☄️", explain: "Asteroids are space rocks, and some fly close to Earth. NASA tracks every one. Don't worry — most are millions of km away!" },
   "fireball-tracker": { icon: Activity, emoji: "🌠", explain: "Sometimes space rocks hit Earth's atmosphere and create a BRIGHT flash called a fireball. This map shows where these cosmic explosions happened." },
-  "earth-events": { icon: CloudLightning, emoji: "🌋", explain: "Wildfires, eruptions, hurricanes — NASA watches these from space using satellites. See what's happening on our planet right now." },
+  dictionary: { icon: Search, emoji: "📖", explain: "Space talk is full of weird letters and big words — TLE, LEO, delta-v, RAAN. This is your plain-English cheat sheet so nothing on the site feels like alien language." },
   "space-news": { icon: Newspaper, emoji: "📰", explain: "The latest news from the space industry — new launches, discoveries, and missions. Stay updated on everything beyond our atmosphere!" },
   "sky-map": { icon: Map, emoji: "🌌", explain: "This star chart shows what stars, planets, and constellations are visible RIGHT NOW from your location. Like a GPS for the night sky." },
   "planet-visibility": { icon: Eye, emoji: "🪐", explain: "An orrery is a mini model of our solar system. See where all 8 planets are now, how far apart they are, and which ones you can spot tonight!" },
