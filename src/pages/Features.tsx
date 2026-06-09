@@ -22,6 +22,7 @@ const features = [
   // Simulations
   { icon: Rocket, title: "Launch Simulator", desc: "3D rocket launch simulation with real-time physics and staging events.", section: "launch-sim", category: "Simulation" },
   { icon: Gauge, title: "Telemetry Dashboard", desc: "Real-time telemetry readouts — velocity, altitude, fuel, and system status.", section: "telemetry", category: "Simulation" },
+  { icon: BookOpen, title: "Space Dictionary", desc: "Plain-English glossary — TLE, LEO, delta-v and 30+ more, explained like a human.", section: "dictionary", category: "Reference" },
   { icon: Orbit, title: "Dock & Dump Sim", desc: "Simulate orbital docking maneuvers and controlled debris deorbit burns.", section: "dock-dump", category: "Simulation" },
   { icon: Waypoints, title: "Swarm Coordination", desc: "Multi-agent swarm satellite coordination and formation flying simulator.", section: "swarm", category: "Simulation" },
   { icon: Shield, title: "AI Collision Avoidance", desc: "AI-powered conjunction assessment scanning the orbital environment.", section: "collision-avoidance", category: "Simulation" },
