@@ -31,7 +31,7 @@ const features = [
   { icon: Crosshair, title: "Debris Prioritization", desc: "Risk-ranked debris objects scored by collision probability and impact.", section: "debris-priority", category: "Debris" },
   { icon: BarChart3, title: "Debris Growth Chart", desc: "Historical and projected growth of tracked orbital debris objects.", section: "debris-growth", category: "Debris" },
   { icon: TrendingDown, title: "Orbital Decay Predictor", desc: "Physics-based decay simulation with atmospheric drag and solar activity models.", section: "orbital-decay", category: "Debris" },
-  { icon: ArrowDownCircle, title: "Re-Entry Prediction", desc: "Predict uncontrolled re-entry windows for decaying space objects.", section: "reentry-prediction", category: "Debris" },
+  
   { icon: AlertTriangle, title: "Kessler Syndrome Sim", desc: "3D interactive cascade collision simulator with real-time particle physics.", section: "kessler", category: "Debris" },
 
   // Live Data & Tracking
@@ -43,7 +43,7 @@ const features = [
   { icon: Rocket, title: "Upcoming Launches", desc: "Next scheduled rocket launches worldwide with countdown timers.", section: "upcoming-launches", category: "Live Data" },
   { icon: Flame, title: "NEO Asteroids", desc: "Near-Earth Objects from NASA's NeoWs API with hazard assessment.", section: "neo-asteroids", category: "Live Data" },
   { icon: Activity, title: "Fireball Tracker", desc: "JPL fireball and bolide events plotted with energy and location data.", section: "fireball-tracker", category: "Live Data" },
-  { icon: CloudLightning, title: "Earth Events (EONET)", desc: "NASA EONET natural events — wildfires, storms, volcanic activity.", section: "earth-events", category: "Live Data" },
+  
   { icon: Newspaper, title: "Space News", desc: "Latest spaceflight news articles from the Spaceflight News API.", section: "space-news", category: "Live Data" },
 
   // Astronomy & Sky
