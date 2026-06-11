@@ -596,6 +596,7 @@ const DockDumpSection = () => {
   const [p, setP] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [preset, setPreset] = useState<CameraPreset>("free");
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -628,6 +629,41 @@ const DockDumpSection = () => {
   const liveValue = current.startVal + (current.endVal - current.startVal) * p;
   const formatVal = (v: number) =>
     Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
+
+  // Docking metrics HUD — derived from mission state for a realistic instrument cluster.
+  const { chaserPos, debrisPos, armExtension, grip, holding } = useMemo(
+    () => deriveMissionState(phase, p),
+    [phase, p]
+  );
+  const range = Math.max(0, chaserPos.distanceTo(debrisPos) * 1000 - 250); // metres, sub-step distance
+  const closingRate =
+    phase === 1 ? THREE.MathUtils.lerp(2.4, 0.05, p) :
+    phase === 2 ? THREE.MathUtils.lerp(0.05, 0.01, p) :
+    phase >= 3 ? 0 : 4.8;
+  const lateralOffset =
+    phase === 1 ? THREE.MathUtils.lerp(1.8, 0.04, p) :
+    phase === 2 ? THREE.MathUtils.lerp(0.04, 0.005, p) :
+    phase >= 3 ? 0 : 6.2;
+  const attitudeErr =
+    phase === 1 ? THREE.MathUtils.lerp(8.5, 0.6, p) :
+    phase === 2 ? THREE.MathUtils.lerp(0.6, 0.1, p) :
+    phase >= 3 ? 0.05 : 14.0;
+  const gripForce = holding ? 42 + Math.sin(p * 8) * 3 : grip < 1 ? p * 18 : 0;
+  const armReach = armExtension * 1.2; // metres
+  const dockingMetrics = [
+    { label: "Range", value: range >= 1000 ? (range / 1000).toFixed(2) : range.toFixed(0), unit: range >= 1000 ? "km" : "m", tone: "primary" as const },
+    { label: "Closing", value: closingRate.toFixed(2), unit: "m/s", tone: closingRate < 0.1 ? "good" : closingRate > 1 ? "warn" : "primary" as const },
+    { label: "Lateral", value: lateralOffset.toFixed(2), unit: "m", tone: lateralOffset < 0.05 ? "good" : "primary" as const },
+    { label: "Attitude", value: attitudeErr.toFixed(2), unit: "°", tone: attitudeErr < 0.5 ? "good" : attitudeErr > 5 ? "warn" : "primary" as const },
+    { label: "Arm Reach", value: armReach.toFixed(2), unit: "m", tone: "primary" as const },
+    { label: "Grip Force", value: gripForce.toFixed(0), unit: "N", tone: gripForce > 0 ? "good" : "muted" as const },
+  ];
+  const toneClass = (t: string) =>
+    t === "good" ? "text-emerald-300 border-emerald-400/40" :
+    t === "warn" ? "text-amber-300 border-amber-400/40" :
+    t === "muted" ? "text-muted-foreground border-border/40" :
+    "text-primary border-primary/40";
+
 
   return (
     <section id="dock-dump" className="relative z-10">
