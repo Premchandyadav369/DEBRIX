@@ -1,480 +1,801 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Stars as DreiStars, Html } from "@react-three/drei";
 import * as THREE from "three";
-import { Play, Pause, RotateCcw, ChevronRight } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronRight, HelpCircle, X, SkipForward, SkipBack } from "lucide-react";
 
-function DebrixSat({ position, glow }: { position: THREE.Vector3; glow: boolean }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.position.lerp(position, 0.03);
-      ref.current.rotation.y = state.clock.elapsedTime * 0.2;
-    }
-  });
+/* ---------- Reusable detail bits ---------- */
+
+function SolarArray({ position, rotation = [0, 0, 0] as [number, number, number], width = 1.6, height = 0.9 }) {
+  // panel with cell grid
+  const cells = 8;
+  const rows = 4;
   return (
-    <group ref={ref} position={[-3, 0, 0]}>
+    <group position={position} rotation={rotation}>
       <mesh>
-        <boxGeometry args={[0.5, 0.25, 0.35]} />
-        <meshStandardMaterial color="#e0e0e0" emissive="#4fc3f7" emissiveIntensity={glow ? 0.5 : 0.1} metalness={0.9} roughness={0.15} />
+        <boxGeometry args={[width, 0.02, height]} />
+        <meshStandardMaterial color="#0b1a3a" metalness={0.4} roughness={0.3} />
       </mesh>
-      <mesh position={[0.55, 0, 0]}>
-        <boxGeometry args={[0.45, 0.02, 0.25]} />
-        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
+      {/* cell grid overlay */}
+      {Array.from({ length: cells }).map((_, i) =>
+        Array.from({ length: rows }).map((__, j) => {
+          const w = width / cells;
+          const h = height / rows;
+          return (
+            <mesh
+              key={`${i}-${j}`}
+              position={[-width / 2 + w * (i + 0.5), 0.012, -height / 2 + h * (j + 0.5)]}
+            >
+              <boxGeometry args={[w * 0.9, 0.002, h * 0.9]} />
+              <meshStandardMaterial
+                color="#1e3a8a"
+                emissive="#3b82f6"
+                emissiveIntensity={0.15}
+                metalness={0.85}
+                roughness={0.2}
+              />
+            </mesh>
+          );
+        })
+      )}
+      {/* frame edges */}
+      <mesh>
+        <boxGeometry args={[width + 0.04, 0.025, 0.03]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.3} />
       </mesh>
-      <mesh position={[-0.55, 0, 0]}>
-        <boxGeometry args={[0.45, 0.02, 0.25]} />
-        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
-      </mesh>
-      <mesh position={[0, -0.18, 0.2]} rotation={[0.4, 0, 0]}>
-        <cylinderGeometry args={[0.015, 0.02, 0.25, 6]} />
-        <meshStandardMaterial color="#bdbdbd" metalness={0.8} />
-      </mesh>
-      <mesh position={[0, -0.3, 0.32]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial color="#4fc3f7" emissive="#4fc3f7" emissiveIntensity={0.6} />
-      </mesh>
-      <pointLight color="#4fc3f7" intensity={glow ? 1 : 0.3} distance={2} />
     </group>
   );
 }
 
-function DumpSat({ position }: { position: THREE.Vector3 }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.position.lerp(position, 0.03);
-      ref.current.rotation.y = state.clock.elapsedTime * 0.15;
-    }
-  });
+function HighGainDish({ position }: { position: [number, number, number] }) {
   return (
-    <group ref={ref} position={[3, 0, 0]}>
+    <group position={position}>
+      <mesh rotation={[Math.PI / 2.4, 0, 0]}>
+        <sphereGeometry args={[0.18, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#e5e7eb" metalness={0.7} roughness={0.25} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh position={[0, 0.1, 0.06]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.18, 8]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.2, 0.06]}>
+        <sphereGeometry args={[0.025, 8, 8]} />
+        <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------- Articulated robotic arm (4-DOF) ---------- */
+
+function RoboticArm({ extension, grip, holding }: { extension: number; grip: number; holding: boolean }) {
+  // extension 0..1 — how reached out the arm is
+  const shoulder = useRef<THREE.Group>(null);
+  const elbow = useRef<THREE.Group>(null);
+  const wrist = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(-0.9, -0.2, extension);
+    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(-1.6, -0.3, extension);
+    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(0.6, -0.2, extension);
+  });
+
+  const segMat = <meshStandardMaterial color="#d1d5db" metalness={0.85} roughness={0.25} />;
+  const jointMat = <meshStandardMaterial color="#475569" metalness={0.9} roughness={0.2} />;
+
+  return (
+    <group position={[0.35, 0.05, 0]}>
+      {/* base mount */}
       <mesh>
-        <boxGeometry args={[0.7, 0.4, 0.5]} />
-        <meshStandardMaterial color="#c0c0c0" emissive="#81c784" emissiveIntensity={0.15} metalness={0.85} roughness={0.2} />
+        <cylinderGeometry args={[0.07, 0.09, 0.06, 16]} />
+        {jointMat}
       </mesh>
-      <mesh position={[0, 0.22, 0]} rotation={[-0.2, 0, 0]}>
-        <boxGeometry args={[0.65, 0.02, 0.45]} />
-        <meshStandardMaterial color="#a0a0a0" metalness={0.7} />
-      </mesh>
-      <mesh position={[0.65, 0, 0]}>
-        <boxGeometry args={[0.5, 0.015, 0.35]} />
-        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
-      </mesh>
-      <mesh position={[-0.65, 0, 0]}>
-        <boxGeometry args={[0.5, 0.015, 0.35]} />
-        <meshStandardMaterial color="#1565c0" metalness={0.8} roughness={0.15} />
-      </mesh>
-      {[-0.2, 0, 0.2].map((z, i) => (
-        <mesh key={i} position={[-0.36, -0.15, z]}>
-          <coneGeometry args={[0.03, 0.08, 6]} />
-          <meshStandardMaterial color="#9e9e9e" metalness={0.8} />
+      <group ref={shoulder} position={[0, 0.04, 0]}>
+        {/* shoulder joint */}
+        <mesh>
+          <sphereGeometry args={[0.06, 16, 16]} />
+          {jointMat}
         </mesh>
-      ))}
-      <pointLight color="#81c784" intensity={0.4} distance={2} />
+        {/* upper segment */}
+        <mesh position={[0.25, 0, 0]}>
+          <boxGeometry args={[0.5, 0.07, 0.07]} />
+          {segMat}
+        </mesh>
+        <group ref={elbow} position={[0.5, 0, 0]}>
+          <mesh>
+            <sphereGeometry args={[0.055, 16, 16]} />
+            {jointMat}
+          </mesh>
+          {/* fore segment */}
+          <mesh position={[0.22, 0, 0]}>
+            <boxGeometry args={[0.45, 0.06, 0.06]} />
+            {segMat}
+          </mesh>
+          <group ref={wrist} position={[0.44, 0, 0]}>
+            <mesh>
+              <sphereGeometry args={[0.045, 16, 16]} />
+              {jointMat}
+            </mesh>
+            {/* end effector */}
+            <group position={[0.12, 0, 0]}>
+              <mesh>
+                <cylinderGeometry args={[0.04, 0.05, 0.1, 12]} rotation={[0, 0, Math.PI / 2]} />
+                {jointMat}
+              </mesh>
+              {/* three claw fingers */}
+              {[0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].map((a, i) => (
+                <group key={i} rotation={[a, 0, 0]} position={[0.05, 0, 0]}>
+                  <mesh position={[0.04, 0.04 + (1 - grip) * 0.05, 0]} rotation={[0, 0, -0.4 - (1 - grip) * 0.5]}>
+                    <boxGeometry args={[0.12, 0.015, 0.025]} />
+                    <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.2} />
+                  </mesh>
+                </group>
+              ))}
+              {/* held debris piece */}
+              {holding && (
+                <mesh position={[0.16, 0, 0]} rotation={[0.4, 0.2, 0.1]}>
+                  <cylinderGeometry args={[0.05, 0.06, 0.16, 12]} />
+                  <meshStandardMaterial color="#78716c" metalness={0.6} roughness={0.55} />
+                </mesh>
+              )}
+            </group>
+          </group>
+        </group>
+      </group>
     </group>
   );
 }
 
-function DebrisCluster({ visible, dispersing, capturedCount }: { visible: boolean; dispersing: boolean; capturedCount: number }) {
-  const ref = useRef<THREE.Group>(null);
-  const totalPieces = 12;
-  const pieces = useRef(
-    Array.from({ length: totalPieces }, () => ({
-      pos: new THREE.Vector3((Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4),
-      vel: new THREE.Vector3((Math.random() - 0.5) * 0.02, Math.random() * 0.015, (Math.random() - 0.5) * 0.02),
-      size: 0.02 + Math.random() * 0.03,
-      rot: Math.random() * 6,
-      captured: false,
-      captureTarget: new THREE.Vector3(-0.9, 0, 0),
-    }))
-  ).current;
+/* ---------- Chaser (DEBRIX) — detailed bus ---------- */
 
-  useFrame((state) => {
+function Chaser({
+  position,
+  armExtension,
+  grip,
+  holding,
+  thruster,
+}: {
+  position: THREE.Vector3;
+  armExtension: number;
+  grip: number;
+  holding: boolean;
+  thruster: number; // 0..1
+}) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((s) => {
     if (!ref.current) return;
-    // Mark pieces as captured based on capturedCount
-    pieces.forEach((p, i) => {
-      if (i < capturedCount && !p.captured) {
-        p.captured = true;
-        p.captureTarget = new THREE.Vector3(-0.9 + (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15);
-      }
-    });
-
-    ref.current.children.forEach((child, i) => {
-      const p = pieces[i];
-      if (p.captured) {
-        // Shrink and move toward the Debrix satellite
-        p.pos.lerp(p.captureTarget, 0.04);
-        const scale = Math.max(0, 1 - (capturedCount - i) * 0.3);
-        child.scale.setScalar(scale);
-      } else if (dispersing) {
-        p.pos.add(p.vel);
-      }
-      child.position.copy(p.pos);
-      child.rotation.x = p.rot + state.clock.elapsedTime * 0.5;
-      child.rotation.z = p.rot + state.clock.elapsedTime * 0.3;
-    });
+    ref.current.position.lerp(position, 0.04);
+    ref.current.rotation.y = Math.sin(s.clock.elapsedTime * 0.15) * 0.1;
   });
+  return (
+    <group ref={ref}>
+      {/* main bus */}
+      <mesh castShadow>
+        <boxGeometry args={[0.7, 0.5, 0.55]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.8} roughness={0.35} />
+      </mesh>
+      {/* multi-layer insulation strips (gold foil look) */}
+      {[-0.18, -0.06, 0.06, 0.18].map((y) => (
+        <mesh key={y} position={[0, y, 0.276]}>
+          <boxGeometry args={[0.62, 0.08, 0.005]} />
+          <meshStandardMaterial color="#b08a3a" metalness={0.95} roughness={0.3} emissive="#5a3f10" emissiveIntensity={0.1} />
+        </mesh>
+      ))}
+      {/* panel rivets */}
+      {[-0.25, 0.25].map((x) =>
+        [-0.2, 0, 0.2].map((y) => (
+          <mesh key={`${x}-${y}`} position={[x, y, 0.278]}>
+            <cylinderGeometry args={[0.012, 0.012, 0.005, 8]} rotation={[Math.PI / 2, 0, 0]} />
+            <meshStandardMaterial color="#6b7280" metalness={0.95} />
+          </mesh>
+        ))
+      )}
+      {/* star tracker / optics */}
+      <mesh position={[-0.2, 0.28, 0]}>
+        <cylinderGeometry args={[0.06, 0.07, 0.12, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.2} />
+      </mesh>
+      <mesh position={[-0.2, 0.34, 0]}>
+        <cylinderGeometry args={[0.055, 0.055, 0.01, 16]} />
+        <meshStandardMaterial color="#0ea5e9" emissive="#0ea5e9" emissiveIntensity={0.6} />
+      </mesh>
+      {/* antenna */}
+      <HighGainDish position={[0.15, 0.28, 0]} />
+      {/* solar arrays on booms */}
+      <mesh position={[-0.55, 0, 0]}>
+        <boxGeometry args={[0.4, 0.02, 0.02]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} />
+      </mesh>
+      <SolarArray position={[-1.5, 0, 0]} />
+      <mesh position={[0.55, 0, 0]}>
+        <boxGeometry args={[0.4, 0.02, 0.02]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} />
+      </mesh>
+      <SolarArray position={[1.5, 0, 0]} />
+      {/* RCS thruster nozzles */}
+      {[[-0.35, 0, 0.28], [0.35, 0, 0.28], [0, 0.25, 0.28], [0, -0.25, 0.28]].map((p, i) => (
+        <mesh key={i} position={p as [number, number, number]} rotation={[Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.025, 0.05, 8, 1, true]} />
+          <meshStandardMaterial color="#1f2937" side={THREE.DoubleSide} metalness={0.7} />
+        </mesh>
+      ))}
+      {/* main aft engine */}
+      <mesh position={[0, 0, -0.32]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.09, 0.18, 16, 1, true]} />
+        <meshStandardMaterial color="#374151" side={THREE.DoubleSide} metalness={0.85} roughness={0.4} />
+      </mesh>
+      {/* engine flame */}
+      {thruster > 0 && (
+        <group position={[0, 0, -0.5]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.08 * thruster, 0.55 * thruster, 16]} />
+            <meshStandardMaterial color="#93c5fd" emissive="#3b82f6" emissiveIntensity={3} transparent opacity={0.85} />
+          </mesh>
+          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.15]}>
+            <coneGeometry args={[0.05 * thruster, 0.8 * thruster, 16]} />
+            <meshStandardMaterial color="#fef3c7" emissive="#f59e0b" emissiveIntensity={4} transparent opacity={0.6} />
+          </mesh>
+          <pointLight color="#60a5fa" intensity={2 * thruster} distance={4} />
+        </group>
+      )}
+      {/* status beacon */}
+      <mesh position={[0, 0.26, 0.2]}>
+        <sphereGeometry args={[0.025, 12, 12]} />
+        <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={1.2} />
+      </mesh>
+      {/* robotic arm on front face */}
+      <RoboticArm extension={armExtension} grip={grip} holding={holding} />
+    </group>
+  );
+}
 
+/* ---------- Tumbling debris (rocket upper stage) ---------- */
+
+function Debris({ position, captured }: { position: THREE.Vector3; captured: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((s, dt) => {
+    if (!ref.current) return;
+    if (!captured) {
+      ref.current.position.lerp(position, 0.05);
+      ref.current.rotation.x += dt * 0.4;
+      ref.current.rotation.y += dt * 0.25;
+      ref.current.rotation.z += dt * 0.15;
+    } else {
+      // hidden — being held by arm
+      ref.current.scale.setScalar(THREE.MathUtils.lerp(ref.current.scale.x, 0, 0.2));
+    }
+  });
+  return (
+    <group ref={ref}>
+      <mesh>
+        <cylinderGeometry args={[0.18, 0.22, 0.9, 16]} />
+        <meshStandardMaterial color="#9a8a78" metalness={0.6} roughness={0.7} />
+      </mesh>
+      {/* dark scorched ring */}
+      <mesh position={[0, 0.3, 0]}>
+        <cylinderGeometry args={[0.181, 0.181, 0.05, 16]} />
+        <meshStandardMaterial color="#3f3a2e" metalness={0.5} roughness={0.9} />
+      </mesh>
+      {/* broken nozzle */}
+      <mesh position={[0, -0.55, 0]} rotation={[0.3, 0, 0.1]}>
+        <coneGeometry args={[0.18, 0.25, 16, 1, true]} />
+        <meshStandardMaterial color="#5b5346" side={THREE.DoubleSide} metalness={0.7} roughness={0.6} />
+      </mesh>
+      {/* small protruding antenna stub */}
+      <mesh position={[0.15, 0.4, 0]} rotation={[0, 0, 0.6]}>
+        <cylinderGeometry args={[0.01, 0.01, 0.3, 6]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------- Detection HUD ring around debris ---------- */
+
+function LockOnRing({ active, position }: { active: boolean; position: [number, number, number] }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((s) => {
+    if (!ref.current) return;
+    ref.current.rotation.z = s.clock.elapsedTime * 1.2;
+    const pulse = 0.9 + Math.sin(s.clock.elapsedTime * 4) * 0.1;
+    ref.current.scale.setScalar(pulse);
+  });
+  if (!active) return null;
+  return (
+    <group ref={ref} position={position}>
+      <mesh>
+        <torusGeometry args={[0.5, 0.008, 8, 48]} />
+        <meshBasicMaterial color="#22d3ee" />
+      </mesh>
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((a, i) => (
+        <mesh key={i} rotation={[0, 0, a]} position={[Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0]}>
+          <boxGeometry args={[0.12, 0.012, 0.012]} />
+          <meshBasicMaterial color="#22d3ee" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/* ---------- Earth ---------- */
+
+function Earth({ visible }: { visible: boolean }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((_, dt) => {
+    if (ref.current) ref.current.rotation.y += dt * 0.04;
+  });
   if (!visible) return null;
-
   return (
-    <group ref={ref} position={[0, 0.3, 0]}>
-      {pieces.map((p, i) => (
-        <mesh key={i} position={p.pos}>
-          <dodecahedronGeometry args={[p.size, 0]} />
-          <meshStandardMaterial color="#bdbdbd" metalness={0.6} roughness={0.4} />
-        </mesh>
-      ))}
+    <group position={[0, -5.5, -3]}>
+      <mesh ref={ref}>
+        <sphereGeometry args={[3.5, 64, 64]} />
+        <meshStandardMaterial color="#1d4ed8" roughness={0.85} metalness={0.05} />
+      </mesh>
+      {/* land patches */}
+      <mesh rotation={[0, 0.6, 0]}>
+        <sphereGeometry args={[3.51, 32, 32]} />
+        <meshStandardMaterial color="#15803d" transparent opacity={0.35} />
+      </mesh>
+      {/* atmosphere */}
+      <mesh>
+        <sphereGeometry args={[3.75, 64, 64]} />
+        <meshBasicMaterial color="#60a5fa" transparent opacity={0.1} side={THREE.BackSide} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[3.95, 64, 64]} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.05} side={THREE.BackSide} />
+      </mesh>
     </group>
   );
 }
 
-function DockingBeam({ active }: { active: boolean }) {
-  const ref = useRef<THREE.Mesh>(null);
+/* ---------- Re-entry plasma trail ---------- */
 
-  useFrame((state) => {
-    if (ref.current && active) {
-      const mat = ref.current.material as THREE.MeshStandardMaterial;
-      mat.opacity = 0.25 + Math.sin(state.clock.elapsedTime * 6) * 0.15;
-    }
-  });
-
+function ReentryTrail({ active, position }: { active: boolean; position: [number, number, number] }) {
   if (!active) return null;
-
   return (
-    <group>
-      <mesh ref={ref} position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.025, 0.025, 1.8, 8]} />
-        <meshStandardMaterial color="#4fc3f7" transparent opacity={0.3} emissive="#4fc3f7" emissiveIntensity={2} />
+    <group position={position}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 1.2, 0]}>
+        <coneGeometry args={[0.3, 2.5, 16]} />
+        <meshBasicMaterial color="#fb923c" transparent opacity={0.55} />
       </mesh>
-      {[0.3, 0, -0.3].map((x, i) => (
-        <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <torusGeometry args={[0.06, 0.008, 8, 16]} />
-          <meshStandardMaterial color="#4fc3f7" transparent opacity={0.4} emissive="#4fc3f7" emissiveIntensity={1.5} />
-        </mesh>
-      ))}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 1.8, 0]}>
+        <coneGeometry args={[0.18, 3.2, 16]} />
+        <meshBasicMaterial color="#fde68a" transparent opacity={0.6} />
+      </mesh>
+      <pointLight color="#fb923c" intensity={3} distance={6} />
     </group>
   );
 }
 
-function ThrusterFlame({ active, position }: { active: boolean; position: [number, number, number] }) {
-  const ref = useRef<THREE.Mesh>(null);
+/* ---------- Scene orchestration ---------- */
 
-  useFrame((state) => {
-    if (ref.current && active) {
-      const scale = 0.8 + Math.sin(state.clock.elapsedTime * 15) * 0.3;
-      ref.current.scale.set(scale, 1 + Math.random() * 0.5, scale);
+function Scene({ phase, p }: { phase: number; p: number }) {
+  // p = 0..1 progress within phase
+  // Phase mapping:
+  // 0: Detection (chaser far, ring on debris)
+  // 1: Approach & Lock-On
+  // 2: Capture (arm extends, grabs)
+  // 3: Stow & Secure (arm retracts with debris)
+  // 4: Deorbit Burn (thruster, dive toward earth)
+  // 5: Atmospheric Re-entry
+
+  const chaserPos = useMemo(() => {
+    const px =
+      phase === 0 ? -3 :
+      phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
+      phase === 2 ? -1.3 :
+      phase === 3 ? -1.3 :
+      phase === 4 ? THREE.MathUtils.lerp(-1.3, -0.5, p) :
+      THREE.MathUtils.lerp(-0.5, 0.5, p);
+    const py =
+      phase >= 4 ? -p * 1.5 - (phase === 5 ? 1 : 0) : 0;
+    return new THREE.Vector3(px, py, 0);
+  }, [phase, p]);
+
+  const debrisPos = useMemo(() => {
+    if (phase >= 3) {
+      // attached/captured — move with chaser
+      return new THREE.Vector3(chaserPos.x + 0.95, chaserPos.y + 0.05, 0);
     }
-  });
+    return new THREE.Vector3(0.6, 0.05, 0);
+  }, [phase, chaserPos]);
 
-  if (!active) return null;
+  const armExtension =
+    phase < 2 ? 0 :
+    phase === 2 ? p :
+    phase === 3 ? 1 - p * 0.7 :
+    0.3;
 
-  return (
-    <mesh ref={ref} position={position}>
-      <coneGeometry args={[0.06, 0.35, 8]} />
-      <meshStandardMaterial color="#ffab40" transparent opacity={0.8} emissive="#ff6d00" emissiveIntensity={3} />
-    </mesh>
-  );
-}
+  const grip = phase >= 2 && (phase > 2 || p > 0.7) ? 0 : 1;
+  const holding = (phase === 2 && p > 0.85) || phase === 3 || phase === 4 || phase === 5;
 
-function EarthSmall() {
-  return (
-    <group position={[0, -4, -2]}>
-      {/* Ocean */}
-      <mesh>
-        <sphereGeometry args={[2.5, 32, 32]} />
-        <meshStandardMaterial color="#1a6b9c" metalness={0.1} roughness={0.7} />
-      </mesh>
-      {/* Continents */}
-      <mesh rotation={[0.2, 1.5, 0]}>
-        <sphereGeometry args={[2.51, 32, 32]} />
-        <meshStandardMaterial color="#2d7a3a" transparent opacity={0.35} />
-      </mesh>
-      {/* Clouds */}
-      <mesh>
-        <sphereGeometry args={[2.54, 24, 24]} />
-        <meshStandardMaterial color="#ffffff" transparent opacity={0.1} />
-      </mesh>
-      {/* Atmosphere */}
-      <mesh>
-        <sphereGeometry args={[2.65, 32, 32]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.08} side={THREE.BackSide} />
-      </mesh>
-    </group>
-  );
-}
-
-function Stars() {
-  const positions = useRef(
-    (() => {
-      const arr = new Float32Array(300 * 3);
-      for (let i = 0; i < 300; i++) {
-        arr[i * 3] = (Math.random() - 0.5) * 30;
-        arr[i * 3 + 1] = (Math.random() - 0.5) * 30;
-        arr[i * 3 + 2] = (Math.random() - 0.5) * 30;
-      }
-      return arr;
-    })()
-  ).current;
+  const thruster = phase === 4 ? 1 : phase === 5 ? 0.4 : 0;
 
   return (
-    <points>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial size={0.04} color="#ffffff" transparent opacity={0.6} sizeAttenuation />
-    </points>
-  );
-}
+    <Canvas shadows camera={{ position: [0, 1.5, 5.5], fov: 38 }} dpr={[1, 2]}>
+      <color attach="background" args={["#04070f"]} />
+      <fog attach="fog" args={["#04070f", 12, 22]} />
 
-function DockingScene({ phase, autoProgress }: { phase: number; autoProgress: number }) {
-  const debrixTarget = new THREE.Vector3(
-    phase === 0 ? -2.5 : phase === 1 ? -0.9 : -0.9,
-    0, 0
-  );
-  const dumpTarget = new THREE.Vector3(
-    phase === 0 ? 2.5 : phase === 1 ? 0.9 : 0.9,
-    phase === 3 ? -1 - autoProgress * 2 : 0,
-    0
-  );
+      <ambientLight intensity={0.18} />
+      <directionalLight position={[6, 4, 5]} intensity={1.4} color="#ffffff" castShadow />
+      <directionalLight position={[-5, -2, -3]} intensity={0.25} color="#1e3a8a" />
+      <hemisphereLight args={["#93c5fd", "#020617", 0.2]} />
 
-  // Calculate how many debris have been captured during phase 2
-  const capturedCount = phase > 2 ? 12 : phase === 2 ? Math.floor(autoProgress * 12) : 0;
+      <DreiStars radius={60} depth={40} count={3500} factor={3} fade speed={0.3} />
 
-  return (
-    <Canvas camera={{ position: [0, 2, 5.5], fov: 40 }}>
-      <color attach="background" args={["#0a1628"]} />
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[5, 3, 5]} intensity={1.2} color="#ffffff" />
-      <directionalLight position={[-3, -1, -3]} intensity={0.2} color="#ffcc80" />
-      <hemisphereLight args={["#b3e5fc", "#1a237e", 0.15]} />
+      <Chaser
+        position={chaserPos}
+        armExtension={armExtension}
+        grip={grip}
+        holding={holding}
+        thruster={thruster}
+      />
+      {!holding && <Debris position={debrisPos} captured={false} />}
+      <LockOnRing active={phase === 0 || phase === 1} position={[0.6, 0.05, 0]} />
 
-      <DebrixSat position={debrixTarget} glow={phase === 1 || phase === 2} />
-      <DumpSat position={dumpTarget} />
-      <DebrisCluster visible={phase <= 2} dispersing={false} capturedCount={capturedCount} />
-      <DockingBeam active={phase === 1 || phase === 2} />
-      <ThrusterFlame active={phase === 3} position={[0.9, -1.5 - autoProgress * 2, 0]} />
+      <Earth visible={phase >= 4} />
+      <ReentryTrail active={phase === 5} position={[chaserPos.x, chaserPos.y, 0]} />
 
-      {phase === 3 && <EarthSmall />}
-      <Stars />
-
-      <OrbitControls enableZoom enablePan={false} autoRotate={phase === 0} autoRotateSpeed={0.3} maxDistance={10} minDistance={3} />
+      <OrbitControls
+        enableZoom
+        enablePan={false}
+        autoRotate={phase === 0}
+        autoRotateSpeed={0.4}
+        maxDistance={9}
+        minDistance={3}
+      />
     </Canvas>
   );
 }
 
+/* ---------- Phase definitions ---------- */
+
 const phases = [
   {
-    title: "Approach & Lock-On",
-    desc: "Debrix identifies the target debris cluster via LiDAR and initiates closing maneuver at 0.5 m/s relative velocity.",
-    icon: "🎯",
+    title: "Detection",
+    short: "Step 1 · Detect",
+    desc: "Onboard YOLOv8 vision stack identifies and classifies the target rocket body. Range and attitude logged.",
     metric: "Range",
+    unit: "km",
+    startVal: 14.2,
+    endVal: 6.4,
+    tip: "The chaser uses onboard cameras — no Earth uplink needed.",
+  },
+  {
+    title: "Approach & Lock-On",
+    short: "Step 2 · Approach",
+    desc: "UKF + SGP4 propagator guides closing maneuver. MPC controller holds sub-meter alignment under collision-avoidance constraints.",
+    metric: "Closing",
+    unit: "m/s",
+    startVal: 2.4,
+    endVal: 0.05,
+    tip: "Closing rate is slowed to centimeters per second before contact.",
+  },
+  {
+    title: "Capture",
+    short: "Step 3 · Capture",
+    desc: "4-DOF manipulator extends and performs soft-capture using impedance control. Claw closes around the debris attachment ring.",
+    metric: "Reach",
     unit: "m",
-    startVal: 2500,
-    endVal: 12,
-    accent: "primary" as const,
-  },
-  {
-    title: "Magnetic Docking",
-    desc: "Electromagnetic docking clamps engage. Both satellites establish a rigid connection with sub-millimeter alignment.",
-    icon: "🔗",
-    metric: "Lock Force",
-    unit: "N",
     startVal: 0,
-    endVal: 480,
-    accent: "primary" as const,
+    endVal: 1.2,
+    tip: "Impedance control keeps the arm compliant so it doesn’t push the debris away.",
   },
   {
-    title: "Debris Transfer",
-    desc: "Robotic arm transfers captured fragments into the dump satellite's cargo bay. Each piece is cataloged in real-time.",
-    icon: "📦",
-    metric: "Captured",
-    unit: "/ 12",
+    title: "Stow & Secure",
+    short: "Step 4 · Stow",
+    desc: "Arm retracts and berths the debris into the payload bay. Mass properties are re-estimated for the combined stack.",
+    metric: "Stow",
+    unit: "%",
     startVal: 0,
-    endVal: 12,
-    accent: "accent" as const,
+    endVal: 100,
+    tip: "After stowing, the chaser recalculates its center of mass before any burn.",
   },
   {
-    title: "Controlled Deorbit",
-    desc: "Dump satellite fires retro-thrusters for targeted atmospheric re-entry over the South Pacific Ocean Uninhabited Area.",
-    icon: "🔥",
+    title: "Deorbit Burn",
+    short: "Step 5 · Burn",
+    desc: "Main engine fires retrograde. ΔV is computed for re-entry over the South Pacific Ocean Uninhabited Area (SPOUA).",
+    metric: "ΔV",
+    unit: "m/s",
+    startVal: 0,
+    endVal: 160,
+    tip: "A small retrograde burn is enough to drop the perigee into the atmosphere.",
+  },
+  {
+    title: "Atmospheric Re-entry",
+    short: "Step 6 · Re-entry",
+    desc: "Combined stack enters the upper atmosphere. Friction heating disintegrates both chaser and debris over the target ocean zone.",
     metric: "Altitude",
     unit: "km",
-    startVal: 420,
-    endVal: 78,
-    accent: "accent" as const,
+    startVal: 120,
+    endVal: 0,
+    tip: "Everything burns up — nothing reaches the ground inhabited areas.",
   },
 ];
+
+const PHASE_COUNT = phases.length;
 
 const DockDumpSection = () => {
   const [phase, setPhase] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [autoProgress, setAutoProgress] = useState(0);
+  const [p, setP] = useState(0);
+  const [showHelp, setShowHelp] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
   useEffect(() => {
     if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setAutoProgress((p) => {
-        if (p >= 1) {
+    const id = setInterval(() => {
+      setP((cur) => {
+        if (cur >= 1) {
           setPhase((prev) => {
-            if (prev >= 3) {
+            if (prev >= PHASE_COUNT - 1) {
               setIsPlaying(false);
-              return 3;
+              return prev;
             }
             return prev + 1;
           });
           return 0;
         }
-        return p + 0.02;
+        return Math.min(1, cur + 0.012 * speed);
       });
     }, 50);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+    return () => clearInterval(id);
+  }, [isPlaying, speed]);
 
-  const handlePhaseClick = (i: number) => {
-    setPhase(i);
-    setAutoProgress(0);
+  const goTo = (i: number) => {
+    setPhase(Math.max(0, Math.min(PHASE_COUNT - 1, i)));
+    setP(0);
     setIsPlaying(false);
   };
+  const reset = () => goTo(0);
 
-  const reset = () => {
-    setPhase(0);
-    setAutoProgress(0);
-    setIsPlaying(false);
-  };
+  const current = phases[phase];
+  const liveValue = current.startVal + (current.endVal - current.startVal) * p;
+  const formatVal = (v: number) =>
+    Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
 
   return (
     <section id="dock-dump" className="relative z-10">
       <div className="section-container">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-10"
+        >
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Simulation</p>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Dock & Dump Mechanism</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Watch the full docking sequence — approach, magnetic lock, debris transfer, and controlled deorbit burn.
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-3">Dock &amp; Dump — Mission Replay</h2>
+          <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+            A realistic six-step walkthrough of an autonomous debris removal mission: from first detection to atmospheric burn-up.
+            Drag to orbit the scene, scroll to zoom, and use the timeline to scrub any phase.
           </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-5 gap-6">
+          {/* 3D Viewport */}
           <div className="lg:col-span-3 glass-card p-1 overflow-hidden relative">
-            <div className="w-full h-[420px] md:h-[480px] rounded-xl overflow-hidden">
-              <DockingScene phase={phase} autoProgress={autoProgress} />
-            </div>
+            <div className="w-full h-[460px] md:h-[540px] rounded-xl overflow-hidden relative bg-[#04070f]">
+              <Scene phase={phase} p={p} />
 
-            {/* Live HUD overlay */}
-            <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 pointer-events-none">
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-background/70 backdrop-blur-sm border border-border/40">
-                <span className={`relative flex h-2 w-2`}>
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPlaying ? "bg-primary" : "bg-muted-foreground"}`} />
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isPlaying ? "bg-primary" : "bg-muted-foreground"}`} />
-                </span>
-                <span className="text-[10px] font-display tracking-widest text-foreground/80 uppercase">
-                  {isPlaying ? "Live · Auto" : "Standby"}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5 items-end">
-                <div className="px-2.5 py-1 rounded-md bg-background/70 backdrop-blur-sm border border-border/40 text-[10px] font-display tracking-widest text-muted-foreground uppercase">
-                  {phases[phase].metric}
-                </div>
-                <div className={`px-2.5 py-1 rounded-md bg-background/80 backdrop-blur-sm border ${phases[phase].accent === "accent" ? "border-accent/40 text-accent" : "border-primary/40 text-primary"} text-sm font-mono tabular-nums`}>
-                  {Math.round(phases[phase].startVal + (phases[phase].endVal - phases[phase].startVal) * autoProgress)}
-                  <span className="text-[10px] text-muted-foreground ml-1">{phases[phase].unit}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                aria-label={isPlaying ? "Pause docking simulation" : "Play docking simulation"}
-                className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors"
-              >
-                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={reset}
-                aria-label="Reset docking simulation"
-                className="w-8 h-8 rounded-lg bg-secondary/50 text-muted-foreground flex items-center justify-center hover:text-foreground transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-
-              <div className="flex-1 flex items-center gap-1">
-                {phases.map((_, i) => (
-                  <div key={i} className="flex-1 h-1.5 rounded-full bg-secondary/50 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-200"
-                      style={{
-                        width: phase > i ? "100%" : phase === i ? `${autoProgress * 100}%` : "0%",
-                        backgroundColor: phase >= i && (phase > i || autoProgress > 0) ? "hsl(var(--primary))" : "transparent",
-                      }}
-                    />
+              {/* Top HUD */}
+              <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 pointer-events-none">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-background/70 backdrop-blur-md border border-border/40 pointer-events-auto">
+                    <span className="relative flex h-2 w-2">
+                      <span
+                        className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                          isPlaying ? "bg-primary" : "bg-muted-foreground"
+                        }`}
+                      />
+                      <span
+                        className={`relative inline-flex rounded-full h-2 w-2 ${
+                          isPlaying ? "bg-primary" : "bg-muted-foreground"
+                        }`}
+                      />
+                    </span>
+                    <span className="text-[10px] font-display tracking-widest uppercase text-foreground/80">
+                      {isPlaying ? `Live · ${speed}x` : "Standby"}
+                    </span>
                   </div>
-                ))}
+                  <div className="px-2.5 py-1 rounded-md bg-background/70 backdrop-blur-md border border-primary/30 text-[10px] font-display tracking-widest uppercase text-primary">
+                    {current.short}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 items-end">
+                  <button
+                    onClick={() => setShowHelp((v) => !v)}
+                    aria-label="Toggle help overlay"
+                    className="pointer-events-auto w-8 h-8 rounded-md bg-background/70 backdrop-blur-md border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                  >
+                    {showHelp ? <X className="w-3.5 h-3.5" /> : <HelpCircle className="w-3.5 h-3.5" />}
+                  </button>
+                  <div className="px-2.5 py-1 rounded-md bg-background/70 backdrop-blur-md border border-border/40 text-[10px] font-display tracking-widest uppercase text-muted-foreground">
+                    {current.metric}
+                  </div>
+                  <div className="px-3 py-1.5 rounded-md bg-background/85 backdrop-blur-md border border-primary/40 text-primary text-base font-mono tabular-nums">
+                    {formatVal(liveValue)}
+                    <span className="text-[10px] text-muted-foreground ml-1">{current.unit}</span>
+                  </div>
+                </div>
               </div>
 
-              <span className="text-[10px] font-display text-muted-foreground min-w-[60px] text-right">
-                Phase {phase + 1}/4
-              </span>
+              {/* Help overlay */}
+              <AnimatePresence>
+                {showHelp && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-background/85 backdrop-blur-sm p-5 md:p-8 flex flex-col"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-display text-sm tracking-widest uppercase text-primary">How to use this simulation</h3>
+                      <button
+                        onClick={() => setShowHelp(false)}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="Close help"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3 text-xs text-muted-foreground leading-relaxed">
+                      <div className="p-3 rounded-md border border-border/40 bg-card/40">
+                        <p className="text-foreground font-display tracking-wider text-[11px] uppercase mb-1">Camera</p>
+                        Drag to orbit · scroll to zoom · phase 1 auto-rotates.
+                      </div>
+                      <div className="p-3 rounded-md border border-border/40 bg-card/40">
+                        <p className="text-foreground font-display tracking-wider text-[11px] uppercase mb-1">Playback</p>
+                        Play/pause, step ±, reset, or change speed (1×/2×/4×).
+                      </div>
+                      <div className="p-3 rounded-md border border-border/40 bg-card/40">
+                        <p className="text-foreground font-display tracking-wider text-[11px] uppercase mb-1">Timeline</p>
+                        Click any segment to jump to that mission phase.
+                      </div>
+                      <div className="p-3 rounded-md border border-border/40 bg-card/40">
+                        <p className="text-foreground font-display tracking-wider text-[11px] uppercase mb-1">Telemetry</p>
+                        Top-right value reflects the current phase metric in real time.
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 rounded-md border border-primary/30 bg-primary/5 text-xs text-foreground">
+                      <span className="font-display tracking-wider text-[11px] uppercase text-primary mr-2">In plain English:</span>
+                      {current.tip}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Bottom controls */}
+              <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/85 backdrop-blur-md border border-border/40">
+                <button
+                  onClick={() => goTo(phase - 1)}
+                  disabled={phase === 0}
+                  aria-label="Previous step"
+                  className="w-8 h-8 rounded-md bg-secondary/50 text-muted-foreground flex items-center justify-center hover:text-foreground disabled:opacity-30 transition-colors"
+                >
+                  <SkipBack className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setIsPlaying((v) => !v)}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                  className="w-9 h-9 rounded-md bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => goTo(phase + 1)}
+                  disabled={phase === PHASE_COUNT - 1}
+                  aria-label="Next step"
+                  className="w-8 h-8 rounded-md bg-secondary/50 text-muted-foreground flex items-center justify-center hover:text-foreground disabled:opacity-30 transition-colors"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={reset}
+                  aria-label="Reset"
+                  className="w-8 h-8 rounded-md bg-secondary/50 text-muted-foreground flex items-center justify-center hover:text-foreground transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="flex-1 flex items-center gap-1 px-1">
+                  {phases.map((ph, i) => (
+                    <button
+                      key={i}
+                      onClick={() => goTo(i)}
+                      aria-label={`Jump to ${ph.title}`}
+                      className="flex-1 group"
+                    >
+                      <div className="h-1.5 rounded-full bg-secondary/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-200"
+                          style={{
+                            width: phase > i ? "100%" : phase === i ? `${p * 100}%` : "0%",
+                            backgroundColor:
+                              phase >= i ? "hsl(var(--primary))" : "transparent",
+                          }}
+                        />
+                      </div>
+                      <div className={`text-[9px] mt-1 font-display tracking-wider uppercase truncate text-center ${
+                        phase === i ? "text-primary" : "text-muted-foreground/70 group-hover:text-foreground"
+                      }`}>
+                        {i + 1}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-0.5 ml-1 p-0.5 rounded-md bg-secondary/40 border border-border/40">
+                  {[1, 2, 4].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSpeed(s)}
+                      className={`px-1.5 py-0.5 text-[10px] font-display rounded ${
+                        speed === s ? "bg-primary/30 text-primary" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      aria-label={`Playback speed ${s}x`}
+                    >
+                      {s}×
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-3">
-            <AnimatePresence mode="wait">
-              {phases.map((p, i) => (
-                <motion.button
-                  key={i}
-                  onClick={() => handlePhaseClick(i)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all duration-300 ${
-                    phase === i
-                      ? "bg-primary/10 border-primary/40 shadow-[0_0_25px_hsl(var(--primary)/0.1)]"
-                      : i < phase
-                      ? "bg-accent/5 border-accent/20 opacity-60"
-                      : "bg-card/40 border-border/50 hover:border-primary/20"
-                  }`}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                >
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm ${
-                      phase === i ? "bg-primary text-primary-foreground" : i < phase ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"
-                    }`}>
-                      {p.icon}
-                    </span>
-                    <div className="flex-1">
-                      <span className={`font-display text-sm tracking-wider block ${phase === i ? "text-primary" : "text-foreground"}`}>
-                        {p.title}
+          {/* Step list */}
+          <div className="lg:col-span-2 space-y-2">
+            {phases.map((ph, i) => (
+              <motion.button
+                key={i}
+                onClick={() => goTo(i)}
+                whileHover={{ x: 2 }}
+                className={`w-full text-left p-3.5 rounded-lg border transition-all duration-300 ${
+                  phase === i
+                    ? "bg-primary/10 border-primary/40 shadow-[0_0_25px_hsl(var(--primary)/0.08)]"
+                    : i < phase
+                    ? "bg-accent/5 border-accent/20"
+                    : "bg-card/40 border-border/50 hover:border-primary/20"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`w-7 h-7 flex-shrink-0 rounded-md flex items-center justify-center text-[11px] font-display font-bold ${
+                      phase === i
+                        ? "bg-primary text-primary-foreground"
+                        : i < phase
+                        ? "bg-accent/30 text-accent"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span
+                        className={`font-display text-sm tracking-wide ${
+                          phase === i ? "text-primary" : "text-foreground"
+                        }`}
+                      >
+                        {ph.title}
                       </span>
-                      {phase === i && (
-                        <div className="w-full h-0.5 bg-secondary/50 rounded mt-1.5 overflow-hidden">
-                          <div className="h-full bg-primary rounded transition-all" style={{ width: `${autoProgress * 100}%` }} />
-                        </div>
-                      )}
+                      {phase === i && <ChevronRight className="w-4 h-4 text-primary animate-pulse flex-shrink-0" />}
                     </div>
-                    {phase === i && <ChevronRight className="w-4 h-4 text-primary animate-pulse" />}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{ph.desc}</p>
+                    {phase === i && (
+                      <div className="w-full h-0.5 bg-secondary/50 rounded mt-2 overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded transition-all"
+                          style={{ width: `${p * 100}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground pl-12 leading-relaxed">{p.desc}</p>
-                </motion.button>
-              ))}
-            </AnimatePresence>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => handlePhaseClick(Math.max(0, phase - 1))}
-                disabled={phase === 0}
-                className="flex-1 py-2.5 text-xs font-display tracking-wider bg-secondary/50 text-muted-foreground rounded-lg border border-border/50 hover:border-primary/20 disabled:opacity-30 transition-all"
-              >
-                ← Previous
-              </button>
-              <button
-                onClick={() => handlePhaseClick(Math.min(3, phase + 1))}
-                disabled={phase === 3}
-                className="flex-1 py-2.5 text-xs font-display tracking-wider bg-primary/20 text-primary rounded-lg border border-primary/40 hover:bg-primary/30 disabled:opacity-30 transition-all"
-              >
-                Next →
-              </button>
-            </div>
+                </div>
+              </motion.button>
+            ))}
           </div>
         </div>
       </div>
