@@ -1,9 +1,21 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars as DreiStars, Html } from "@react-three/drei";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
-import { Play, Pause, RotateCcw, ChevronRight, HelpCircle, X, SkipForward, SkipBack } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronRight, HelpCircle, X, SkipForward, SkipBack, Camera as CameraIcon, Eye, Target, Activity } from "lucide-react";
+
+/* ---------- Camera presets ---------- */
+type CameraPreset = "free" | "chaser" | "station" | "shoulder" | "telemetry";
+
+const PRESET_LABELS: Record<CameraPreset, string> = {
+  free: "Free Orbit",
+  chaser: "Chaser POV",
+  station: "Dock-Station",
+  shoulder: "Over-Shoulder",
+  telemetry: "Telemetry",
+};
 
 /* ---------- Reusable detail bits ---------- */
 
