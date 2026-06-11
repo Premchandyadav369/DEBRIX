@@ -1,9 +1,21 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars as DreiStars, Html } from "@react-three/drei";
+
 import * as THREE from "three";
-import { Play, Pause, RotateCcw, ChevronRight, HelpCircle, X, SkipForward, SkipBack } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronRight, HelpCircle, X, SkipForward, SkipBack, Camera as CameraIcon, Eye, Target, Activity } from "lucide-react";
+
+/* ---------- Camera presets ---------- */
+type CameraPreset = "free" | "chaser" | "station" | "shoulder" | "telemetry";
+
+const PRESET_LABELS: Record<CameraPreset, string> = {
+  free: "Free Orbit",
+  chaser: "Chaser POV",
+  station: "Dock-Station",
+  shoulder: "Over-Shoulder",
+  telemetry: "Telemetry",
+};
 
 /* ---------- Reusable detail bits ---------- */
 
@@ -75,10 +87,21 @@ function RoboticArm({ extension, grip, holding }: { extension: number; grip: num
   const elbow = useRef<THREE.Group>(null);
   const wrist = useRef<THREE.Group>(null);
 
+  // Realistic joint limits (radians) — modelled after Canadarm2-class manipulator envelopes.
+  // Shoulder pitch: -150° to -20°  | Elbow: -160° to -15° (no hyperextension)
+  // Wrist pitch:    -45° to +60°   | Extension clamped to [0.02, 0.96] to avoid singularity at full reach.
+  const SHOULDER_MIN = THREE.MathUtils.degToRad(-150);
+  const SHOULDER_MAX = THREE.MathUtils.degToRad(-20);
+  const ELBOW_MIN = THREE.MathUtils.degToRad(-160);
+  const ELBOW_MAX = THREE.MathUtils.degToRad(-15);
+  const WRIST_MIN = THREE.MathUtils.degToRad(-45);
+  const WRIST_MAX = THREE.MathUtils.degToRad(60);
+
   useFrame(() => {
-    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(-0.9, -0.2, extension);
-    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(-1.6, -0.3, extension);
-    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(0.6, -0.2, extension);
+    const e = THREE.MathUtils.clamp(extension, 0.02, 0.96);
+    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(SHOULDER_MIN, SHOULDER_MAX, e);
+    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(ELBOW_MIN, ELBOW_MAX, e);
+    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(WRIST_MAX, WRIST_MIN, e);
   });
 
   const segMat = <meshStandardMaterial color="#d1d5db" metalness={0.85} roughness={0.25} />;
@@ -369,49 +392,95 @@ function ReentryTrail({ active, position }: { active: boolean; position: [number
   );
 }
 
-/* ---------- Scene orchestration ---------- */
+/* ---------- Mission state derivation (shared by Scene + HUD) ---------- */
 
-function Scene({ phase, p }: { phase: number; p: number }) {
-  // p = 0..1 progress within phase
-  // Phase mapping:
-  // 0: Detection (chaser far, ring on debris)
-  // 1: Approach & Lock-On
-  // 2: Capture (arm extends, grabs)
-  // 3: Stow & Secure (arm retracts with debris)
-  // 4: Deorbit Burn (thruster, dive toward earth)
-  // 5: Atmospheric Re-entry
-
-  const chaserPos = useMemo(() => {
-    const px =
-      phase === 0 ? -3 :
-      phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
-      phase === 2 ? -1.3 :
-      phase === 3 ? -1.3 :
-      phase === 4 ? THREE.MathUtils.lerp(-1.3, -0.5, p) :
-      THREE.MathUtils.lerp(-0.5, 0.5, p);
-    const py =
-      phase >= 4 ? -p * 1.5 - (phase === 5 ? 1 : 0) : 0;
-    return new THREE.Vector3(px, py, 0);
-  }, [phase, p]);
-
-  const debrisPos = useMemo(() => {
-    if (phase >= 3) {
-      // attached/captured — move with chaser
-      return new THREE.Vector3(chaserPos.x + 0.95, chaserPos.y + 0.05, 0);
-    }
-    return new THREE.Vector3(0.6, 0.05, 0);
-  }, [phase, chaserPos]);
+function deriveMissionState(phase: number, p: number) {
+  const px =
+    phase === 0 ? -3 :
+    phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
+    phase === 2 ? -1.3 :
+    phase === 3 ? -1.3 :
+    phase === 4 ? THREE.MathUtils.lerp(-1.3, -0.5, p) :
+    THREE.MathUtils.lerp(-0.5, 0.5, p);
+  const py = phase >= 4 ? -p * 1.5 - (phase === 5 ? 1 : 0) : 0;
+  const chaserPos = new THREE.Vector3(px, py, 0);
+  const debrisPos = phase >= 3
+    ? new THREE.Vector3(chaserPos.x + 0.95, chaserPos.y + 0.05, 0)
+    : new THREE.Vector3(0.6, 0.05, 0);
 
   const armExtension =
     phase < 2 ? 0 :
     phase === 2 ? p :
     phase === 3 ? 1 - p * 0.7 :
     0.3;
-
   const grip = phase >= 2 && (phase > 2 || p > 0.7) ? 0 : 1;
   const holding = (phase === 2 && p > 0.85) || phase === 3 || phase === 4 || phase === 5;
-
   const thruster = phase === 4 ? 1 : phase === 5 ? 0.4 : 0;
+
+  return { chaserPos, debrisPos, armExtension, grip, holding, thruster };
+}
+
+/* ---------- Camera presets controller ---------- */
+
+function CameraRig({
+  preset,
+  chaserPos,
+  debrisPos,
+}: {
+  preset: CameraPreset;
+  chaserPos: THREE.Vector3;
+  debrisPos: THREE.Vector3;
+}) {
+  const { camera } = useThree();
+  const targetPos = useRef(new THREE.Vector3(0, 1.5, 5.5));
+  const targetLook = useRef(new THREE.Vector3(0, 0, 0));
+  const tmpLook = useRef(new THREE.Vector3());
+
+  useFrame((_, dt) => {
+    if (preset === "free") return; // user-controlled via OrbitControls
+
+    const c = chaserPos;
+    const d = debrisPos;
+    const dir = new THREE.Vector3().subVectors(d, c).normalize();
+    // perpendicular in XZ plane (for shoulder offsets)
+    const side = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+
+    if (preset === "chaser") {
+      // First-person from chaser's docking camera, looking at debris
+      targetPos.current.set(c.x + dir.x * 0.35, c.y + 0.1, c.z + dir.z * 0.35 + 0.0001);
+      targetLook.current.copy(d);
+    } else if (preset === "station") {
+      // Wide "approach corridor" view from behind the debris looking back at the chaser
+      targetPos.current.set(d.x + dir.x * 2.8, d.y + 0.6, d.z + 1.8);
+      targetLook.current.lerpVectors(c, d, 0.5);
+    } else if (preset === "shoulder") {
+      // Over-the-shoulder of the chaser
+      targetPos.current.set(c.x - dir.x * 1.4 + side.x * 0.6, c.y + 0.8, c.z - dir.z * 1.4 + 1.2);
+      targetLook.current.copy(d);
+    } else if (preset === "telemetry") {
+      // Cinematic top-down/iso for full telemetry context
+      targetPos.current.set((c.x + d.x) / 2 + 0.5, 4.2, 4.5);
+      targetLook.current.lerpVectors(c, d, 0.5);
+    }
+
+    const k = 1 - Math.exp(-dt * 3.2); // smooth follow
+    camera.position.lerp(targetPos.current, k);
+    tmpLook.current.copy(camera.getWorldDirection(new THREE.Vector3()))
+      .multiplyScalar(0)
+      .add(targetLook.current);
+    camera.lookAt(tmpLook.current);
+  });
+
+  return null;
+}
+
+/* ---------- Scene orchestration ---------- */
+
+function Scene({ phase, p, preset }: { phase: number; p: number; preset: CameraPreset }) {
+  const { chaserPos, debrisPos, armExtension, grip, holding, thruster } = useMemo(
+    () => deriveMissionState(phase, p),
+    [phase, p]
+  );
 
   return (
     <Canvas shadows camera={{ position: [0, 1.5, 5.5], fov: 38 }} dpr={[1, 2]}>
@@ -438,10 +507,13 @@ function Scene({ phase, p }: { phase: number; p: number }) {
       <Earth visible={phase >= 4} />
       <ReentryTrail active={phase === 5} position={[chaserPos.x, chaserPos.y, 0]} />
 
+      <CameraRig preset={preset} chaserPos={chaserPos} debrisPos={debrisPos} />
+
       <OrbitControls
+        enabled={preset === "free"}
         enableZoom
         enablePan={false}
-        autoRotate={phase === 0}
+        autoRotate={preset === "free" && phase === 0}
         autoRotateSpeed={0.4}
         maxDistance={9}
         minDistance={3}
@@ -449,6 +521,7 @@ function Scene({ phase, p }: { phase: number; p: number }) {
     </Canvas>
   );
 }
+
 
 /* ---------- Phase definitions ---------- */
 
@@ -523,6 +596,7 @@ const DockDumpSection = () => {
   const [p, setP] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [preset, setPreset] = useState<CameraPreset>("free");
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -556,6 +630,41 @@ const DockDumpSection = () => {
   const formatVal = (v: number) =>
     Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
 
+  // Docking metrics HUD — derived from mission state for a realistic instrument cluster.
+  const { chaserPos, debrisPos, armExtension, grip, holding } = useMemo(
+    () => deriveMissionState(phase, p),
+    [phase, p]
+  );
+  const range = Math.max(0, chaserPos.distanceTo(debrisPos) * 1000 - 250); // metres, sub-step distance
+  const closingRate =
+    phase === 1 ? THREE.MathUtils.lerp(2.4, 0.05, p) :
+    phase === 2 ? THREE.MathUtils.lerp(0.05, 0.01, p) :
+    phase >= 3 ? 0 : 4.8;
+  const lateralOffset =
+    phase === 1 ? THREE.MathUtils.lerp(1.8, 0.04, p) :
+    phase === 2 ? THREE.MathUtils.lerp(0.04, 0.005, p) :
+    phase >= 3 ? 0 : 6.2;
+  const attitudeErr =
+    phase === 1 ? THREE.MathUtils.lerp(8.5, 0.6, p) :
+    phase === 2 ? THREE.MathUtils.lerp(0.6, 0.1, p) :
+    phase >= 3 ? 0.05 : 14.0;
+  const gripForce = holding ? 42 + Math.sin(p * 8) * 3 : grip < 1 ? p * 18 : 0;
+  const armReach = armExtension * 1.2; // metres
+  const dockingMetrics = [
+    { label: "Range", value: range >= 1000 ? (range / 1000).toFixed(2) : range.toFixed(0), unit: range >= 1000 ? "km" : "m", tone: "primary" as const },
+    { label: "Closing", value: closingRate.toFixed(2), unit: "m/s", tone: closingRate < 0.1 ? "good" : closingRate > 1 ? "warn" : "primary" as const },
+    { label: "Lateral", value: lateralOffset.toFixed(2), unit: "m", tone: lateralOffset < 0.05 ? "good" : "primary" as const },
+    { label: "Attitude", value: attitudeErr.toFixed(2), unit: "°", tone: attitudeErr < 0.5 ? "good" : attitudeErr > 5 ? "warn" : "primary" as const },
+    { label: "Arm Reach", value: armReach.toFixed(2), unit: "m", tone: "primary" as const },
+    { label: "Grip Force", value: gripForce.toFixed(0), unit: "N", tone: gripForce > 0 ? "good" : "muted" as const },
+  ];
+  const toneClass = (t: string) =>
+    t === "good" ? "text-emerald-300 border-emerald-400/40" :
+    t === "warn" ? "text-amber-300 border-amber-400/40" :
+    t === "muted" ? "text-muted-foreground border-border/40" :
+    "text-primary border-primary/40";
+
+
   return (
     <section id="dock-dump" className="relative z-10">
       <div className="section-container">
@@ -577,7 +686,7 @@ const DockDumpSection = () => {
           {/* 3D Viewport */}
           <div className="lg:col-span-3 glass-card p-1 overflow-hidden relative">
             <div className="w-full h-[460px] md:h-[540px] rounded-xl overflow-hidden relative bg-[#04070f]">
-              <Scene phase={phase} p={p} />
+              <Scene phase={phase} p={p} preset={preset} />
 
               {/* Top HUD */}
               <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 pointer-events-none">
@@ -621,6 +730,60 @@ const DockDumpSection = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Camera preset chips */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 rounded-md bg-background/80 backdrop-blur-md border border-border/40 pointer-events-auto">
+                {([
+                  { id: "free" as CameraPreset, icon: <CameraIcon className="w-3 h-3" />, label: "Free" },
+                  { id: "chaser" as CameraPreset, icon: <Eye className="w-3 h-3" />, label: "Chaser POV" },
+                  { id: "station" as CameraPreset, icon: <Target className="w-3 h-3" />, label: "Dock View" },
+                  { id: "shoulder" as CameraPreset, icon: <Eye className="w-3 h-3" />, label: "Over-Shoulder" },
+                  { id: "telemetry" as CameraPreset, icon: <Activity className="w-3 h-3" />, label: "Telemetry" },
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setPreset(opt.id)}
+                    title={PRESET_LABELS[opt.id]}
+                    aria-pressed={preset === opt.id}
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-display tracking-wider uppercase transition-colors ${
+                      preset === opt.id
+                        ? "bg-primary/30 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.icon}
+                    <span className="hidden md:inline">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Docking Metrics HUD — left rail */}
+              <div className="absolute left-3 top-24 w-[148px] hidden sm:block pointer-events-none">
+                <div className="p-2 rounded-md bg-background/80 backdrop-blur-md border border-border/40">
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <Activity className="w-3 h-3 text-primary" />
+                    <span className="text-[9px] font-display tracking-[0.2em] uppercase text-primary">Docking HUD</span>
+                  </div>
+                  <div className="space-y-1">
+                    {dockingMetrics.map((m) => (
+                      <div
+                        key={m.label}
+                        className={`flex items-baseline justify-between gap-1 px-1.5 py-1 rounded border bg-background/40 ${toneClass(m.tone)}`}
+                      >
+                        <span className="text-[9px] font-display tracking-wider uppercase text-muted-foreground/90">
+                          {m.label}
+                        </span>
+                        <span className="text-[11px] font-mono tabular-nums">
+                          {m.value}
+                          <span className="text-[8px] text-muted-foreground ml-0.5">{m.unit}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+
 
               {/* Help overlay */}
               <AnimatePresence>
