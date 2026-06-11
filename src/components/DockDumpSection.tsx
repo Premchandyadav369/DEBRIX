@@ -119,8 +119,8 @@ function RoboticArm({ extension, grip, holding }: { extension: number; grip: num
             </mesh>
             {/* end effector */}
             <group position={[0.12, 0, 0]}>
-              <mesh>
-                <cylinderGeometry args={[0.04, 0.05, 0.1, 12]} rotation={[0, 0, Math.PI / 2]} />
+              <mesh rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.04, 0.05, 0.1, 12]} />
                 {jointMat}
               </mesh>
               {/* three claw fingers */}
