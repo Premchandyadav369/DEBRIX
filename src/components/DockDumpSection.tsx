@@ -392,49 +392,95 @@ function ReentryTrail({ active, position }: { active: boolean; position: [number
   );
 }
 
-/* ---------- Scene orchestration ---------- */
+/* ---------- Mission state derivation (shared by Scene + HUD) ---------- */
 
-function Scene({ phase, p }: { phase: number; p: number }) {
-  // p = 0..1 progress within phase
-  // Phase mapping:
-  // 0: Detection (chaser far, ring on debris)
-  // 1: Approach & Lock-On
-  // 2: Capture (arm extends, grabs)
-  // 3: Stow & Secure (arm retracts with debris)
-  // 4: Deorbit Burn (thruster, dive toward earth)
-  // 5: Atmospheric Re-entry
-
-  const chaserPos = useMemo(() => {
-    const px =
-      phase === 0 ? -3 :
-      phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
-      phase === 2 ? -1.3 :
-      phase === 3 ? -1.3 :
-      phase === 4 ? THREE.MathUtils.lerp(-1.3, -0.5, p) :
-      THREE.MathUtils.lerp(-0.5, 0.5, p);
-    const py =
-      phase >= 4 ? -p * 1.5 - (phase === 5 ? 1 : 0) : 0;
-    return new THREE.Vector3(px, py, 0);
-  }, [phase, p]);
-
-  const debrisPos = useMemo(() => {
-    if (phase >= 3) {
-      // attached/captured — move with chaser
-      return new THREE.Vector3(chaserPos.x + 0.95, chaserPos.y + 0.05, 0);
-    }
-    return new THREE.Vector3(0.6, 0.05, 0);
-  }, [phase, chaserPos]);
+function deriveMissionState(phase: number, p: number) {
+  const px =
+    phase === 0 ? -3 :
+    phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
+    phase === 2 ? -1.3 :
+    phase === 3 ? -1.3 :
+    phase === 4 ? THREE.MathUtils.lerp(-1.3, -0.5, p) :
+    THREE.MathUtils.lerp(-0.5, 0.5, p);
+  const py = phase >= 4 ? -p * 1.5 - (phase === 5 ? 1 : 0) : 0;
+  const chaserPos = new THREE.Vector3(px, py, 0);
+  const debrisPos = phase >= 3
+    ? new THREE.Vector3(chaserPos.x + 0.95, chaserPos.y + 0.05, 0)
+    : new THREE.Vector3(0.6, 0.05, 0);
 
   const armExtension =
     phase < 2 ? 0 :
     phase === 2 ? p :
     phase === 3 ? 1 - p * 0.7 :
     0.3;
-
   const grip = phase >= 2 && (phase > 2 || p > 0.7) ? 0 : 1;
   const holding = (phase === 2 && p > 0.85) || phase === 3 || phase === 4 || phase === 5;
-
   const thruster = phase === 4 ? 1 : phase === 5 ? 0.4 : 0;
+
+  return { chaserPos, debrisPos, armExtension, grip, holding, thruster };
+}
+
+/* ---------- Camera presets controller ---------- */
+
+function CameraRig({
+  preset,
+  chaserPos,
+  debrisPos,
+}: {
+  preset: CameraPreset;
+  chaserPos: THREE.Vector3;
+  debrisPos: THREE.Vector3;
+}) {
+  const { camera } = useThree();
+  const targetPos = useRef(new THREE.Vector3(0, 1.5, 5.5));
+  const targetLook = useRef(new THREE.Vector3(0, 0, 0));
+  const tmpLook = useRef(new THREE.Vector3());
+
+  useFrame((_, dt) => {
+    if (preset === "free") return; // user-controlled via OrbitControls
+
+    const c = chaserPos;
+    const d = debrisPos;
+    const dir = new THREE.Vector3().subVectors(d, c).normalize();
+    // perpendicular in XZ plane (for shoulder offsets)
+    const side = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+
+    if (preset === "chaser") {
+      // First-person from chaser's docking camera, looking at debris
+      targetPos.current.set(c.x + dir.x * 0.35, c.y + 0.1, c.z + dir.z * 0.35 + 0.0001);
+      targetLook.current.copy(d);
+    } else if (preset === "station") {
+      // Wide "approach corridor" view from behind the debris looking back at the chaser
+      targetPos.current.set(d.x + dir.x * 2.8, d.y + 0.6, d.z + 1.8);
+      targetLook.current.lerpVectors(c, d, 0.5);
+    } else if (preset === "shoulder") {
+      // Over-the-shoulder of the chaser
+      targetPos.current.set(c.x - dir.x * 1.4 + side.x * 0.6, c.y + 0.8, c.z - dir.z * 1.4 + 1.2);
+      targetLook.current.copy(d);
+    } else if (preset === "telemetry") {
+      // Cinematic top-down/iso for full telemetry context
+      targetPos.current.set((c.x + d.x) / 2 + 0.5, 4.2, 4.5);
+      targetLook.current.lerpVectors(c, d, 0.5);
+    }
+
+    const k = 1 - Math.exp(-dt * 3.2); // smooth follow
+    camera.position.lerp(targetPos.current, k);
+    tmpLook.current.copy(camera.getWorldDirection(new THREE.Vector3()))
+      .multiplyScalar(0)
+      .add(targetLook.current);
+    camera.lookAt(tmpLook.current);
+  });
+
+  return null;
+}
+
+/* ---------- Scene orchestration ---------- */
+
+function Scene({ phase, p, preset }: { phase: number; p: number; preset: CameraPreset }) {
+  const { chaserPos, debrisPos, armExtension, grip, holding, thruster } = useMemo(
+    () => deriveMissionState(phase, p),
+    [phase, p]
+  );
 
   return (
     <Canvas shadows camera={{ position: [0, 1.5, 5.5], fov: 38 }} dpr={[1, 2]}>
@@ -461,10 +507,13 @@ function Scene({ phase, p }: { phase: number; p: number }) {
       <Earth visible={phase >= 4} />
       <ReentryTrail active={phase === 5} position={[chaserPos.x, chaserPos.y, 0]} />
 
+      <CameraRig preset={preset} chaserPos={chaserPos} debrisPos={debrisPos} />
+
       <OrbitControls
+        enabled={preset === "free"}
         enableZoom
         enablePan={false}
-        autoRotate={phase === 0}
+        autoRotate={preset === "free" && phase === 0}
         autoRotateSpeed={0.4}
         maxDistance={9}
         minDistance={3}
@@ -472,6 +521,7 @@ function Scene({ phase, p }: { phase: number; p: number }) {
     </Canvas>
   );
 }
+
 
 /* ---------- Phase definitions ---------- */
 
