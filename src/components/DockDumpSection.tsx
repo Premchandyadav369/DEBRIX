@@ -87,10 +87,21 @@ function RoboticArm({ extension, grip, holding }: { extension: number; grip: num
   const elbow = useRef<THREE.Group>(null);
   const wrist = useRef<THREE.Group>(null);
 
+  // Realistic joint limits (radians) — modelled after Canadarm2-class manipulator envelopes.
+  // Shoulder pitch: -150° to -20°  | Elbow: -160° to -15° (no hyperextension)
+  // Wrist pitch:    -45° to +60°   | Extension clamped to [0.02, 0.96] to avoid singularity at full reach.
+  const SHOULDER_MIN = THREE.MathUtils.degToRad(-150);
+  const SHOULDER_MAX = THREE.MathUtils.degToRad(-20);
+  const ELBOW_MIN = THREE.MathUtils.degToRad(-160);
+  const ELBOW_MAX = THREE.MathUtils.degToRad(-15);
+  const WRIST_MIN = THREE.MathUtils.degToRad(-45);
+  const WRIST_MAX = THREE.MathUtils.degToRad(60);
+
   useFrame(() => {
-    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(-0.9, -0.2, extension);
-    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(-1.6, -0.3, extension);
-    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(0.6, -0.2, extension);
+    const e = THREE.MathUtils.clamp(extension, 0.02, 0.96);
+    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(SHOULDER_MIN, SHOULDER_MAX, e);
+    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(ELBOW_MIN, ELBOW_MAX, e);
+    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(WRIST_MAX, WRIST_MIN, e);
   });
 
   const segMat = <meshStandardMaterial color="#d1d5db" metalness={0.85} roughness={0.25} />;
