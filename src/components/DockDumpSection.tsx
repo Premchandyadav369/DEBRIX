@@ -731,6 +731,60 @@ const DockDumpSection = () => {
                 </div>
               </div>
 
+              {/* Camera preset chips */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 rounded-md bg-background/80 backdrop-blur-md border border-border/40 pointer-events-auto">
+                {([
+                  { id: "free" as CameraPreset, icon: <CameraIcon className="w-3 h-3" />, label: "Free" },
+                  { id: "chaser" as CameraPreset, icon: <Eye className="w-3 h-3" />, label: "Chaser POV" },
+                  { id: "station" as CameraPreset, icon: <Target className="w-3 h-3" />, label: "Dock View" },
+                  { id: "shoulder" as CameraPreset, icon: <Eye className="w-3 h-3" />, label: "Over-Shoulder" },
+                  { id: "telemetry" as CameraPreset, icon: <Activity className="w-3 h-3" />, label: "Telemetry" },
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setPreset(opt.id)}
+                    title={PRESET_LABELS[opt.id]}
+                    aria-pressed={preset === opt.id}
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-display tracking-wider uppercase transition-colors ${
+                      preset === opt.id
+                        ? "bg-primary/30 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.icon}
+                    <span className="hidden md:inline">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Docking Metrics HUD — left rail */}
+              <div className="absolute left-3 top-24 w-[148px] hidden sm:block pointer-events-none">
+                <div className="p-2 rounded-md bg-background/80 backdrop-blur-md border border-border/40">
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <Activity className="w-3 h-3 text-primary" />
+                    <span className="text-[9px] font-display tracking-[0.2em] uppercase text-primary">Docking HUD</span>
+                  </div>
+                  <div className="space-y-1">
+                    {dockingMetrics.map((m) => (
+                      <div
+                        key={m.label}
+                        className={`flex items-baseline justify-between gap-1 px-1.5 py-1 rounded border bg-background/40 ${toneClass(m.tone)}`}
+                      >
+                        <span className="text-[9px] font-display tracking-wider uppercase text-muted-foreground/90">
+                          {m.label}
+                        </span>
+                        <span className="text-[11px] font-mono tabular-nums">
+                          {m.value}
+                          <span className="text-[8px] text-muted-foreground ml-0.5">{m.unit}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+
+
               {/* Help overlay */}
               <AnimatePresence>
                 {showHelp && (
