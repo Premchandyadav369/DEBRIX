@@ -185,8 +185,8 @@ function Chaser({
       {/* panel rivets */}
       {[-0.25, 0.25].map((x) =>
         [-0.2, 0, 0.2].map((y) => (
-          <mesh key={`${x}-${y}`} position={[x, y, 0.278]}>
-            <cylinderGeometry args={[0.012, 0.012, 0.005, 8]} rotation={[Math.PI / 2, 0, 0]} />
+          <mesh key={`${x}-${y}`} position={[x, y, 0.278]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.012, 0.012, 0.005, 8]} />
             <meshStandardMaterial color="#6b7280" metalness={0.95} />
           </mesh>
         ))
