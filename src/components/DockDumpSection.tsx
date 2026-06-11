@@ -686,7 +686,7 @@ const DockDumpSection = () => {
           {/* 3D Viewport */}
           <div className="lg:col-span-3 glass-card p-1 overflow-hidden relative">
             <div className="w-full h-[460px] md:h-[540px] rounded-xl overflow-hidden relative bg-[#04070f]">
-              <Scene phase={phase} p={p} />
+              <Scene phase={phase} p={p} preset={preset} />
 
               {/* Top HUD */}
               <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 pointer-events-none">
