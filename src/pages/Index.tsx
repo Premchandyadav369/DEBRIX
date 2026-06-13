@@ -45,7 +45,7 @@ const FireballTrackerSection = lazy(() => import("@/components/FireballTrackerSe
 
 
 const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
-const AuroraForecastSection = lazy(() => import("@/components/AuroraForecastSection"));
+
 const ArtemisTrackerSection = lazy(() => import("@/components/ArtemisTrackerSection"));
 const SolarImagerySection = lazy(() => import("@/components/SolarImagerySection"));
 
