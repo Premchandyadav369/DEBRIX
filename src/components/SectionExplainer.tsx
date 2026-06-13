@@ -43,7 +43,7 @@ const explainers: Record<string, ExplainerData> = {
   "space-news": { icon: Newspaper, emoji: "📰", explain: "The latest news from the space industry — new launches, discoveries, and missions. Stay updated on everything beyond our atmosphere!" },
   "sky-map": { icon: Map, emoji: "🌌", explain: "This star chart shows what stars, planets, and constellations are visible RIGHT NOW from your location. Like a GPS for the night sky." },
   "planet-visibility": { icon: Eye, emoji: "🪐", explain: "An orrery is a mini model of our solar system. See where all 8 planets are now, how far apart they are, and which ones you can spot tonight!" },
-  "aurora-forecast": { icon: Sparkles, emoji: "🌈", explain: "Northern and Southern Lights happen when Sun particles hit Earth's magnetic field. This forecast tells you when and where to see them glow!" },
+  
   "solar-imagery": { icon: Sun, emoji: "🔭", explain: "NASA's SDO telescope photographs the Sun 24/7 in different light wavelengths. Each color reveals something different — sunspots, flares, and more!" },
   "artemis-tracker": { icon: Rocket, emoji: "🌙", explain: "Artemis II sends astronauts around the Moon for the first time in 50+ years! Live countdown, crew info, and the spaceship's path." },
   "rocket-engines": { icon: Database, emoji: "⚙️", explain: "Rocket engines push spacecraft into orbit. This database has real engine specs — how powerful they are, what fuel they use, and more." },

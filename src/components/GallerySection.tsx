@@ -11,10 +11,12 @@ const GallerySection = () => {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">3D Viewer</p>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Explore the Satellite</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            Rotate, zoom, and inspect the Debrix satellite model. Observe the robotic arm, solar panels, docking port, and debris chamber.
+          <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Spacecraft · DEBRI-X V3</p>
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Explore the Spacecraft</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+            An autonomous SSA + debris-mitigation spacecraft — not a generic satellite. Every component answers a mission question:
+            how to <span className="text-primary">detect</span>, <span className="text-primary">classify</span>, <span className="text-primary">approach</span>, and <span className="text-primary">capture</span> orbital debris.
+            Drag to orbit · scroll to zoom · hover parts for callouts.
           </p>
         </motion.div>
 
@@ -25,9 +27,20 @@ const GallerySection = () => {
           className="glass-card p-2 overflow-hidden"
         >
           <SatelliteScene />
-          <div className="flex flex-wrap gap-3 justify-center p-4">
-            {["Robotic Arm", "Solar Panels", "Docking Port", "Debris Chamber", "Camera Module"].map((label) => (
-              <span key={label} className="px-3 py-1 text-xs font-display tracking-wider bg-primary/10 text-primary rounded-full border border-primary/20">
+          <div className="flex flex-wrap gap-2 justify-center p-4">
+            {[
+              "Cuboid Main Bus",
+              "Deployable Solar Wings",
+              "Sensor Deck (SSA · LiDAR · IR · HRT)",
+              "6-DOF Inspection Arm",
+              "Adaptive 3-Finger Gripper",
+              "Debris Storage Bay",
+              "High & Medium Gain Antennas",
+              "8× RCS Thruster Clusters",
+              "Radiator Panels",
+              "Star Trackers",
+            ].map((label) => (
+              <span key={label} className="px-2.5 py-1 text-[10px] font-mono tracking-wider bg-primary/10 text-primary rounded-full border border-primary/20">
                 {label}
               </span>
             ))}

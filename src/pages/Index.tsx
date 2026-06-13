@@ -45,7 +45,7 @@ const FireballTrackerSection = lazy(() => import("@/components/FireballTrackerSe
 
 
 const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
-const AuroraForecastSection = lazy(() => import("@/components/AuroraForecastSection"));
+
 const ArtemisTrackerSection = lazy(() => import("@/components/ArtemisTrackerSection"));
 const SolarImagerySection = lazy(() => import("@/components/SolarImagerySection"));
 
@@ -182,8 +182,6 @@ const Index = () => {
         <Lazy><PlanetVisibilitySection /></Lazy>
       </RevealOnScroll>
 
-      <SectionExplainer sectionId="aurora-forecast" />
-      <Lazy><AuroraForecastSection /></Lazy>
 
       <SectionExplainer sectionId="solar-imagery" />
       <Lazy><SolarImagerySection /></Lazy>
