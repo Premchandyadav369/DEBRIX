@@ -182,8 +182,6 @@ const Index = () => {
         <Lazy><PlanetVisibilitySection /></Lazy>
       </RevealOnScroll>
 
-      <SectionExplainer sectionId="aurora-forecast" />
-      <Lazy><AuroraForecastSection /></Lazy>
 
       <SectionExplainer sectionId="solar-imagery" />
       <Lazy><SolarImagerySection /></Lazy>
