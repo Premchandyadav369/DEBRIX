@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Crosshair, Satellite, Shield, Zap, Target, Radio, Activity, Download, Bell, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const SwarmScene3D = lazy(() => import("./SwarmScene3D"));
 
 const SWARM_STATS = [
   { icon: Satellite, label: "Debrix Hunters", value: "10", desc: "Active formation satellites", color: "text-primary" },
