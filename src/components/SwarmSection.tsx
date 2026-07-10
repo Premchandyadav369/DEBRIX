@@ -706,7 +706,9 @@ const SwarmSection = () => {
 
         {/* Live simulation */}
         <motion.div initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-4 mb-6">
-          <SwarmCanvas onAlert={pushAlert} />
+          <Suspense fallback={<div className="w-full h-[480px] rounded-xl bg-background/40 flex items-center justify-center text-xs text-muted-foreground font-mono"><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading 3D scene…</div>}>
+            <SwarmScene3D onAlert={pushAlert} />
+          </Suspense>
         </motion.div>
 
         {/* Action bar */}
