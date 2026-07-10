@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Crosshair, Satellite, Shield, Zap, Target, Radio, Activity, Download, Bell, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const SwarmScene3D = lazy(() => import("./SwarmScene3D"));
 
 const SWARM_STATS = [
   { icon: Satellite, label: "Debrix Hunters", value: "10", desc: "Active formation satellites", color: "text-primary" },
@@ -704,7 +706,9 @@ const SwarmSection = () => {
 
         {/* Live simulation */}
         <motion.div initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="glass-card p-4 mb-6">
-          <SwarmCanvas onAlert={pushAlert} />
+          <Suspense fallback={<div className="w-full h-[480px] rounded-xl bg-background/40 flex items-center justify-center text-xs text-muted-foreground font-mono"><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading 3D scene…</div>}>
+            <SwarmScene3D onAlert={pushAlert} />
+          </Suspense>
         </motion.div>
 
         {/* Action bar */}

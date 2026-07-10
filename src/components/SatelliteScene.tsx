@@ -64,9 +64,8 @@ function SolarWing({ side, mats }: { side: 1 | -1; mats: Mats }) {
   return (
     <group position={[side * 0.78, 0, 0]}>
       {/* Yoke / boom */}
-      <mesh position={[side * 0.18, 0, 0]} material={mats.silver}>
+      <mesh position={[side * 0.18, 0, 0]} material={mats.silver} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.04, 0.04, 0.35, 12]} />
-        <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
       </mesh>
       <mesh position={[side * 0.36, 0, 0]} material={mats.lightGray}>
         <boxGeometry args={[0.08, 0.18, 0.18]} />
@@ -166,17 +165,14 @@ function SensorDeck({ mats }: { mats: Mats }) {
       </mesh>
       {/* High-resolution tracking camera (large center barrel) */}
       <group position={[0.18, 0.12, 0]}>
-        <mesh material={mats.carbon}>
+        <mesh material={mats.carbon} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.13, 0.13, 0.32, 24]} />
-          <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
         </mesh>
-        <mesh position={[0.17, 0, 0]} material={mats.lens}>
+        <mesh position={[0.17, 0, 0]} material={mats.lens} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.1, 0.1, 0.02, 24]} />
-          <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
         </mesh>
-        <mesh position={[0.18, 0, 0]} material={mats.silver}>
+        <mesh position={[0.18, 0, 0]} material={mats.silver} rotation={[0, Math.PI / 2, 0]}>
           <torusGeometry args={[0.115, 0.012, 8, 24]} />
-          <primitive object={new THREE.Euler(0, Math.PI / 2, 0)} attach="rotation" />
         </mesh>
       </group>
       {/* Wide-angle SSA cameras: top, left, right (front already covered by HRT) */}
@@ -187,13 +183,11 @@ function SensorDeck({ mats }: { mats: Mats }) {
         { p: [0.08, -0.32, 0] as [number, number, number], rot: [0, 0, 0] as [number, number, number] },
       ]).map((cam, i) => (
         <group key={i} position={cam.p} rotation={cam.rot}>
-          <mesh material={mats.carbon}>
+          <mesh material={mats.carbon} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.05, 0.05, 0.09, 16]} />
-            <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
           </mesh>
-          <mesh position={[0.055, 0, 0]} material={mats.lens}>
+          <mesh position={[0.055, 0, 0]} material={mats.lens} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.038, 0.038, 0.012, 16]} />
-            <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
           </mesh>
         </group>
       ))}
@@ -214,9 +208,8 @@ function SensorDeck({ mats }: { mats: Mats }) {
         <mesh material={mats.silver}>
           <boxGeometry args={[0.12, 0.1, 0.1]} />
         </mesh>
-        <mesh position={[0.065, 0, 0]} material={mats.lens}>
+        <mesh position={[0.065, 0, 0]} material={mats.lens} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.035, 0.035, 0.012, 16]} />
-          <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
         </mesh>
       </group>
     </group>
@@ -245,14 +238,12 @@ function RoboticArm({ mats, t }: { mats: Mats; t: number }) {
         </mesh>
         <group position={[0, 0.08, 0]} rotation={[0, 0, shoulderPitch]}>
           {/* Upper arm */}
-          <mesh position={[0.32, 0, 0]} material={mats.white}>
+          <mesh position={[0.32, 0, 0]} material={mats.white} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.05, 0.055, 0.6, 16]} />
-            <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
           </mesh>
           {/* MLI gold wrap stripe */}
-          <mesh position={[0.32, 0, 0]} material={mats.gold}>
+          <mesh position={[0.32, 0, 0]} material={mats.gold} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.057, 0.057, 0.06, 16]} />
-            <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
           </mesh>
           {/* Elbow */}
           <group position={[0.62, 0, 0]}>
@@ -261,25 +252,21 @@ function RoboticArm({ mats, t }: { mats: Mats; t: number }) {
             </mesh>
             <group rotation={[0, 0, elbowFlex]}>
               {/* Forearm */}
-              <mesh position={[0.28, 0, 0]} material={mats.white}>
+              <mesh position={[0.28, 0, 0]} material={mats.white} rotation={[0, 0, Math.PI / 2]}>
                 <cylinderGeometry args={[0.04, 0.045, 0.52, 16]} />
-                <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
               </mesh>
-              <mesh position={[0.28, 0, 0]} material={mats.gold}>
+              <mesh position={[0.28, 0, 0]} material={mats.gold} rotation={[0, 0, Math.PI / 2]}>
                 <cylinderGeometry args={[0.047, 0.047, 0.05, 16]} />
-                <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
               </mesh>
               {/* Wrist */}
               <group position={[0.54, 0, 0]} rotation={[wristRoll, 0, 0]}>
-                <mesh material={mats.silver}>
+                <mesh material={mats.silver} rotation={[0, 0, Math.PI / 2]}>
                   <cylinderGeometry args={[0.045, 0.045, 0.08, 16]} />
-                  <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
                 </mesh>
                 {/* End effector — adaptive 3-finger gripper */}
                 <group position={[0.07, 0, 0]}>
-                  <mesh material={mats.carbon}>
+                  <mesh material={mats.carbon} rotation={[0, 0, Math.PI / 2]}>
                     <cylinderGeometry args={[0.055, 0.045, 0.06, 16]} />
-                    <primitive object={new THREE.Euler(0, 0, Math.PI / 2)} attach="rotation" />
                   </mesh>
                   {/* Wrist camera (eye-in-hand) */}
                   <mesh position={[0.04, 0.05, 0]} material={mats.lens}>
