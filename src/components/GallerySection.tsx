@@ -33,6 +33,7 @@ const GallerySection = () => {
               "Deployable Solar Wings",
               "Sensor Deck (SSA · LiDAR · IR · HRT)",
               "6-DOF Inspection Arm",
+              "Canadarm + Debris Bin",
               "Adaptive 3-Finger Gripper",
               "Debris Storage Bay",
               "High & Medium Gain Antennas",
