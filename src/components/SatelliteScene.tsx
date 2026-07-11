@@ -593,6 +593,9 @@ function DebrixSpacecraft({ onPart }: { onPart: (n: string | null) => void }) {
       <group onPointerOver={() => onPart("6-DOF Inspection & Capture Arm")} onPointerOut={() => onPart(null)}>
         <RoboticArm mats={mats} t={t} />
       </group>
+      <group onPointerOver={() => onPart("Canadarm-class Manipulator + Debris Bin")} onPointerOut={() => onPart(null)}>
+        <CanadarmTop mats={mats} t={t} />
+      </group>
       <group onPointerOver={() => onPart("Debris Storage Bay")} onPointerOut={() => onPart(null)}>
         <StorageBay mats={mats} />
       </group>
