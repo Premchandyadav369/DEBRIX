@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area,
-  XAxis, YAxis, LineChart, Line, Legend,
+  XAxis, YAxis, LineChart, Line,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 
