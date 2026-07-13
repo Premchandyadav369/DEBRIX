@@ -298,29 +298,72 @@ function RoboticArm({ mats, t }: { mats: Mats; t: number }) {
   );
 }
 
-// ---- Canadarm-style long manipulator (top-mounted) with debris bin ----
+// ---- Canadarm-style 4-DOF manipulator (top-mounted) + body-mounted debris bin ----
 function CanadarmTop({ mats, t }: { mats: Mats; t: number }) {
-  // Long SRMS/SSRMS-inspired boom mounted on the +Y top face, holding an open bin.
-  const baseYaw = Math.sin(t * 0.22) * 0.6;                 // slew
-  const shoulderPitch = -0.35 + Math.sin(t * 0.28) * 0.18;  // raise/lower
-  const elbowPitch = 1.05 + Math.sin(t * 0.34) * 0.22;      // fold/extend
-  const wristPitch = -0.55 + Math.sin(t * 0.4) * 0.15;      // level the bin
-  const wristYaw = Math.sin(t * 0.5) * 0.25;
+  // 4 DOF: base yaw, shoulder pitch, elbow pitch, wrist pitch
+  const baseYaw = Math.sin(t * 0.22) * 0.6;
+  const shoulderPitch = -0.35 + Math.sin(t * 0.28) * 0.18;
+  const elbowPitch = 1.05 + Math.sin(t * 0.34) * 0.22;
+  const wristPitch = -0.55 + Math.sin(t * 0.4) * 0.15;
 
-  const boomA = 1.35; // upper boom length
-  const boomB = 1.15; // lower boom length
+  const boomA = 1.35;
+  const boomB = 1.15;
 
   return (
     <group position={[0, 0.62, 0]}>
-      {/* MPM-style base pedestal on the top face */}
-      <mesh material={mats.lightGray}>
+      {/* ---- Body-mounted debris bin (attached to top of bus, NOT to arm) ---- */}
+      <group position={[-0.55, 0.02, 0]}>
+        {/* Mounting brackets to bus */}
+        {[[-0.22, 0.22], [0.22, 0.22], [-0.22, -0.22], [0.22, -0.22]].map(([x, z], i) => (
+          <mesh key={`br${i}`} position={[x, -0.02, z]} material={mats.carbon}>
+            <boxGeometry args={[0.04, 0.04, 0.04]} />
+          </mesh>
+        ))}
+        {/* Bin floor */}
+        <mesh position={[0, 0.02, 0]} material={mats.lightGray}>
+          <boxGeometry args={[0.52, 0.02, 0.52]} />
+        </mesh>
+        {/* Bin walls */}
+        {[[0, 0.26], [0, -0.26]].map(([x, z], i) => (
+          <mesh key={`wsb${i}`} position={[x, 0.14, z]} material={mats.white}>
+            <boxGeometry args={[0.52, 0.26, 0.02]} />
+          </mesh>
+        ))}
+        {[[0.26, 0], [-0.26, 0]].map(([x, z], i) => (
+          <mesh key={`web${i}`} position={[x, 0.14, z]} material={mats.white}>
+            <boxGeometry args={[0.02, 0.26, 0.52]} />
+          </mesh>
+        ))}
+        {/* MLI gold liner */}
+        <mesh position={[0, 0.032, 0]} material={mats.gold}>
+          <boxGeometry args={[0.48, 0.005, 0.48]} />
+        </mesh>
+        {/* Orange hazard stripe */}
+        <mesh position={[0, 0.24, 0.261]} material={mats.accentOrange}>
+          <boxGeometry args={[0.44, 0.03, 0.003]} />
+        </mesh>
+        {/* Captured debris chunks */}
+        <mesh position={[-0.1, 0.08, 0.06]} material={mats.carbon} rotation={[0.4, 0.6, 0.2]}>
+          <boxGeometry args={[0.11, 0.07, 0.08]} />
+        </mesh>
+        <mesh position={[0.12, 0.07, -0.08]} material={mats.silver} rotation={[0.2, -0.5, 0.3]}>
+          <boxGeometry args={[0.09, 0.06, 0.09]} />
+        </mesh>
+        <mesh position={[0.03, 0.09, 0.14]} material={mats.navy} rotation={[0.6, 0.2, -0.3]}>
+          <boxGeometry args={[0.06, 0.06, 0.06]} />
+        </mesh>
+      </group>
+
+      {/* ---- Arm base pedestal ---- */}
+      <mesh position={[0.35, 0, 0]} material={mats.lightGray}>
         <cylinderGeometry args={[0.14, 0.17, 0.08, 20]} />
       </mesh>
-      <mesh position={[0, 0.05, 0]} material={mats.carbon}>
+      <mesh position={[0.35, 0.05, 0]} material={mats.carbon}>
         <cylinderGeometry args={[0.11, 0.11, 0.04, 20]} />
       </mesh>
 
-      <group position={[0, 0.09, 0]} rotation={[0, baseYaw, 0]}>
+      {/* DOF 1: base yaw */}
+      <group position={[0.35, 0.09, 0]} rotation={[0, baseYaw, 0]}>
         {/* Shoulder yoke */}
         <mesh material={mats.white}>
           <boxGeometry args={[0.22, 0.14, 0.24]} />
@@ -329,20 +372,19 @@ function CanadarmTop({ mats, t }: { mats: Mats; t: number }) {
           <boxGeometry args={[0.24, 0.02, 0.26]} />
         </mesh>
 
+        {/* DOF 2: shoulder pitch */}
         <group position={[0, 0.09, 0]} rotation={[shoulderPitch, 0, 0]}>
-          {/* Upper boom (long white cylinder — Canadarm signature) */}
+          {/* Upper boom */}
           <group position={[0, 0, boomA / 2]}>
             <mesh material={mats.white} rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[0.055, 0.06, boomA, 20]} />
             </mesh>
-            {/* Black joint bands */}
             <mesh position={[0, 0, -boomA / 2 + 0.06]} material={mats.carbon} rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[0.062, 0.062, 0.05, 20]} />
             </mesh>
             <mesh position={[0, 0, boomA / 2 - 0.06]} material={mats.carbon} rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[0.062, 0.062, 0.05, 20]} />
             </mesh>
-            {/* "CANADA" style red identifier stripes */}
             <mesh position={[0, 0.058, 0]} material={mats.accentOrange}>
               <boxGeometry args={[0.02, 0.005, boomA - 0.3]} />
             </mesh>
@@ -357,8 +399,8 @@ function CanadarmTop({ mats, t }: { mats: Mats; t: number }) {
               <cylinderGeometry args={[0.07, 0.07, 0.14, 16]} />
             </mesh>
 
+            {/* DOF 3: elbow pitch */}
             <group rotation={[elbowPitch, 0, 0]}>
-              {/* Lower boom */}
               <group position={[0, 0, boomB / 2]}>
                 <mesh material={mats.white} rotation={[Math.PI / 2, 0, 0]}>
                   <cylinderGeometry args={[0.048, 0.052, boomB, 20]} />
@@ -374,64 +416,28 @@ function CanadarmTop({ mats, t }: { mats: Mats; t: number }) {
                 </mesh>
               </group>
 
-              {/* Wrist */}
-              <group position={[0, 0, boomB]} rotation={[wristPitch, wristYaw, 0]}>
+              {/* DOF 4: wrist pitch (end-effector only, no yaw) */}
+              <group position={[0, 0, boomB]} rotation={[wristPitch, 0, 0]}>
                 <mesh material={mats.carbon}>
                   <sphereGeometry args={[0.07, 16, 12]} />
                 </mesh>
                 <mesh position={[0, 0, 0.08]} material={mats.silver} rotation={[Math.PI / 2, 0, 0]}>
                   <cylinderGeometry args={[0.055, 0.055, 0.09, 16]} />
                 </mesh>
-                {/* End-effector / LEE latching ring */}
+                {/* LEE latching ring */}
                 <mesh position={[0, 0, 0.15]} material={mats.gold} rotation={[Math.PI / 2, 0, 0]}>
                   <torusGeometry args={[0.06, 0.012, 8, 20]} />
                 </mesh>
+                {/* Snare wires */}
+                {[0, 1, 2].map((i) => (
+                  <mesh key={i} position={[Math.cos((i / 3) * Math.PI * 2) * 0.045, Math.sin((i / 3) * Math.PI * 2) * 0.045, 0.19]} material={mats.silver} rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.004, 0.004, 0.07, 6]} />
+                  </mesh>
+                ))}
                 {/* Wrist camera */}
                 <mesh position={[0.065, 0.05, 0.1]} material={mats.lens}>
                   <sphereGeometry args={[0.02, 12, 8]} />
                 </mesh>
-
-                {/* Debris collection BIN attached under the end-effector */}
-                <group position={[0, -0.28, 0.18]}>
-                  {/* Suspension straps */}
-                  {[[-0.18, 0.18], [0.18, 0.18], [-0.18, -0.18], [0.18, -0.18]].map(([x, z], i) => (
-                    <mesh key={i} position={[x, 0.14, z]} material={mats.silver}>
-                      <cylinderGeometry args={[0.006, 0.006, 0.28, 6]} />
-                    </mesh>
-                  ))}
-                  {/* Bin walls (open-top box) */}
-                  <mesh position={[0, -0.02, 0]} material={mats.lightGray}>
-                    <boxGeometry args={[0.44, 0.02, 0.44]} />
-                  </mesh>
-                  {[[0, 0.22], [0, -0.22]].map(([x, z], i) => (
-                    <mesh key={`ws${i}`} position={[x, 0.09, z]} material={mats.white}>
-                      <boxGeometry args={[0.44, 0.22, 0.02]} />
-                    </mesh>
-                  ))}
-                  {[[0.22, 0], [-0.22, 0]].map(([x, z], i) => (
-                    <mesh key={`we${i}`} position={[x, 0.09, z]} material={mats.white}>
-                      <boxGeometry args={[0.02, 0.22, 0.44]} />
-                    </mesh>
-                  ))}
-                  {/* MLI gold lining */}
-                  <mesh position={[0, -0.008, 0]} material={mats.gold}>
-                    <boxGeometry args={[0.4, 0.005, 0.4]} />
-                  </mesh>
-                  {/* Orange hazard stripe */}
-                  <mesh position={[0, 0.19, 0.221]} material={mats.accentOrange}>
-                    <boxGeometry args={[0.36, 0.025, 0.003]} />
-                  </mesh>
-                  {/* "Captured" debris chunks inside */}
-                  <mesh position={[-0.08, 0.03, 0.05]} material={mats.carbon} rotation={[0.4, 0.6, 0.2]}>
-                    <boxGeometry args={[0.09, 0.06, 0.07]} />
-                  </mesh>
-                  <mesh position={[0.1, 0.02, -0.06]} material={mats.silver} rotation={[0.2, -0.5, 0.3]}>
-                    <boxGeometry args={[0.07, 0.05, 0.08]} />
-                  </mesh>
-                  <mesh position={[0.02, 0.04, 0.12]} material={mats.navy} rotation={[0.6, 0.2, -0.3]}>
-                    <boxGeometry args={[0.05, 0.05, 0.05]} />
-                  </mesh>
-                </group>
               </group>
             </group>
           </group>
