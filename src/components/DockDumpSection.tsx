@@ -688,19 +688,6 @@ const DockDumpSection = () => {
 
   // Docking metrics HUD — derived from mission state for a realistic instrument cluster.
   const { chaserPos, debrisPos, armExtension, grip, holding } = useMemo(
-    setPhase(Math.max(0, Math.min(PHASE_COUNT - 1, i)));
-    setP(0);
-    setIsPlaying(false);
-  };
-  const reset = () => goTo(0);
-
-  const current = phases[phase];
-  const liveValue = current.startVal + (current.endVal - current.startVal) * p;
-  const formatVal = (v: number) =>
-    Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
-
-  // Docking metrics HUD — derived from mission state for a realistic instrument cluster.
-  const { chaserPos, debrisPos, armExtension, grip, holding } = useMemo(
     () => deriveMissionState(phase, p),
     [phase, p]
   );
