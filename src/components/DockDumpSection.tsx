@@ -414,7 +414,11 @@ function ReentryTrail({ active, position }: { active: boolean; position: [number
 
 /* ---------- Mission state derivation (shared by Scene + HUD) ---------- */
 
-function deriveMissionState(phase: number, p: number) {
+// Smooth easing so scrubbing/playback feels physical instead of linear.
+const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+function deriveMissionState(phase: number, pRaw: number) {
+  const p = easeInOut(THREE.MathUtils.clamp(pRaw, 0, 1));
   const px =
     phase === 0 ? -3 :
     phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
@@ -435,7 +439,10 @@ function deriveMissionState(phase: number, p: number) {
     0.3;
   const grip = phase >= 2 && (phase > 2 || p > 0.7) ? 0 : 1;
   const holding = (phase === 2 && p > 0.85) || phase === 3 || phase === 4 || phase === 5;
-  const thruster = phase === 4 ? 1 : phase === 5 ? 0.4 : 0;
+  // Ramp thruster smoothly at burn ignition/shutdown for a cinematic feel.
+  const thruster =
+    phase === 4 ? Math.min(1, p * 3) * Math.min(1, (1 - p) * 3 + 0.4) :
+    phase === 5 ? 0.4 * (1 - p * 0.6) : 0;
 
   return { chaserPos, debrisPos, armExtension, grip, holding, thruster };
 }
