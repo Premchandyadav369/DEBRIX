@@ -81,27 +81,47 @@ function HighGainDish({ position }: { position: [number, number, number] }) {
 
 /* ---------- Articulated robotic arm (4-DOF) ---------- */
 
+// Realistic joint limits (radians) — modelled after Canadarm2-class manipulator envelopes.
+export const ARM_LIMITS = {
+  shoulder: { min: THREE.MathUtils.degToRad(-150), max: THREE.MathUtils.degToRad(-20) },
+  elbow:    { min: THREE.MathUtils.degToRad(-160), max: THREE.MathUtils.degToRad(-15) },
+  wrist:    { min: THREE.MathUtils.degToRad(-45),  max: THREE.MathUtils.degToRad(60)  },
+  extension:{ min: 0.02, max: 0.96 },
+};
+
+export function armJointAngles(extension: number) {
+  const e = THREE.MathUtils.clamp(extension, ARM_LIMITS.extension.min, ARM_LIMITS.extension.max);
+  return {
+    shoulder: THREE.MathUtils.lerp(ARM_LIMITS.shoulder.min, ARM_LIMITS.shoulder.max, e),
+    elbow:    THREE.MathUtils.lerp(ARM_LIMITS.elbow.min,    ARM_LIMITS.elbow.max,    e),
+    wrist:    THREE.MathUtils.lerp(ARM_LIMITS.wrist.max,    ARM_LIMITS.wrist.min,    e),
+    e,
+  };
+}
+
 function RoboticArm({ extension, grip, holding }: { extension: number; grip: number; holding: boolean }) {
-  // extension 0..1 — how reached out the arm is
   const shoulder = useRef<THREE.Group>(null);
   const elbow = useRef<THREE.Group>(null);
   const wrist = useRef<THREE.Group>(null);
+  // Smooth joint targets so scrubbing/animation looks fluid and respects rate limits.
+  const state = useRef({ s: 0, el: 0, w: 0, init: false });
 
-  // Realistic joint limits (radians) — modelled after Canadarm2-class manipulator envelopes.
-  // Shoulder pitch: -150° to -20°  | Elbow: -160° to -15° (no hyperextension)
-  // Wrist pitch:    -45° to +60°   | Extension clamped to [0.02, 0.96] to avoid singularity at full reach.
-  const SHOULDER_MIN = THREE.MathUtils.degToRad(-150);
-  const SHOULDER_MAX = THREE.MathUtils.degToRad(-20);
-  const ELBOW_MIN = THREE.MathUtils.degToRad(-160);
-  const ELBOW_MAX = THREE.MathUtils.degToRad(-15);
-  const WRIST_MIN = THREE.MathUtils.degToRad(-45);
-  const WRIST_MAX = THREE.MathUtils.degToRad(60);
-
-  useFrame(() => {
-    const e = THREE.MathUtils.clamp(extension, 0.02, 0.96);
-    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(SHOULDER_MIN, SHOULDER_MAX, e);
-    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(ELBOW_MIN, ELBOW_MAX, e);
-    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(WRIST_MAX, WRIST_MIN, e);
+  useFrame((_, dt) => {
+    const { shoulder: sT, elbow: elT, wrist: wT } = armJointAngles(extension);
+    if (!state.current.init) {
+      state.current = { s: sT, el: elT, w: wT, init: true };
+    } else {
+      // Rate-limited joint slew (max ~1.2 rad/s) then clamp to hard limits.
+      const maxRate = 1.2 * dt;
+      const step = (cur: number, tgt: number) =>
+        cur + THREE.MathUtils.clamp(tgt - cur, -maxRate, maxRate);
+      state.current.s  = THREE.MathUtils.clamp(step(state.current.s,  sT), ARM_LIMITS.shoulder.min, ARM_LIMITS.shoulder.max);
+      state.current.el = THREE.MathUtils.clamp(step(state.current.el, elT), ARM_LIMITS.elbow.min,    ARM_LIMITS.elbow.max);
+      state.current.w  = THREE.MathUtils.clamp(step(state.current.w,  wT), ARM_LIMITS.wrist.min,     ARM_LIMITS.wrist.max);
+    }
+    if (shoulder.current) shoulder.current.rotation.z = state.current.s;
+    if (elbow.current)    elbow.current.rotation.z    = state.current.el;
+    if (wrist.current)    wrist.current.rotation.z    = state.current.w;
   });
 
   const segMat = <meshStandardMaterial color="#d1d5db" metalness={0.85} roughness={0.25} />;
@@ -394,7 +414,11 @@ function ReentryTrail({ active, position }: { active: boolean; position: [number
 
 /* ---------- Mission state derivation (shared by Scene + HUD) ---------- */
 
-function deriveMissionState(phase: number, p: number) {
+// Smooth easing so scrubbing/playback feels physical instead of linear.
+const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+function deriveMissionState(phase: number, pRaw: number) {
+  const p = easeInOut(THREE.MathUtils.clamp(pRaw, 0, 1));
   const px =
     phase === 0 ? -3 :
     phase === 1 ? THREE.MathUtils.lerp(-3, -1.3, p) :
@@ -415,7 +439,10 @@ function deriveMissionState(phase: number, p: number) {
     0.3;
   const grip = phase >= 2 && (phase > 2 || p > 0.7) ? 0 : 1;
   const holding = (phase === 2 && p > 0.85) || phase === 3 || phase === 4 || phase === 5;
-  const thruster = phase === 4 ? 1 : phase === 5 ? 0.4 : 0;
+  // Ramp thruster smoothly at burn ignition/shutdown for a cinematic feel.
+  const thruster =
+    phase === 4 ? Math.min(1, p * 3) * Math.min(1, (1 - p) * 3 + 0.4) :
+    phase === 5 ? 0.4 * (1 - p * 0.6) : 0;
 
   return { chaserPos, debrisPos, armExtension, grip, holding, thruster };
 }
@@ -598,25 +625,54 @@ const DockDumpSection = () => {
   const [speed, setSpeed] = useState(1);
   const [preset, setPreset] = useState<CameraPreset>("free");
 
+  // Per-phase durations (seconds) — used by the rAF-driven playback and the global scrubber.
+  const PHASE_DURATIONS = useMemo(() => [3.5, 5.0, 4.0, 3.0, 4.5, 4.0], []);
+  const TOTAL_DURATION = useMemo(() => PHASE_DURATIONS.reduce((a, b) => a + b, 0), [PHASE_DURATIONS]);
+
+  // Global mission time in seconds — the single source of truth the scrubber writes to.
+  const missionTime = useMemo(() => {
+    let t = 0;
+    for (let i = 0; i < phase; i++) t += PHASE_DURATIONS[i];
+    return t + p * PHASE_DURATIONS[phase];
+  }, [phase, p, PHASE_DURATIONS]);
+
+  const setMissionTime = (t: number) => {
+    let rem = Math.max(0, Math.min(TOTAL_DURATION, t));
+    for (let i = 0; i < PHASE_COUNT; i++) {
+      if (rem <= PHASE_DURATIONS[i] || i === PHASE_COUNT - 1) {
+        setPhase(i);
+        setP(Math.min(1, rem / PHASE_DURATIONS[i]));
+        return;
+      }
+      rem -= PHASE_DURATIONS[i];
+    }
+  };
+
   useEffect(() => {
     if (!isPlaying) return;
-    const id = setInterval(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
       setP((cur) => {
-        if (cur >= 1) {
-          setPhase((prev) => {
-            if (prev >= PHASE_COUNT - 1) {
-              setIsPlaying(false);
-              return prev;
-            }
-            return prev + 1;
-          });
+        const dur = PHASE_DURATIONS[phase];
+        const next = cur + (dt * speed) / dur;
+        if (next >= 1) {
+          if (phase >= PHASE_COUNT - 1) {
+            setIsPlaying(false);
+            return 1;
+          }
+          setPhase((prev) => prev + 1);
           return 0;
         }
-        return Math.min(1, cur + 0.012 * speed);
+        return next;
       });
-    }, 50);
-    return () => clearInterval(id);
-  }, [isPlaying, speed]);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying, speed, phase, PHASE_DURATIONS]);
 
   const goTo = (i: number) => {
     setPhase(Math.max(0, Math.min(PHASE_COUNT - 1, i)));
@@ -650,6 +706,14 @@ const DockDumpSection = () => {
     phase >= 3 ? 0.05 : 14.0;
   const gripForce = holding ? 42 + Math.sin(p * 8) * 3 : grip < 1 ? p * 18 : 0;
   const armReach = armExtension * 1.2; // metres
+  const joints = armJointAngles(armExtension);
+  const jointPct = (val: number, min: number, max: number) =>
+    THREE.MathUtils.clamp((val - min) / (max - min), 0, 1);
+  const jointRows = [
+    { label: "Shoulder", deg: THREE.MathUtils.radToDeg(joints.shoulder), pct: jointPct(joints.shoulder, ARM_LIMITS.shoulder.min, ARM_LIMITS.shoulder.max), range: `${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.shoulder.min))}° / ${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.shoulder.max))}°` },
+    { label: "Elbow",    deg: THREE.MathUtils.radToDeg(joints.elbow),    pct: jointPct(joints.elbow,    ARM_LIMITS.elbow.min,    ARM_LIMITS.elbow.max),    range: `${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.elbow.min))}° / ${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.elbow.max))}°` },
+    { label: "Wrist",    deg: THREE.MathUtils.radToDeg(joints.wrist),    pct: jointPct(joints.wrist,    ARM_LIMITS.wrist.min,    ARM_LIMITS.wrist.max),    range: `${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.wrist.min))}° / ${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.wrist.max))}°` },
+  ];
   const dockingMetrics = [
     { label: "Range", value: range >= 1000 ? (range / 1000).toFixed(2) : range.toFixed(0), unit: range >= 1000 ? "km" : "m", tone: "primary" as const },
     { label: "Closing", value: closingRate.toFixed(2), unit: "m/s", tone: closingRate < 0.1 ? "good" : closingRate > 1 ? "warn" : "primary" as const },
@@ -658,6 +722,11 @@ const DockDumpSection = () => {
     { label: "Arm Reach", value: armReach.toFixed(2), unit: "m", tone: "primary" as const },
     { label: "Grip Force", value: gripForce.toFixed(0), unit: "N", tone: gripForce > 0 ? "good" : "muted" as const },
   ];
+  const fmtTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
   const toneClass = (t: string) =>
     t === "good" ? "text-emerald-300 border-emerald-400/40" :
     t === "warn" ? "text-amber-300 border-amber-400/40" :
@@ -783,6 +852,42 @@ const DockDumpSection = () => {
                 </div>
               </div>
 
+              {/* Arm joint-limit HUD — right rail */}
+              <div className="absolute right-3 top-24 w-[168px] hidden sm:block pointer-events-none">
+                <div className="p-2 rounded-md bg-background/80 backdrop-blur-md border border-border/40">
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <Activity className="w-3 h-3 text-primary" />
+                    <span className="text-[9px] font-display tracking-[0.2em] uppercase text-primary">Arm Joints</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {jointRows.map((j) => {
+                      const near = j.pct < 0.06 || j.pct > 0.94;
+                      return (
+                        <div key={j.label} className="px-1">
+                          <div className="flex items-baseline justify-between text-[9px] font-display tracking-wider uppercase">
+                            <span className="text-muted-foreground/90">{j.label}</span>
+                            <span className={`font-mono tabular-nums ${near ? "text-amber-300" : "text-primary"}`}>
+                              {j.deg.toFixed(0)}°
+                            </span>
+                          </div>
+                          <div className="relative h-1.5 mt-0.5 rounded-full bg-secondary/60 overflow-hidden">
+                            <div
+                              className={`absolute top-0 left-0 h-full rounded-full ${near ? "bg-amber-400" : "bg-primary"} transition-[width] duration-150`}
+                              style={{ width: `${j.pct * 100}%` }}
+                            />
+                            <div className="absolute inset-y-0 left-[6%] w-px bg-amber-400/50" />
+                            <div className="absolute inset-y-0 right-[6%] w-px bg-amber-400/50" />
+                          </div>
+                          <div className="text-[8px] text-muted-foreground/70 font-mono mt-0.5">{j.range}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+
+
 
 
               {/* Help overlay */}
@@ -829,6 +934,71 @@ const DockDumpSection = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Global mission scrubber (continuous, with tick markers per phase) */}
+              <div className="absolute bottom-[70px] left-3 right-3 p-2 rounded-lg bg-background/80 backdrop-blur-md border border-border/40">
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <span className="text-[9px] font-display tracking-[0.2em] uppercase text-muted-foreground">Mission Scrubber</span>
+                  <span className="text-[10px] font-mono tabular-nums text-primary">
+                    T+{fmtTime(missionTime)} <span className="text-muted-foreground/70">/ {fmtTime(TOTAL_DURATION)}</span>
+                  </span>
+                </div>
+                <div className="relative h-4 flex items-center">
+                  {/* phase boundary ticks */}
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 rounded-full bg-secondary/50 overflow-hidden">
+                    <div
+                      className="h-full bg-primary/70"
+                      style={{ width: `${(missionTime / TOTAL_DURATION) * 100}%` }}
+                    />
+                  </div>
+                  {(() => {
+                    let acc = 0;
+                    return PHASE_DURATIONS.slice(0, -1).map((d, i) => {
+                      acc += d;
+                      const left = (acc / TOTAL_DURATION) * 100;
+                      return (
+                        <div key={i} className="absolute top-0 bottom-0 w-px bg-border/80" style={{ left: `${left}%` }} />
+                      );
+                    });
+                  })()}
+                  <input
+                    type="range"
+                    min={0}
+                    max={TOTAL_DURATION}
+                    step={0.05}
+                    value={missionTime}
+                    onChange={(e) => { setIsPlaying(false); setMissionTime(parseFloat(e.target.value)); }}
+                    aria-label="Scrub mission time"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] pointer-events-none"
+                    style={{ left: `${(missionTime / TOTAL_DURATION) * 100}%` }}
+                  />
+                </div>
+                <div className="relative mt-1 h-3">
+                  {(() => {
+                    let acc = 0;
+                    return phases.map((ph, i) => {
+                      const start = acc;
+                      acc += PHASE_DURATIONS[i];
+                      const mid = ((start + PHASE_DURATIONS[i] / 2) / TOTAL_DURATION) * 100;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => goTo(i)}
+                          className={`absolute -translate-x-1/2 text-[8px] font-display tracking-wider uppercase whitespace-nowrap ${
+                            phase === i ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
+                          }`}
+                          style={{ left: `${mid}%` }}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
 
               {/* Bottom controls */}
               <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/85 backdrop-blur-md border border-border/40">
