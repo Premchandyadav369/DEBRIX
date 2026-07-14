@@ -935,6 +935,71 @@ const DockDumpSection = () => {
                 )}
               </AnimatePresence>
 
+              {/* Global mission scrubber (continuous, with tick markers per phase) */}
+              <div className="absolute bottom-[70px] left-3 right-3 p-2 rounded-lg bg-background/80 backdrop-blur-md border border-border/40">
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <span className="text-[9px] font-display tracking-[0.2em] uppercase text-muted-foreground">Mission Scrubber</span>
+                  <span className="text-[10px] font-mono tabular-nums text-primary">
+                    T+{fmtTime(missionTime)} <span className="text-muted-foreground/70">/ {fmtTime(TOTAL_DURATION)}</span>
+                  </span>
+                </div>
+                <div className="relative h-4 flex items-center">
+                  {/* phase boundary ticks */}
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 rounded-full bg-secondary/50 overflow-hidden">
+                    <div
+                      className="h-full bg-primary/70"
+                      style={{ width: `${(missionTime / TOTAL_DURATION) * 100}%` }}
+                    />
+                  </div>
+                  {(() => {
+                    let acc = 0;
+                    return PHASE_DURATIONS.slice(0, -1).map((d, i) => {
+                      acc += d;
+                      const left = (acc / TOTAL_DURATION) * 100;
+                      return (
+                        <div key={i} className="absolute top-0 bottom-0 w-px bg-border/80" style={{ left: `${left}%` }} />
+                      );
+                    });
+                  })()}
+                  <input
+                    type="range"
+                    min={0}
+                    max={TOTAL_DURATION}
+                    step={0.05}
+                    value={missionTime}
+                    onChange={(e) => { setIsPlaying(false); setMissionTime(parseFloat(e.target.value)); }}
+                    aria-label="Scrub mission time"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] pointer-events-none"
+                    style={{ left: `${(missionTime / TOTAL_DURATION) * 100}%` }}
+                  />
+                </div>
+                <div className="relative mt-1 h-3">
+                  {(() => {
+                    let acc = 0;
+                    return phases.map((ph, i) => {
+                      const start = acc;
+                      acc += PHASE_DURATIONS[i];
+                      const mid = ((start + PHASE_DURATIONS[i] / 2) / TOTAL_DURATION) * 100;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => goTo(i)}
+                          className={`absolute -translate-x-1/2 text-[8px] font-display tracking-wider uppercase whitespace-nowrap ${
+                            phase === i ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
+                          }`}
+                          style={{ left: `${mid}%` }}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
               {/* Bottom controls */}
               <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 p-2 rounded-lg bg-background/85 backdrop-blur-md border border-border/40">
                 <button
