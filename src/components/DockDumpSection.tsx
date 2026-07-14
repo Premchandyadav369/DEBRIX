@@ -81,27 +81,47 @@ function HighGainDish({ position }: { position: [number, number, number] }) {
 
 /* ---------- Articulated robotic arm (4-DOF) ---------- */
 
+// Realistic joint limits (radians) — modelled after Canadarm2-class manipulator envelopes.
+export const ARM_LIMITS = {
+  shoulder: { min: THREE.MathUtils.degToRad(-150), max: THREE.MathUtils.degToRad(-20) },
+  elbow:    { min: THREE.MathUtils.degToRad(-160), max: THREE.MathUtils.degToRad(-15) },
+  wrist:    { min: THREE.MathUtils.degToRad(-45),  max: THREE.MathUtils.degToRad(60)  },
+  extension:{ min: 0.02, max: 0.96 },
+};
+
+export function armJointAngles(extension: number) {
+  const e = THREE.MathUtils.clamp(extension, ARM_LIMITS.extension.min, ARM_LIMITS.extension.max);
+  return {
+    shoulder: THREE.MathUtils.lerp(ARM_LIMITS.shoulder.min, ARM_LIMITS.shoulder.max, e),
+    elbow:    THREE.MathUtils.lerp(ARM_LIMITS.elbow.min,    ARM_LIMITS.elbow.max,    e),
+    wrist:    THREE.MathUtils.lerp(ARM_LIMITS.wrist.max,    ARM_LIMITS.wrist.min,    e),
+    e,
+  };
+}
+
 function RoboticArm({ extension, grip, holding }: { extension: number; grip: number; holding: boolean }) {
-  // extension 0..1 — how reached out the arm is
   const shoulder = useRef<THREE.Group>(null);
   const elbow = useRef<THREE.Group>(null);
   const wrist = useRef<THREE.Group>(null);
+  // Smooth joint targets so scrubbing/animation looks fluid and respects rate limits.
+  const state = useRef({ s: 0, el: 0, w: 0, init: false });
 
-  // Realistic joint limits (radians) — modelled after Canadarm2-class manipulator envelopes.
-  // Shoulder pitch: -150° to -20°  | Elbow: -160° to -15° (no hyperextension)
-  // Wrist pitch:    -45° to +60°   | Extension clamped to [0.02, 0.96] to avoid singularity at full reach.
-  const SHOULDER_MIN = THREE.MathUtils.degToRad(-150);
-  const SHOULDER_MAX = THREE.MathUtils.degToRad(-20);
-  const ELBOW_MIN = THREE.MathUtils.degToRad(-160);
-  const ELBOW_MAX = THREE.MathUtils.degToRad(-15);
-  const WRIST_MIN = THREE.MathUtils.degToRad(-45);
-  const WRIST_MAX = THREE.MathUtils.degToRad(60);
-
-  useFrame(() => {
-    const e = THREE.MathUtils.clamp(extension, 0.02, 0.96);
-    if (shoulder.current) shoulder.current.rotation.z = THREE.MathUtils.lerp(SHOULDER_MIN, SHOULDER_MAX, e);
-    if (elbow.current) elbow.current.rotation.z = THREE.MathUtils.lerp(ELBOW_MIN, ELBOW_MAX, e);
-    if (wrist.current) wrist.current.rotation.z = THREE.MathUtils.lerp(WRIST_MAX, WRIST_MIN, e);
+  useFrame((_, dt) => {
+    const { shoulder: sT, elbow: elT, wrist: wT } = armJointAngles(extension);
+    if (!state.current.init) {
+      state.current = { s: sT, el: elT, w: wT, init: true };
+    } else {
+      // Rate-limited joint slew (max ~1.2 rad/s) then clamp to hard limits.
+      const maxRate = 1.2 * dt;
+      const step = (cur: number, tgt: number) =>
+        cur + THREE.MathUtils.clamp(tgt - cur, -maxRate, maxRate);
+      state.current.s  = THREE.MathUtils.clamp(step(state.current.s,  sT), ARM_LIMITS.shoulder.min, ARM_LIMITS.shoulder.max);
+      state.current.el = THREE.MathUtils.clamp(step(state.current.el, elT), ARM_LIMITS.elbow.min,    ARM_LIMITS.elbow.max);
+      state.current.w  = THREE.MathUtils.clamp(step(state.current.w,  wT), ARM_LIMITS.wrist.min,     ARM_LIMITS.wrist.max);
+    }
+    if (shoulder.current) shoulder.current.rotation.z = state.current.s;
+    if (elbow.current)    elbow.current.rotation.z    = state.current.el;
+    if (wrist.current)    wrist.current.rotation.z    = state.current.w;
   });
 
   const segMat = <meshStandardMaterial color="#d1d5db" metalness={0.85} roughness={0.25} />;
