@@ -852,6 +852,42 @@ const DockDumpSection = () => {
                 </div>
               </div>
 
+              {/* Arm joint-limit HUD — right rail */}
+              <div className="absolute right-3 top-24 w-[168px] hidden sm:block pointer-events-none">
+                <div className="p-2 rounded-md bg-background/80 backdrop-blur-md border border-border/40">
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <Activity className="w-3 h-3 text-primary" />
+                    <span className="text-[9px] font-display tracking-[0.2em] uppercase text-primary">Arm Joints</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {jointRows.map((j) => {
+                      const near = j.pct < 0.06 || j.pct > 0.94;
+                      return (
+                        <div key={j.label} className="px-1">
+                          <div className="flex items-baseline justify-between text-[9px] font-display tracking-wider uppercase">
+                            <span className="text-muted-foreground/90">{j.label}</span>
+                            <span className={`font-mono tabular-nums ${near ? "text-amber-300" : "text-primary"}`}>
+                              {j.deg.toFixed(0)}°
+                            </span>
+                          </div>
+                          <div className="relative h-1.5 mt-0.5 rounded-full bg-secondary/60 overflow-hidden">
+                            <div
+                              className={`absolute top-0 left-0 h-full rounded-full ${near ? "bg-amber-400" : "bg-primary"} transition-[width] duration-150`}
+                              style={{ width: `${j.pct * 100}%` }}
+                            />
+                            <div className="absolute inset-y-0 left-[6%] w-px bg-amber-400/50" />
+                            <div className="absolute inset-y-0 right-[6%] w-px bg-amber-400/50" />
+                          </div>
+                          <div className="text-[8px] text-muted-foreground/70 font-mono mt-0.5">{j.range}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+
+
 
 
               {/* Help overlay */}
