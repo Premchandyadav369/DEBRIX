@@ -625,27 +625,69 @@ const DockDumpSection = () => {
   const [speed, setSpeed] = useState(1);
   const [preset, setPreset] = useState<CameraPreset>("free");
 
+  // Per-phase durations (seconds) — used by the rAF-driven playback and the global scrubber.
+  const PHASE_DURATIONS = useMemo(() => [3.5, 5.0, 4.0, 3.0, 4.5, 4.0], []);
+  const TOTAL_DURATION = useMemo(() => PHASE_DURATIONS.reduce((a, b) => a + b, 0), [PHASE_DURATIONS]);
+
+  // Global mission time in seconds — the single source of truth the scrubber writes to.
+  const missionTime = useMemo(() => {
+    let t = 0;
+    for (let i = 0; i < phase; i++) t += PHASE_DURATIONS[i];
+    return t + p * PHASE_DURATIONS[phase];
+  }, [phase, p, PHASE_DURATIONS]);
+
+  const setMissionTime = (t: number) => {
+    let rem = Math.max(0, Math.min(TOTAL_DURATION, t));
+    for (let i = 0; i < PHASE_COUNT; i++) {
+      if (rem <= PHASE_DURATIONS[i] || i === PHASE_COUNT - 1) {
+        setPhase(i);
+        setP(Math.min(1, rem / PHASE_DURATIONS[i]));
+        return;
+      }
+      rem -= PHASE_DURATIONS[i];
+    }
+  };
+
   useEffect(() => {
     if (!isPlaying) return;
-    const id = setInterval(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
       setP((cur) => {
-        if (cur >= 1) {
-          setPhase((prev) => {
-            if (prev >= PHASE_COUNT - 1) {
-              setIsPlaying(false);
-              return prev;
-            }
-            return prev + 1;
-          });
+        const dur = PHASE_DURATIONS[phase];
+        const next = cur + (dt * speed) / dur;
+        if (next >= 1) {
+          if (phase >= PHASE_COUNT - 1) {
+            setIsPlaying(false);
+            return 1;
+          }
+          setPhase((prev) => prev + 1);
           return 0;
         }
-        return Math.min(1, cur + 0.012 * speed);
+        return next;
       });
-    }, 50);
-    return () => clearInterval(id);
-  }, [isPlaying, speed]);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying, speed, phase, PHASE_DURATIONS]);
 
   const goTo = (i: number) => {
+    setPhase(Math.max(0, Math.min(PHASE_COUNT - 1, i)));
+    setP(0);
+    setIsPlaying(false);
+  };
+  const reset = () => goTo(0);
+
+  const current = phases[phase];
+  const liveValue = current.startVal + (current.endVal - current.startVal) * p;
+  const formatVal = (v: number) =>
+    Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
+
+  // Docking metrics HUD — derived from mission state for a realistic instrument cluster.
+  const { chaserPos, debrisPos, armExtension, grip, holding } = useMemo(
     setPhase(Math.max(0, Math.min(PHASE_COUNT - 1, i)));
     setP(0);
     setIsPlaying(false);
