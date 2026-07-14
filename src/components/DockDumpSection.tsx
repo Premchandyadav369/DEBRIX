@@ -706,6 +706,14 @@ const DockDumpSection = () => {
     phase >= 3 ? 0.05 : 14.0;
   const gripForce = holding ? 42 + Math.sin(p * 8) * 3 : grip < 1 ? p * 18 : 0;
   const armReach = armExtension * 1.2; // metres
+  const joints = armJointAngles(armExtension);
+  const jointPct = (val: number, min: number, max: number) =>
+    THREE.MathUtils.clamp((val - min) / (max - min), 0, 1);
+  const jointRows = [
+    { label: "Shoulder", deg: THREE.MathUtils.radToDeg(joints.shoulder), pct: jointPct(joints.shoulder, ARM_LIMITS.shoulder.min, ARM_LIMITS.shoulder.max), range: `${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.shoulder.min))}° / ${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.shoulder.max))}°` },
+    { label: "Elbow",    deg: THREE.MathUtils.radToDeg(joints.elbow),    pct: jointPct(joints.elbow,    ARM_LIMITS.elbow.min,    ARM_LIMITS.elbow.max),    range: `${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.elbow.min))}° / ${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.elbow.max))}°` },
+    { label: "Wrist",    deg: THREE.MathUtils.radToDeg(joints.wrist),    pct: jointPct(joints.wrist,    ARM_LIMITS.wrist.min,    ARM_LIMITS.wrist.max),    range: `${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.wrist.min))}° / ${Math.round(THREE.MathUtils.radToDeg(ARM_LIMITS.wrist.max))}°` },
+  ];
   const dockingMetrics = [
     { label: "Range", value: range >= 1000 ? (range / 1000).toFixed(2) : range.toFixed(0), unit: range >= 1000 ? "km" : "m", tone: "primary" as const },
     { label: "Closing", value: closingRate.toFixed(2), unit: "m/s", tone: closingRate < 0.1 ? "good" : closingRate > 1 ? "warn" : "primary" as const },
@@ -714,6 +722,11 @@ const DockDumpSection = () => {
     { label: "Arm Reach", value: armReach.toFixed(2), unit: "m", tone: "primary" as const },
     { label: "Grip Force", value: gripForce.toFixed(0), unit: "N", tone: gripForce > 0 ? "good" : "muted" as const },
   ];
+  const fmtTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
   const toneClass = (t: string) =>
     t === "good" ? "text-emerald-300 border-emerald-400/40" :
     t === "warn" ? "text-amber-300 border-amber-400/40" :
