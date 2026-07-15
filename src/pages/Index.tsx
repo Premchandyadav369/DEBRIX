@@ -48,6 +48,8 @@ const SpaceNewsSection = lazy(() => import("@/components/SpaceNewsSection"));
 
 const ArtemisTrackerSection = lazy(() => import("@/components/ArtemisTrackerSection"));
 const SolarImagerySection = lazy(() => import("@/components/SolarImagerySection"));
+const MissionControlCockpit = lazy(() => import("@/components/MissionControlCockpit"));
+const DebrisCaptureMissionPlanner = lazy(() => import("@/components/DebrisCaptureMissionPlanner"));
 
 const Lazy = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<SectionSkeleton />}>{children}</Suspense>
