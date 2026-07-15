@@ -62,6 +62,12 @@ const Index = () => {
       <Navbar />
       <HeroSection />
 
+      <SectionExplainer sectionId="cockpit" />
+      <Lazy><MissionControlCockpit /></Lazy>
+
+      <SectionExplainer sectionId="capture-planner" />
+      <Lazy><DebrisCaptureMissionPlanner /></Lazy>
+
       <SectionExplainer sectionId="mission" />
       <RevealOnScroll>
         <MissionSection />
