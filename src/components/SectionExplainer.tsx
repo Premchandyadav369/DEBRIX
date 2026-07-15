@@ -16,6 +16,8 @@ interface ExplainerData {
 }
 
 const explainers: Record<string, ExplainerData> = {
+  cockpit: { icon: Globe, emoji: "🌍", explain: "Full 3D mission control cockpit — HDR Earth, live ISS position, satellite constellations by orbit shell, and a real-time debris cloud. Click any object to inspect its orbit." },
+  "capture-planner": { icon: Target, emoji: "🎯", explain: "Pick a real debris target from live tracking data — the planner computes fuel needed, plans the rendezvous, and animates DEBRI-X capturing it in 3D." },
   mission: { icon: Target, emoji: "🛰️", explain: "Space junk is stuff left behind by old rockets and broken satellites — and it's dangerous! This section shows how Debrix cleans it up using smart robots that fly together like a team." },
   "launch-sim": { icon: Rocket, emoji: "🚀", explain: "Ever wondered what happens during a rocket launch? This simulator lets you experience each stage — from the engines firing to reaching orbit — just like a real mission control screen!" },
   workflow: { icon: Layers, emoji: "🧹", explain: "Think of this like a recipe for cleaning up space. Step by step — find debris, grab it, and safely burn it up in the atmosphere so it can't hurt anyone." },
