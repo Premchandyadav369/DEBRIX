@@ -5,6 +5,46 @@ const corsHeaders = {
 
 const BASE = 'https://api.keeptrack.space/v4';
 
+// In-memory circuit breaker per endpoint group. Persists across invocations
+// while the edge function instance stays warm, so we stop hammering a failing
+// upstream (esp. /socrates) and return the fallback payload immediately.
+type BreakerState = { failures: number; openedAt: number };
+const breakers = new Map<string, BreakerState>();
+const BREAKER_THRESHOLD = 3;       // consecutive failures before opening
+const BREAKER_COOLDOWN_MS = 60_000; // stay open for 60s before half-open probe
+
+function breakerKey(endpoint: string): string {
+  if (endpoint.startsWith('/socrates')) return 'socrates';
+  if (endpoint.startsWith('/radiopasses')) return 'radiopasses';
+  if (endpoint.startsWith('/positions')) return 'positions';
+  const m = endpoint.match(/^\/sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm)/);
+  if (m) return `sat-${m[1]}`;
+  return endpoint;
+}
+
+function breakerIsOpen(key: string): boolean {
+  const s = breakers.get(key);
+  if (!s) return false;
+  if (s.failures < BREAKER_THRESHOLD) return false;
+  if (Date.now() - s.openedAt > BREAKER_COOLDOWN_MS) {
+    // Half-open: allow one probe by resetting failure count to threshold-1.
+    breakers.set(key, { failures: BREAKER_THRESHOLD - 1, openedAt: 0 });
+    return false;
+  }
+  return true;
+}
+
+function breakerRecordFailure(key: string) {
+  const s = breakers.get(key) ?? { failures: 0, openedAt: 0 };
+  s.failures += 1;
+  if (s.failures >= BREAKER_THRESHOLD && !s.openedAt) s.openedAt = Date.now();
+  breakers.set(key, s);
+}
+
+function breakerRecordSuccess(key: string) {
+  if (breakers.has(key)) breakers.delete(key);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -51,6 +91,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+    const bKey = breakerKey(endpoint);
+
+    // Circuit breaker: if open, short-circuit soft endpoints with fallback.
+    if (breakerIsOpen(bKey)) {
+      if (softEndpoints.test(endpoint)) {
+        console.warn(`KeepTrack breaker OPEN for ${bKey} — returning fallback for ${endpoint}`);
+        return new Response(JSON.stringify({ data: [], passes: [], warning: 'Circuit breaker open', fallback: true, breaker: 'open' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ error: 'Upstream temporarily unavailable', breaker: 'open' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Retry with exponential backoff for transient failures (esp. /socrates/latest).
     // Retry on network errors and 5xx / 429. Do NOT retry on 4xx (except 429).
     const isSocrates = endpoint.startsWith('/socrates');
@@ -79,7 +135,7 @@ Deno.serve(async (req) => {
     }
 
     if (!response) {
-      const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      breakerRecordFailure(bKey);
       if (softEndpoints.test(endpoint)) {
         console.warn(`KeepTrack network failure on ${endpoint} after ${maxAttempts} attempts — empty set`);
         return new Response(JSON.stringify({ data: [], passes: [], warning: (lastErr as Error)?.message || 'Upstream unreachable', fallback: true }), {
@@ -97,12 +153,12 @@ Deno.serve(async (req) => {
       body = await response.text();
     }
 
-    // Graceful degradation: KeepTrack returns 422 ("Propagation failed — TLE may be stale or invalid")
-    // for decayed/invalid satellites on /radiopasses, /positions, /sat/*/eci etc.
-    // Convert these (and other upstream errors on read-only orbital endpoints) into a 200 empty
-    // payload so the client UI can skip them silently instead of blowing up.
+    // Graceful degradation for upstream errors on read-only orbital endpoints.
     if (!response.ok) {
-      const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      // 5xx / 429 / 408 count as breaker failures; 4xx (except 422 on soft) do not.
+      if (response.status >= 500 || response.status === 429 || response.status === 408) {
+        breakerRecordFailure(bKey);
+      }
       if (response.status === 422 || softEndpoints.test(endpoint)) {
         console.warn(`KeepTrack ${response.status} on ${endpoint} — returning empty set`);
         return new Response(JSON.stringify({ data: [], passes: [], warning: (body as any)?.error || `Upstream ${response.status}` }), {
@@ -110,6 +166,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+    } else {
+      breakerRecordSuccess(bKey);
     }
 
     return new Response(JSON.stringify(body), {
