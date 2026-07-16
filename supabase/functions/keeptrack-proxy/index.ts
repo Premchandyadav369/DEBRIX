@@ -5,6 +5,46 @@ const corsHeaders = {
 
 const BASE = 'https://api.keeptrack.space/v4';
 
+// In-memory circuit breaker per endpoint group. Persists across invocations
+// while the edge function instance stays warm, so we stop hammering a failing
+// upstream (esp. /socrates) and return the fallback payload immediately.
+type BreakerState = { failures: number; openedAt: number };
+const breakers = new Map<string, BreakerState>();
+const BREAKER_THRESHOLD = 3;       // consecutive failures before opening
+const BREAKER_COOLDOWN_MS = 60_000; // stay open for 60s before half-open probe
+
+function breakerKey(endpoint: string): string {
+  if (endpoint.startsWith('/socrates')) return 'socrates';
+  if (endpoint.startsWith('/radiopasses')) return 'radiopasses';
+  if (endpoint.startsWith('/positions')) return 'positions';
+  const m = endpoint.match(/^\/sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm)/);
+  if (m) return `sat-${m[1]}`;
+  return endpoint;
+}
+
+function breakerIsOpen(key: string): boolean {
+  const s = breakers.get(key);
+  if (!s) return false;
+  if (s.failures < BREAKER_THRESHOLD) return false;
+  if (Date.now() - s.openedAt > BREAKER_COOLDOWN_MS) {
+    // Half-open: allow one probe by resetting failure count to threshold-1.
+    breakers.set(key, { failures: BREAKER_THRESHOLD - 1, openedAt: 0 });
+    return false;
+  }
+  return true;
+}
+
+function breakerRecordFailure(key: string) {
+  const s = breakers.get(key) ?? { failures: 0, openedAt: 0 };
+  s.failures += 1;
+  if (s.failures >= BREAKER_THRESHOLD && !s.openedAt) s.openedAt = Date.now();
+  breakers.set(key, s);
+}
+
+function breakerRecordSuccess(key: string) {
+  if (breakers.has(key)) breakers.delete(key);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
