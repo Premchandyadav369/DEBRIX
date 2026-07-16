@@ -91,6 +91,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+    const bKey = breakerKey(endpoint);
+
+    // Circuit breaker: if open, short-circuit soft endpoints with fallback.
+    if (breakerIsOpen(bKey)) {
+      if (softEndpoints.test(endpoint)) {
+        console.warn(`KeepTrack breaker OPEN for ${bKey} — returning fallback for ${endpoint}`);
+        return new Response(JSON.stringify({ data: [], passes: [], warning: 'Circuit breaker open', fallback: true, breaker: 'open' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ error: 'Upstream temporarily unavailable', breaker: 'open' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Retry with exponential backoff for transient failures (esp. /socrates/latest).
     // Retry on network errors and 5xx / 429. Do NOT retry on 4xx (except 429).
     const isSocrates = endpoint.startsWith('/socrates');
@@ -119,7 +135,7 @@ Deno.serve(async (req) => {
     }
 
     if (!response) {
-      const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      breakerRecordFailure(bKey);
       if (softEndpoints.test(endpoint)) {
         console.warn(`KeepTrack network failure on ${endpoint} after ${maxAttempts} attempts — empty set`);
         return new Response(JSON.stringify({ data: [], passes: [], warning: (lastErr as Error)?.message || 'Upstream unreachable', fallback: true }), {
@@ -137,12 +153,12 @@ Deno.serve(async (req) => {
       body = await response.text();
     }
 
-    // Graceful degradation: KeepTrack returns 422 ("Propagation failed — TLE may be stale or invalid")
-    // for decayed/invalid satellites on /radiopasses, /positions, /sat/*/eci etc.
-    // Convert these (and other upstream errors on read-only orbital endpoints) into a 200 empty
-    // payload so the client UI can skip them silently instead of blowing up.
+    // Graceful degradation for upstream errors on read-only orbital endpoints.
     if (!response.ok) {
-      const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      // 5xx / 429 / 408 count as breaker failures; 4xx (except 422 on soft) do not.
+      if (response.status >= 500 || response.status === 429 || response.status === 408) {
+        breakerRecordFailure(bKey);
+      }
       if (response.status === 422 || softEndpoints.test(endpoint)) {
         console.warn(`KeepTrack ${response.status} on ${endpoint} — returning empty set`);
         return new Response(JSON.stringify({ data: [], passes: [], warning: (body as any)?.error || `Upstream ${response.status}` }), {
@@ -150,6 +166,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+    } else {
+      breakerRecordSuccess(bKey);
     }
 
     return new Response(JSON.stringify(body), {
