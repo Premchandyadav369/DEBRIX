@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     // Convert these (and other upstream errors on read-only orbital endpoints) into a 200 empty
     // payload so the client UI can skip them silently instead of blowing up.
     if (!response.ok) {
-      const softEndpoints = /^\/(radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
       if (response.status === 422 || softEndpoints.test(endpoint)) {
         console.warn(`KeepTrack ${response.status} on ${endpoint} — returning empty set`);
         return new Response(JSON.stringify({ data: [], passes: [], warning: (body as any)?.error || `Upstream ${response.status}` }), {
@@ -84,8 +84,8 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('KeepTrack proxy error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: (error as Error).message, data: [], passes: [], fallback: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
