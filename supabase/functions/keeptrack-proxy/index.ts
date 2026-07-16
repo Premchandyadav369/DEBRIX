@@ -51,9 +51,43 @@ Deno.serve(async (req) => {
       });
     }
 
-    const response = await fetch(`${BASE}${endpoint}`, {
-      headers: { 'X-API-Key': apiKey },
-    });
+    // Retry with exponential backoff for transient failures (esp. /socrates/latest).
+    // Retry on network errors and 5xx / 429. Do NOT retry on 4xx (except 429).
+    const isSocrates = endpoint.startsWith('/socrates');
+    const maxAttempts = isSocrates ? 4 : 2;
+    const baseDelayMs = 300;
+
+    let response: Response | null = null;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        response = await fetch(`${BASE}${endpoint}`, {
+          headers: { 'X-API-Key': apiKey },
+        });
+        const retryable = response.status >= 500 || response.status === 429 || response.status === 408;
+        if (!retryable) break;
+        lastErr = new Error(`Upstream ${response.status}`);
+      } catch (err) {
+        lastErr = err;
+        response = null;
+      }
+      if (attempt < maxAttempts - 1) {
+        const delay = baseDelayMs * Math.pow(2, attempt) + Math.floor(Math.random() * 150);
+        console.warn(`KeepTrack ${endpoint} attempt ${attempt + 1} failed, retrying in ${delay}ms`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+
+    if (!response) {
+      const softEndpoints = /^\/(socrates|radiopasses|positions|sat\/[\w-]+\/(eci|ecf|lla|rae|radec|tle|tles|omm))/;
+      if (softEndpoints.test(endpoint)) {
+        console.warn(`KeepTrack network failure on ${endpoint} after ${maxAttempts} attempts — empty set`);
+        return new Response(JSON.stringify({ data: [], passes: [], warning: (lastErr as Error)?.message || 'Upstream unreachable', fallback: true }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw lastErr ?? new Error('Upstream fetch failed');
+    }
 
     const contentType = response.headers.get('content-type') || '';
     let body: any;
