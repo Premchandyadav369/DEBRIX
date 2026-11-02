@@ -464,10 +464,10 @@ const PlanetVisibilitySection = () => {
   return (
     <section id="planet-visibility" className="relative z-10">
       <div className="section-container">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10 border-l-2 border-primary/40 pl-5">
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Live Ephemeris</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Solar System & Planet Visibility</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             {planets.length > 0
               ? `${visiblePlanets.length} planet${visiblePlanets.length !== 1 ? 's' : ''} currently above your horizon. Real-time positions computed from VSOP87 theory.`
               : 'Computing planetary positions...'}

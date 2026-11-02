@@ -19,11 +19,11 @@ const WorkflowSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="mb-16 border-l-2 border-primary/40 pl-5"
         >
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">How It Works</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Dock & Dump Workflow</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             A 7-step autonomous cycle from detection to deorbit.
           </p>
         </motion.div>

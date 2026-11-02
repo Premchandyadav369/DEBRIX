@@ -63,7 +63,7 @@ const TelemetrySection = () => {
   return (
     <section id="telemetry" className="relative z-10">
       <div className="section-container">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 border-l-2 border-primary/40 pl-5">
           <div className="flex items-center justify-center gap-2 mb-3">
             <span className={`w-2 h-2 rounded-full ${status === "live" ? "bg-accent animate-pulse" : "bg-destructive"}`} />
             <p className="font-display text-xs tracking-[0.3em] text-primary uppercase">
@@ -71,7 +71,7 @@ const TelemetrySection = () => {
             </p>
           </div>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Real-Time Telemetry</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             Live telemetry from the International Space Station — altitude, velocity, and position updated every 5 seconds via the Where The ISS At? API.
           </p>
         </motion.div>

@@ -178,10 +178,10 @@ const SatelliteExplorerSection = () => {
   return (
     <section id="satellite-explorer" className="relative z-10">
       <div className="section-container">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10 border-l-2 border-primary/40 pl-5">
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">KeepTrack Catalog · 60,000+ objects</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Satellite Explorer</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             Search any satellite by name or NORAD ID, read AI-generated mission summaries, see what the world is tracking right now, and watch live close-approach alerts from the SOCRATES conjunction feed.
           </p>
         </motion.div>

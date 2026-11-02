@@ -77,7 +77,7 @@ const TeamSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="mb-12 border-l-2 border-primary/40 pl-5"
         >
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">The Crew</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Our Team</h2>
