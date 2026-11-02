@@ -284,6 +284,17 @@ const MissionControlCockpit = () => {
     return [...sats, ...meo, ...geo, ...debris, iss, debrix];
   }, [issPos]);
 
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const [query, setQuery] = useState("");
+  const visible = useMemo(
+    () => objects.filter((o) => !hidden[o.kind]),
+    [objects, hidden]
+  );
+  const matches = useMemo(
+    () => (query.trim() ? objects.filter((o) => o.name.toLowerCase().includes(query.toLowerCase())).slice(0, 6) : []),
+    [objects, query]
+  );
+
   return (
     <section id="cockpit" className="relative z-10">
       <div className="section-container">
@@ -335,7 +346,7 @@ const MissionControlCockpit = () => {
               <Canvas camera={{ position: [2.6, 1.4, 2.6], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
                 <color attach="background" args={["#02040a"]} />
                 <Scene
-                  objects={objects}
+                  objects={visible}
                   timeRef={timeRef}
                   timeScale={timeScale}
                   onSelect={setSelected}
@@ -366,6 +377,42 @@ const MissionControlCockpit = () => {
 
           {/* Right rail: HUD */}
           <div className="flex flex-col gap-3">
+            <div className="glass-card p-4">
+              <p className="font-display text-[10px] tracking-widest text-muted-foreground mb-2">SEARCH & FILTER</p>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ISS, DEBRI-X, DEBRIS-1004…"
+                className="w-full px-2 py-1.5 text-xs font-mono rounded bg-background/60 border border-border focus:border-primary outline-none"
+              />
+              {matches.length > 0 && (
+                <div className="mt-2 flex flex-col">
+                  {matches.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => { setSelected(m); setQuery(""); setHidden((h) => ({ ...h, [m.kind]: false })); }}
+                      className="text-left text-xs font-mono py-1 text-muted-foreground hover:text-primary"
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-1">
+                {(["debrix", "iss", "sat", "debris"] as const).map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => setHidden((h) => ({ ...h, [k]: !h[k] }))}
+                    className={`px-2 py-0.5 text-[10px] font-mono rounded border uppercase ${
+                      hidden[k] ? "border-border text-muted-foreground line-through" : "border-primary/40 text-primary bg-primary/10"
+                    }`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground font-mono">Showing {visible.length} objects</p>
+            </div>
             <div className="glass-card p-4">
               <p className="font-display text-[10px] tracking-widest text-muted-foreground mb-3">
                 LIVE CATALOG
