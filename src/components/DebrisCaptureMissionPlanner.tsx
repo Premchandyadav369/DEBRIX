@@ -410,6 +410,28 @@ const DebrisCaptureMissionPlanner = () => {
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Available propellant budget: 850 m/s
                     </p>
+                    <button
+                      onClick={() => {
+                        const lines = [
+                          `DEBRI-X MISSION REPORT — ${new Date().toISOString()}`,
+                          `Target: ${selected.name} (NORAD ${selected.noradId})`,
+                          `Total dv: ${analysis.totals.dv.toFixed(1)} m/s / 850 m/s budget`,
+                          `Duration: ${(analysis.totals.duration / 3600).toFixed(2)} h`,
+                          `Feasibility: ${analysis.totals.feasibility.toFixed(0)}%`,
+                          "",
+                          ...analysis.plan.map((p) => `${p.phase}  ${p.desc}  | dv ${p.dv.toFixed(1)} m/s | ${(p.duration / 60).toFixed(1)} min`),
+                        ];
+                        const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/plain" }));
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `debrix-mission-${selected.noradId}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="mt-3 w-full px-3 py-1.5 text-[10px] font-mono rounded border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                    >
+                      DOWNLOAD MISSION REPORT
+                    </button>
                     <div className="mt-3 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${

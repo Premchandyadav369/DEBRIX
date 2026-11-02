@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import Starfield from "@/components/Starfield";
 import AmbientMusicPlayer from "@/components/AmbientMusicPlayer";
 import Navbar from "@/components/Navbar";
+import LiveStatusBar from "@/components/LiveStatusBar";
 import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -60,6 +61,7 @@ const Index = () => {
     <div className="relative min-h-screen overflow-x-hidden">
       <Starfield />
       <Navbar />
+      <LiveStatusBar />
       <HeroSection />
 
       <SectionExplainer sectionId="cockpit" />
