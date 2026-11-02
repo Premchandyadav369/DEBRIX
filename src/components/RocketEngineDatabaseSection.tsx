@@ -78,10 +78,10 @@ const RocketEngineDatabaseSection = () => {
   return (
     <section id="rocket-engines" className="relative z-10">
       <div className="section-container">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10 border-l-2 border-primary/40 pl-5">
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">Reference</p>
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Rocket Engine Database</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             Comprehensive specs for {ENGINES.length} rocket engines worldwide. Search, filter, and compare thrust, ISP, fuel types, and more.
           </p>
         </motion.div>

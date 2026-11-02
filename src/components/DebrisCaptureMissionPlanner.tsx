@@ -298,7 +298,7 @@ const DebrisCaptureMissionPlanner = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8"
+          className="mb-8 border-l-2 border-primary/40 pl-5"
         >
           <p className="font-display text-xs tracking-[0.3em] text-primary mb-3 uppercase">
             Autonomous Rendezvous Planner
@@ -306,7 +306,7 @@ const DebrisCaptureMissionPlanner = () => {
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
             Debris Capture Mission Planner
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             Pick a real reentry-candidate object from the live CelesTrak catalog. The planner computes
             Hohmann transfer, plane change, phasing, arm-capture sequence, and animates the full mission
             replay in 3D.
